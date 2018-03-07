@@ -1,0 +1,18 @@
+language: go
+
+
+go:
+  - 1.9.x
+  - 1.8.x
+
+before_script:
+  - go get -t -v github.com/smallnest/gen/...
+
+script:
+ - go build .
+
+notifications:
+  email:
+    recipients: smallnest@gmail.com
+    on_success: change
+    on_failure: always
