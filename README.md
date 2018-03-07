@@ -1,5 +1,7 @@
 ### gen 
 
+[![License](https://img.shields.io/:license-apache-3.0-blue.svg)](https://opensource.org/licenses/Apache-3.0) [![GoDoc](https://godoc.org/github.com/smallnest/gen?status.png)](http://godoc.org/github.com/smallnest/gen)  [![travis](https://travis-ci.org/smallnest/gen.svg?branch=master)](https://travis-ci.org/smallnest/gen) [![Go Report Card](https://goreportcard.com/badge/github.com/smallnest/gen)](https://goreportcard.com/report/github.com/smallnest/gen)
+
 The gen tool produces golang structs from a given database for use in a .go file.
 It supports [gorm](https://github.com/jinzhu/gorm) tags and implements some usable methods.
 It can also generate RESTful api for those structs.
@@ -17,7 +19,7 @@ gen is based/inspired by the work of Seth Shelnutt's [db2struct](https://github.
 
 ```BASH
 go get github.com/smallnest/gen
-gen --host localhost --user root --database employees  --json --gorm --guregu
+gen --host localhost --user root --database employees  --json --gorm --guregu --rest
 ```
 
 ## Supported Databases
