@@ -3,11 +3,16 @@ package template
 var ModelTmpl = `package {{.PackageName}}
 
 import (
+    "database/sql"
     "time"
 
     "github.com/guregu/null"
 	"github.com/jinzhu/gorm"
 )
+
+var _ = time.Second
+var _ = sql.LevelDefault
+var _ = null.Bool{}
 
 type {{.StructName}} struct {
     {{range .Fields}}{{.}}

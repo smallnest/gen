@@ -84,9 +84,9 @@ func main() {
 	}
 	// if packageName is not set we need to default it
 	if packageName == nil || *packageName == "" {
-		*packageName = "model"
+		*packageName = "generated"
 	}
-	os.Mkdir(*packageName, 0777)
+	os.Mkdir("model", 0777)
 
 	apiName := "api"
 	if *rest {
@@ -95,13 +95,13 @@ func main() {
 
 	t, err := getTemplate(gtmpl.ModelTmpl)
 	if err != nil {
-		fmt.Println("Error in lading model template")
+		fmt.Println("Error in loading model template: " + err.Error())
 		return
 	}
 
 	ct, err := getTemplate(gtmpl.ControllerTmpl)
 	if err != nil {
-		fmt.Println("Error in lading controller template")
+		fmt.Println("Error in loading controller template: " + err.Error())
 		return
 	}
 
@@ -113,7 +113,7 @@ func main() {
 		structName = inflection.Singular(structName)
 		structNames = append(structNames, structName)
 
-		modelInfo := dbmeta.GenerateStruct(db, tableName, structName, *packageName, *jsonAnnotation, *gormAnnotation, *gureguTypes)
+		modelInfo := dbmeta.GenerateStruct(db, tableName, structName, "model", *jsonAnnotation, *gormAnnotation, *gureguTypes)
 
 		var buf bytes.Buffer
 		err = t.Execute(&buf, modelInfo)
@@ -126,12 +126,12 @@ func main() {
 			fmt.Println("Error in formating source: " + err.Error())
 			return
 		}
-		ioutil.WriteFile(filepath.Join(*packageName, inflection.Singular(tableName)+".go"), data, 0777)
+		ioutil.WriteFile(filepath.Join("model", inflection.Singular(tableName)+".go"), data, 0777)
 
 		if *rest {
 			//write api
 			buf.Reset()
-			err = ct.Execute(&buf, structName)
+			err = ct.Execute(&buf, map[string]string{"PackageName": *packageName + "/model", "StructName": structName})
 			if err != nil {
 				fmt.Println("Error in rendering controller: " + err.Error())
 				return

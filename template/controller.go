@@ -6,80 +6,80 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"../model"
+	"{{.PackageName}}"
 )
 
-func config{{pluralize .}}Router(router *httprouter.Router) {
-	router.GET("/{{pluralize . | toLower}}", GetAll{{pluralize .}})
-	router.POST("/{{pluralize . | toLower}}", Post{{.}})
-	router.GET("/{{pluralize . | toLower}}/:id", Get{{.}})
-	router.PUT("/{{pluralize . | toLower}}/:id", Put{{.}})
-	router.DELETE("/{{pluralize . | toLower}}/:id", Delete{{.}})
+func config{{pluralize .StructName}}Router(router *httprouter.Router) {
+	router.GET("/{{pluralize .StructName | toLower}}", GetAll{{pluralize .StructName}})
+	router.POST("/{{pluralize .StructName | toLower}}", Post{{.StructName}})
+	router.GET("/{{pluralize .StructName | toLower}}/:id", Get{{.StructName}})
+	router.PUT("/{{pluralize .StructName | toLower}}/:id", Put{{.StructName}})
+	router.DELETE("/{{pluralize .StructName | toLower}}/:id", Delete{{.StructName}})
 }
 
-func GetAll{{pluralize .}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	{{pluralize . | toLower}} := []model.{{.}}{}
-	DB.Find(&{{pluralize . | toLower}})
-	writeJSON(w, &{{pluralize . | toLower}})
+func GetAll{{pluralize .StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	{{pluralize .StructName | toLower}} := []model.{{.StructName}}{}
+	DB.Find(&{{pluralize .StructName | toLower}})
+	writeJSON(w, &{{pluralize .StructName | toLower}})
 }
 
-func Get{{.}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func Get{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
-	{{. | toLower}} := &model.{{.}}{}
-	if DB.First({{. | toLower}}, id).Error != nil {
+	{{.StructName | toLower}} := &model.{{.StructName}}{}
+	if DB.First({{.StructName | toLower}}, id).Error != nil {
 		http.NotFound(w, r)
 		return
 	}
-	writeJSON(w, {{. | toLower}})
+	writeJSON(w, {{.StructName | toLower}})
 }
 
-func Post{{.}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	{{. | toLower}} := &model.{{.}}{}
+func Post{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	{{.StructName | toLower}} := &model.{{.StructName}}{}
 
-	if err := readJSON(r, {{. | toLower}}); err != nil {
+	if err := readJSON(r, {{.StructName | toLower}}); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	if err := DB.Save({{. | toLower}}).Error; err != nil {
+	if err := DB.Save({{.StructName | toLower}}).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	writeJSON(w, {{. | toLower}})
+	writeJSON(w, {{.StructName | toLower}})
 }
 
-func Put{{.}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func Put{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
 
-	{{. | toLower}} := &model.{{.}}{}
-	if DB.First({{. | toLower}}, id).Error != nil {
+	{{.StructName | toLower}} := &model.{{.StructName}}{}
+	if DB.First({{.StructName | toLower}}, id).Error != nil {
 		http.NotFound(w, r)
 		return
 	}
 
-	updated := &model.{{.}}{}
+	updated := &model.{{.StructName}}{}
 	if err := readJSON(r, updated); err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
 
-	// TODO: copy necessary fields from updated to {{. | toLower}}
+	// TODO: copy necessary fields from updated to {{.StructName | toLower}}
 
-	if err := DB.Save({{. | toLower}}).Error; err != nil {
+	if err := DB.Save({{.StructName | toLower}}).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
-	writeJSON(w, {{. | toLower}})
+	writeJSON(w, {{.StructName | toLower}})
 }
 
-func Delete{{.}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func Delete{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
-	{{. | toLower}} := &model.{{.}}{}
+	{{.StructName | toLower}} := &model.{{.StructName}}{}
 
-	if DB.First({{. | toLower}}, id).Error != nil {
+	if DB.First({{.StructName | toLower}}, id).Error != nil {
 		http.NotFound(w, r)
 		return
 	}
-	if err := DB.Delete({{. | toLower}}).Error; err != nil {
+	if err := DB.Delete({{.StructName | toLower}}).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
