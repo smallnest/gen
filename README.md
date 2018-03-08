@@ -27,11 +27,13 @@ gen --connstr "root@tcp(127.0.0.1:3306)/employees?&parseTime=True" --database em
 Currently Supported
 - MariaDB
 - MySQL
+- PostgreSQL
+- Microsoft SQL Server
+- SQLite
 
 Planned Support
-- PostgreSQL
 - Oracle
-- Microsoft SQL Server
+
 
 ### MariaDB/MySQL
 
@@ -41,7 +43,7 @@ and metadata to create a usable go compatible struct type.
 
 #### Supported Datatypes
 
-Currently only a limited number of MariaDB/MySQL datatypes are supported. Initial support includes:
+Currently only a limited number of datatypes are supported. Initial support includes:
 -  tinyint (sql.NullInt64 or null.Int)
 -  int      (sql.NullInt64 or null.Int)
 -  smallint      (sql.NullInt64 or null.Int)
