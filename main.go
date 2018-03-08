@@ -135,14 +135,7 @@ func main() {
 		structName = inflection.Singular(structName)
 		structNames = append(structNames, structName)
 
-		columnDataTypes, err := dbmeta.GetColumnsFromMysqlTable(db, *mysqlDatabase, tableName)
-
-		if err != nil {
-			fmt.Println("Error in selecting column data information from mysql information schema")
-			return
-		}
-
-		modelInfo := dbmeta.GenerateStruct(db, *columnDataTypes, tableName, structName, *packageName, *jsonAnnotation, *gormAnnotation, *gureguTypes)
+		modelInfo := dbmeta.GenerateStruct(db, tableName, structName, *packageName, *jsonAnnotation, *gormAnnotation, *gureguTypes)
 
 		var buf bytes.Buffer
 		err = t.Execute(&buf, modelInfo)

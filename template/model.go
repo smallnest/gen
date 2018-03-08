@@ -3,9 +3,9 @@ package template
 var ModelTmpl = `package {{.PackageName}}
 
 import (
-    _ "time"
+    "time"
 
-    _ "github.com/guregu/null"
+    "github.com/guregu/null"
 	"github.com/jinzhu/gorm"
 )
 

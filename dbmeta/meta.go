@@ -2,7 +2,10 @@ package dbmeta
 
 import (
 	"database/sql"
+	"fmt"
 	"strings"
+
+	"github.com/jimsmart/schema"
 )
 
 type ModelInfo struct {
@@ -82,8 +85,11 @@ const (
 )
 
 // GenerateStruct generates a struct for the given table.
-func GenerateStruct(db *sql.DB, columnTypes map[string]map[string]string, tableName string, structName string, pkgName string, jsonAnnotation bool, gormAnnotation bool, gureguTypes bool) *ModelInfo {
-	fields := generateMysqlTypes(db, columnTypes, 0, jsonAnnotation, gormAnnotation, gureguTypes)
+func GenerateStruct(db *sql.DB, tableName string, structName string, pkgName string, jsonAnnotation bool, gormAnnotation bool, gureguTypes bool) *ModelInfo {
+	cols, _ := schema.Table(db, tableName)
+	fields := generateFieldsTypes(db, cols, 0, jsonAnnotation, gormAnnotation, gureguTypes)
+
+	//fields := generateMysqlTypes(db, columnTypes, 0, jsonAnnotation, gormAnnotation, gureguTypes)
 
 	var modelInfo = &ModelInfo{
 		PackageName:     pkgName,
@@ -94,4 +100,94 @@ func GenerateStruct(db *sql.DB, columnTypes map[string]map[string]string, tableN
 	}
 
 	return modelInfo
+}
+
+// Generate fields string
+func generateFieldsTypes(db *sql.DB, columns []*sql.ColumnType, depth int, jsonAnnotation bool, gormAnnotation bool, gureguTypes bool) []string {
+
+	//sort.Strings(keys)
+
+	var fields []string
+	var field = ""
+	for _, c := range columns {
+		nullable, _ := c.Nullable()
+		key := c.Name()
+		valueType := sqlTypeToGoType(strings.ToLower(c.DatabaseTypeName()), nullable, gureguTypes)
+		fieldName := FmtFieldName(stringifyFirstChar(key))
+
+		var annotations []string
+		if gormAnnotation == true {
+			annotations = append(annotations, fmt.Sprintf("gorm:\"column:%s\"", key))
+		}
+		if jsonAnnotation == true {
+			annotations = append(annotations, fmt.Sprintf("json:\"%s\"", key))
+		}
+		if len(annotations) > 0 {
+			field = fmt.Sprintf("%s %s `%s`",
+				fieldName,
+				valueType,
+				strings.Join(annotations, " "))
+
+		} else {
+			field = fmt.Sprintf("%s %s",
+				fieldName,
+				valueType)
+		}
+
+		fields = append(fields, field)
+	}
+	return fields
+}
+
+func sqlTypeToGoType(mysqlType string, nullable bool, gureguTypes bool) string {
+	switch mysqlType {
+	case "tinyint", "int", "smallint", "mediumint":
+		if nullable {
+			if gureguTypes {
+				return gureguNullInt
+			}
+			return sqlNullInt
+		}
+		return golangInt
+	case "bigint":
+		if nullable {
+			if gureguTypes {
+				return gureguNullInt
+			}
+			return sqlNullInt
+		}
+		return golangInt64
+	case "char", "enum", "varchar", "longtext", "mediumtext", "text", "tinytext":
+		if nullable {
+			if gureguTypes {
+				return gureguNullString
+			}
+			return sqlNullString
+		}
+		return "string"
+	case "date", "datetime", "time", "timestamp":
+		if nullable && gureguTypes {
+			return gureguNullTime
+		}
+		return golangTime
+	case "decimal", "double":
+		if nullable {
+			if gureguTypes {
+				return gureguNullFloat
+			}
+			return sqlNullFloat
+		}
+		return golangFloat64
+	case "float":
+		if nullable {
+			if gureguTypes {
+				return gureguNullFloat
+			}
+			return sqlNullFloat
+		}
+		return golangFloat32
+	case "binary", "blob", "longblob", "mediumblob", "varbinary":
+		return golangByteArray
+	}
+	return ""
 }
