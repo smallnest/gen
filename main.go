@@ -8,28 +8,25 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
-	"strconv"
 	"strings"
 	"text/template"
 
+	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/droundy/goopt"
-	"github.com/howeyc/gopass"
 	"github.com/jimsmart/schema"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	"github.com/jinzhu/inflection"
+	_ "github.com/lib/pq"
+	_ "github.com/mattn/go-sqlite3"
 	"github.com/serenize/snaker"
 	"github.com/smallnest/gen/dbmeta"
 	gtmpl "github.com/smallnest/gen/template"
 )
 
 var (
-	mysqlHost     = goopt.String([]string{"-H", "--host"}, "", "Host to check mysql status of")
-	mysqlPort     = goopt.Int([]string{"--mysql_port"}, 3306, "Specify a port to connect to")
-	mysqlUser     = goopt.String([]string{"-u", "--user"}, "user", "user to connect to database")
-	mysqlPassword *string
-
-	mysqlDatabase = goopt.String([]string{"-d", "--database"}, "nil", "Database to for connection")
-	mysqlTable    = goopt.String([]string{"-t", "--table"}, "", "Table to build struct from")
+	sqlConnStr  = goopt.String([]string{"-c", "--connstr"}, "nil", "database connection string")
+	sqlDatabase = goopt.String([]string{"-d", "--database"}, "nil", "Database to for connection")
+	sqlTable    = goopt.String([]string{"-t", "--table"}, "", "Table to build struct from")
 
 	packageName = goopt.String([]string{"--package"}, "", "name to set for package")
 
@@ -43,14 +40,12 @@ var (
 )
 
 func init() {
-	goopt.OptArg([]string{"-p", "--password"}, "", "Mysql password", getMysqlPassword)
-
 	// Setup goopts
 	goopt.Description = func() string {
 		return "ORM and RESTful API generator for Mysql"
 	}
 	goopt.Version = "0.1"
-	goopt.Summary = "gen [-H] [-p] [-v] --user user --package pkgName --database databaseName --table tableName [--json] [--gorm] [--guregu]"
+	goopt.Summary = `gen [-v] --connstr "user:password@/dbname" --package pkgName --database databaseName --table tableName [--json] [--gorm] [--guregu]`
 
 	//Parse options
 	goopt.Parse(nil)
@@ -59,44 +54,27 @@ func init() {
 
 func main() {
 	// Username is required
-	if mysqlUser == nil || *mysqlUser == "user" {
-		fmt.Println("Username is required! Add it with --user=name")
+	if sqlConnStr == nil || *sqlConnStr == "" {
+		fmt.Println("sql connection string is required! Add it with --connstr=s")
 		return
 	}
 
-	if mysqlPassword == nil || *mysqlPassword == "" {
-		fmt.Print("Password: ")
-		pass, err := gopass.GetPasswd()
-		stringPass := string(pass)
-		mysqlPassword = &stringPass
-		if err != nil {
-			fmt.Println("Error reading password: " + err.Error())
-			return
-		}
-	}
-
-	if *verbose {
-		fmt.Println("Connecting to mysql server " + *mysqlHost + ":" + strconv.Itoa(*mysqlPort))
-	}
-
-	if mysqlDatabase == nil || *mysqlDatabase == "" {
+	if sqlDatabase == nil || *sqlDatabase == "" {
 		fmt.Println("Database can not be null")
 		return
 	}
 
-	var err error
-	var db *sql.DB
-	if *mysqlPassword != "" {
-		db, err = sql.Open("mysql", *mysqlUser+":"+*mysqlPassword+"@tcp("+*mysqlHost+":"+strconv.Itoa(*mysqlPort)+")/"+*mysqlDatabase+"?&parseTime=True")
-	} else {
-		db, err = sql.Open("mysql", *mysqlUser+"@tcp("+*mysqlHost+":"+strconv.Itoa(*mysqlPort)+")/"+*mysqlDatabase+"?&parseTime=True")
+	var db, err = sql.Open("mysql", *sqlConnStr)
+	if err != nil {
+		fmt.Println("Error in open database: " + err.Error())
+		return
 	}
 	defer db.Close()
 
 	// parse or read tables
 	var tables []string
-	if *mysqlTable != "" {
-		tables = strings.Split(*mysqlTable, ",")
+	if *sqlTable != "" {
+		tables = strings.Split(*sqlTable, ",")
 	} else {
 		tables, err = schema.TableNames(db)
 		if err != nil {
@@ -186,12 +164,6 @@ func main() {
 		}
 		ioutil.WriteFile(filepath.Join(apiName, "router.go"), data, 0777)
 	}
-}
-
-func getMysqlPassword(password string) error {
-	mysqlPassword = new(string)
-	*mysqlPassword = password
-	return nil
 }
 
 func getTemplate(t string) (*template.Template, error) {

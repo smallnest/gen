@@ -19,7 +19,7 @@ gen is based/inspired by the work of Seth Shelnutt's [db2struct](https://github.
 
 ```BASH
 go get github.com/smallnest/gen
-gen --host localhost --user root --database employees  --json --gorm --guregu --rest
+gen --connstr "root@tcp(127.0.0.1:3306)/employees?&parseTime=True" --database employees  --json --gorm --guregu --rest
 ```
 
 ## Supported Databases
