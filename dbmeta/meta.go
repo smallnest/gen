@@ -109,7 +109,7 @@ func generateFieldsTypes(db *sql.DB, columns []*sql.ColumnType, depth int, jsonA
 
 	var fields []string
 	var field = ""
-	for _, c := range columns {
+	for i, c := range columns {
 		nullable, _ := c.Nullable()
 		key := c.Name()
 		valueType := sqlTypeToGoType(strings.ToLower(c.DatabaseTypeName()), nullable, gureguTypes)
@@ -117,7 +117,12 @@ func generateFieldsTypes(db *sql.DB, columns []*sql.ColumnType, depth int, jsonA
 
 		var annotations []string
 		if gormAnnotation == true {
-			annotations = append(annotations, fmt.Sprintf("gorm:\"column:%s\"", key))
+			if i == 0 {
+				annotations = append(annotations, fmt.Sprintf("gorm:\"column:%s;primary_key\"", key))
+			} else {
+				annotations = append(annotations, fmt.Sprintf("gorm:\"column:%s\"", key))
+			}
+
 		}
 		if jsonAnnotation == true {
 			annotations = append(annotations, fmt.Sprintf("json:\"%s\"", key))

@@ -10,9 +10,12 @@ import (
 	"github.com/jinzhu/gorm"
 )
 
-var _ = time.Second
-var _ = sql.LevelDefault
-var _ = null.Bool{}
+var (
+    _ = time.Second
+    _ = sql.LevelDefault
+    _ = null.Bool{}
+)
+
 
 type {{.StructName}} struct {
     {{range .Fields}}{{.}}
@@ -22,9 +25,5 @@ type {{.StructName}} struct {
 // TableName sets the insert table name for this struct type
 func ({{.ShortStructName}} *{{.StructName}}) TableName() string {
 	return "{{.TableName}}"
-}
-
-func ({{.ShortStructName}} *{{.StructName}}) Create{{.StructName}}(db *gorm.DB) error {
-    return db.Create({{.ShortStructName}}).Error
 }
 `
