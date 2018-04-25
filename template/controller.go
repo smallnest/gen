@@ -6,6 +6,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/smallnest/gen/dbmeta"
 	"{{.PackageName}}"
 )
 
@@ -87,8 +88,10 @@ func Update{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter
 		return
 	}
 
-	// TODO: only copy non-zero field, or implement PATCH
-	{{.StructName | toLower}} = updated
+	if err := dbmeta.Copy({{.StructName | toLower}}, updated); err != nil{
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	if err := DB.Save({{.StructName | toLower}}).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
