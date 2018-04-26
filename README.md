@@ -73,5 +73,4 @@ Currently only a limited number of datatypes are supported. Initial support incl
 ## Issues
 
 - Postgres and SQLite driver support for sql.ColumnType.Nullable() ([#3](https://github.com/smallnest/gen/issues/3))
-- UpdateXXXX updates all fields of passing object, have not implemented **PATCH** for updating partial fields
 - Can not distinguish primay key of tables. Only set the first field as primay key. So you need to change it in some cases.
