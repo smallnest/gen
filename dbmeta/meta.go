@@ -113,6 +113,9 @@ func generateFieldsTypes(db *sql.DB, columns []*sql.ColumnType, depth int, jsonA
 		nullable, _ := c.Nullable()
 		key := c.Name()
 		valueType := sqlTypeToGoType(strings.ToLower(c.DatabaseTypeName()), nullable, gureguTypes)
+		if valueType == "" { // unknown type
+			continue
+		}
 		fieldName := FmtFieldName(stringifyFirstChar(key))
 
 		var annotations []string
