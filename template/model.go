@@ -7,7 +7,6 @@ import (
     "time"
 
     "github.com/guregu/null"
-	"github.com/jinzhu/gorm"
 )
 
 var (
