@@ -19,8 +19,8 @@ import (
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/serenize/snaker"
-	"github.com/smallnest/gen/dbmeta"
-	gtmpl "github.com/smallnest/gen/template"
+	"github.com/nqsang90/gen/dbmeta"
+	gtmpl "github.com/nqsang90/gen/template"
 )
 
 var (
@@ -31,6 +31,7 @@ var (
 	packageName = goopt.String([]string{"--package"}, "", "name to set for package")
 
 	jsonAnnotation = goopt.Flag([]string{"--json"}, []string{"--no-json"}, "Add json annotations (default)", "Disable json annotations")
+	dbAnnotation = goopt.Flag([]string{"--db"}, []string{}, "Add db annotations (tags)", "")
 	gormAnnotation = goopt.Flag([]string{"--gorm"}, []string{}, "Add gorm annotations (tags)", "")
 	gureguTypes    = goopt.Flag([]string{"--guregu"}, []string{}, "Add guregu null types", "")
 
@@ -113,7 +114,7 @@ func main() {
 		structName = inflection.Singular(structName)
 		structNames = append(structNames, structName)
 
-		modelInfo := dbmeta.GenerateStruct(db, tableName, structName, "model", *jsonAnnotation, *gormAnnotation, *gureguTypes)
+		modelInfo := dbmeta.GenerateStruct(db, tableName, structName, "model", *dbAnnotation, *jsonAnnotation, *gormAnnotation, *gureguTypes)
 
 		var buf bytes.Buffer
 		err = t.Execute(&buf, modelInfo)

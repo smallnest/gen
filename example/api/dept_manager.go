@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/smallnest/gen/example/model"
+	"github.com/nqsang90/gen/example/model"
 )
 
 func configDeptManagersRouter(router *httprouter.Router) {
