@@ -87,7 +87,7 @@ func main() {
 	if packageName == nil || *packageName == "" {
 		*packageName = "generated"
 	}
-	os.Mkdir("model", 0777)
+	os.Mkdir(*packageName, 0777)
 
 	apiName := "api"
 	if *rest {
@@ -114,7 +114,7 @@ func main() {
 		structName = inflection.Singular(structName)
 		structNames = append(structNames, structName)
 
-		modelInfo := dbmeta.GenerateStruct(db, tableName, structName, "model", *dbAnnotation, *jsonAnnotation, *gormAnnotation, *gureguTypes)
+		modelInfo := dbmeta.GenerateStruct(db, tableName, structName, *packageName, *dbAnnotation, *jsonAnnotation, *gormAnnotation, *gureguTypes)
 
 		var buf bytes.Buffer
 		err = t.Execute(&buf, modelInfo)
@@ -127,7 +127,7 @@ func main() {
 			fmt.Println("Error in formating source: " + err.Error())
 			return
 		}
-		ioutil.WriteFile(filepath.Join("model", inflection.Singular(tableName)+".go"), data, 0777)
+		ioutil.WriteFile(filepath.Join(*packageName, inflection.Singular(tableName)+".go"), data, 0777)
 
 		if *rest {
 			//write api
