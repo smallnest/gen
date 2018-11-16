@@ -1,6 +1,6 @@
 package template
 
-var ModelTmpl = `package {{.PackageName}}
+var ModelTmpl = `package models
 
 import (
     "database/sql"
