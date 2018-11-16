@@ -69,19 +69,19 @@ var intToWordMap = []string{
 // Constants for return types of golang
 const (
 	golangByteArray  = "[]byte"
-	gureguNullInt    = "null.Int"
-	sqlNullInt       = "sql.NullInt64"
+	gureguNullInt    = "int"
+	sqlNullInt       = "int64"
 	golangInt        = "int"
 	golangInt64      = "int64"
-	gureguNullFloat  = "null.Float"
-	sqlNullFloat     = "sql.NullFloat64"
+	gureguNullFloat  = "float64"
+	sqlNullFloat     = "float64"
 	golangFloat      = "float"
 	golangFloat32    = "float32"
 	golangFloat64    = "float64"
-	gureguNullString = "null.String"
-	sqlNullString    = "sql.NullString"
+	gureguNullString = "string"
+	sqlNullString    = "string"
 	gureguNullTime   = "null.Time"
-	golangTime       = "time.Time"
+	golangTime       = "*time.Time"
 )
 
 // GenerateStruct generates a struct for the given table.

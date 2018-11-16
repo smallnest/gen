@@ -5,14 +5,10 @@ var ModelTmpl = `package {{.PackageName}}
 import (
     "database/sql"
     "time"
-
-    "github.com/guregu/null"
 )
 
 var (
     _ = time.Second
-    _ = sql.LevelDefault
-    _ = null.Bool{}
 )
 
 

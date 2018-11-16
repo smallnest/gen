@@ -11,6 +11,8 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/ariayudanto/gen/dbmeta"
+	gtmpl "github.com/ariayudanto/gen/template"
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/droundy/goopt"
 	"github.com/jimsmart/schema"
@@ -19,8 +21,6 @@ import (
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/serenize/snaker"
-	"github.com/smallnest/gen/dbmeta"
-	gtmpl "github.com/smallnest/gen/template"
 )
 
 var (
@@ -86,16 +86,16 @@ func main() {
 	if packageName == nil || *packageName == "" {
 		*packageName = "generated"
 	}
-	os.Mkdir("model", 0777)
+	os.Mkdir("models", 0777)
 
-	apiName := "api"
+	apiName := "controllers"
 	if *rest {
 		os.Mkdir(apiName, 0777)
 	}
 
 	t, err := getTemplate(gtmpl.ModelTmpl)
 	if err != nil {
-		fmt.Println("Error in loading model template: " + err.Error())
+		fmt.Println("Error in loading models template: " + err.Error())
 		return
 	}
 
@@ -113,7 +113,7 @@ func main() {
 		structName = inflection.Singular(structName)
 		structNames = append(structNames, structName)
 
-		modelInfo := dbmeta.GenerateStruct(db, tableName, structName, "model", *jsonAnnotation, *gormAnnotation, *gureguTypes)
+		modelInfo := dbmeta.GenerateStruct(db, tableName, structName, "models", *jsonAnnotation, *gormAnnotation, *gureguTypes)
 
 		var buf bytes.Buffer
 		err = t.Execute(&buf, modelInfo)
@@ -126,12 +126,12 @@ func main() {
 			fmt.Println("Error in formating source: " + err.Error())
 			return
 		}
-		ioutil.WriteFile(filepath.Join("model", inflection.Singular(tableName)+".go"), data, 0777)
+		ioutil.WriteFile(filepath.Join("models", inflection.Singular(tableName)+".go"), data, 0777)
 
 		if *rest {
 			//write api
 			buf.Reset()
-			err = ct.Execute(&buf, map[string]string{"PackageName": *packageName + "/model", "StructName": structName})
+			err = ct.Execute(&buf, map[string]string{"PackageName": *packageName + "/models", "StructName": structName})
 			if err != nil {
 				fmt.Println("Error in rendering controller: " + err.Error())
 				return
@@ -145,25 +145,25 @@ func main() {
 		}
 	}
 
-	if *rest {
-		rt, err := getTemplate(gtmpl.RouterTmpl)
-		if err != nil {
-			fmt.Println("Error in lading router template")
-			return
-		}
-		var buf bytes.Buffer
-		err = rt.Execute(&buf, structNames)
-		if err != nil {
-			fmt.Println("Error in rendering router: " + err.Error())
-			return
-		}
-		data, err := format.Source(buf.Bytes())
-		if err != nil {
-			fmt.Println("Error in formating source: " + err.Error())
-			return
-		}
-		ioutil.WriteFile(filepath.Join(apiName, "router.go"), data, 0777)
-	}
+	// if *rest {
+	// 	rt, err := getTemplate(gtmpl.RouterTmpl)
+	// 	if err != nil {
+	// 		fmt.Println("Error in lading router template")
+	// 		return
+	// 	}
+	// 	var buf bytes.Buffer
+	// 	err = rt.Execute(&buf, structNames)
+	// 	if err != nil {
+	// 		fmt.Println("Error in rendering router: " + err.Error())
+	// 		return
+	// 	}
+	// 	data, err := format.Source(buf.Bytes())
+	// 	if err != nil {
+	// 		fmt.Println("Error in formating source: " + err.Error())
+	// 		return
+	// 	}
+	// 	ioutil.WriteFile(filepath.Join(apiName, "router.go"), data, 0777)
+	// }
 }
 
 func getTemplate(t string) (*template.Template, error) {
