@@ -6,7 +6,7 @@ import (
 
 	_ "github.com/go-sql-driver/mysql"
 	"github.com/jinzhu/gorm"
-	"github.com/nqsang90/gen/example/api"
+	"github.com/smallnest/gen/example/api"
 )
 
 func main() {

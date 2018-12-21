@@ -4,7 +4,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/nqsang90/gen/example/model"
+	"github.com/smallnest/gen/example/model"
 )
 
 func configSalariesRouter(router *httprouter.Router) {

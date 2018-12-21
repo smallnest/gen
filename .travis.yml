@@ -6,7 +6,7 @@ go:
   - 1.8.x
 
 before_script:
-  - go get -t -v github.com/nqsang90/gen/...
+  - go get -t -v github.com/smallnest/gen/...
 
 script:
  - go build .

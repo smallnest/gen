@@ -19,8 +19,8 @@ import (
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 	"github.com/serenize/snaker"
-	"github.com/nqsang90/gen/dbmeta"
-	gtmpl "github.com/nqsang90/gen/template"
+	"github.com/smallnest/gen/dbmeta"
+	gtmpl "github.com/smallnest/gen/template"
 )
 
 var (

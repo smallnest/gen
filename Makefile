@@ -3,7 +3,7 @@ WORKDIR=`pwd`
 default: build
 
 install:
-	go get github.com/nqsang90/gen
+	go get github.com/smallnest/gen
 
 vet:
 	go vet .
@@ -38,7 +38,7 @@ doc:
 	godoc -http=:6060
 
 deps:
-	go list -f '{{ join .Deps  "\n"}}' . |grep "/" | grep -v "github.com/nqsang90/gen"| grep "\." | sort |uniq
+	go list -f '{{ join .Deps  "\n"}}' . |grep "/" | grep -v "github.com/smallnest/gen"| grep "\." | sort |uniq
 
 fmt:
 	go fmt .

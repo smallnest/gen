@@ -6,7 +6,7 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
-	"github.com/nqsang90/gen/dbmeta"
+	"github.com/smallnest/gen/dbmeta"
 	"{{.PackageName}}"
 )
 
