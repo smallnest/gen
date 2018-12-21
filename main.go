@@ -31,7 +31,7 @@ var (
 	packageName = goopt.String([]string{"--package"}, "", "name to set for package")
 
 	jsonAnnotation = goopt.Flag([]string{"--json"}, []string{"--no-json"}, "Add json annotations (default)", "Disable json annotations")
-	dbAnnotation = goopt.Flag([]string{"--db"}, []string{}, "Add db annotations (tags)", "")
+	dbAnnotation   = goopt.Flag([]string{"--db"}, []string{}, "Add db annotations (tags)", "")
 	gormAnnotation = goopt.Flag([]string{"--gorm"}, []string{}, "Add gorm annotations (tags)", "")
 	gureguTypes    = goopt.Flag([]string{"--guregu"}, []string{}, "Add guregu null types", "")
 
@@ -114,7 +114,12 @@ func main() {
 		structName = inflection.Singular(structName)
 		structNames = append(structNames, structName)
 
-		modelInfo := dbmeta.GenerateStruct(db, tableName, structName, *packageName, *dbAnnotation, *jsonAnnotation, *gormAnnotation, *gureguTypes)
+		modelInfo, err := dbmeta.GenerateStruct(db, *sqlDatabase, tableName, structName, *packageName, *dbAnnotation, *jsonAnnotation, *gormAnnotation, *gureguTypes)
+
+		if err != nil {
+			fmt.Println("Error in creating struct from json: " + err.Error())
+			return
+		}
 
 		var buf bytes.Buffer
 		err = t.Execute(&buf, modelInfo)
