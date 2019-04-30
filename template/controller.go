@@ -19,10 +19,6 @@ func config{{pluralize .StructName}}Router(router *httprouter.Router) {
 }
 
 func GetAll{{pluralize .StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	{{pluralize .StructName | toLower}} := []model.{{.StructName}}{}
-	DB.Find(&{{pluralize .StructName | toLower}})
-	writeJSON(w, &{{pluralize .StructName | toLower}})
-
 	page, err := readInt(r, "page", 1)
 	if err != nil || page < 1 {
 		http.Error(w, err.Error(), http.StatusBadRequest)

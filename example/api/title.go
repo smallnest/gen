@@ -4,21 +4,43 @@ import (
 	"net/http"
 
 	"github.com/julienschmidt/httprouter"
+	"github.com/smallnest/gen/dbmeta"
 	"github.com/smallnest/gen/example/model"
 )
 
 func configTitlesRouter(router *httprouter.Router) {
 	router.GET("/titles", GetAllTitles)
-	router.POST("/titles", PostTitle)
+	router.POST("/titles", AddTitle)
 	router.GET("/titles/:id", GetTitle)
-	router.PUT("/titles/:id", PutTitle)
+	router.PUT("/titles/:id", UpdateTitle)
 	router.DELETE("/titles/:id", DeleteTitle)
 }
 
 func GetAllTitles(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	titles := []model.Title{}
-	DB.Find(&titles)
-	writeJSON(w, &titles)
+	page, err := readInt(r, "page", 1)
+	if err != nil || page < 1 {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	pagesize, err := readInt(r, "pagesize", 20)
+	if err != nil || pagesize <= 0 {
+		http.Error(w, err.Error(), http.StatusBadRequest)
+	}
+	offset := (page - 1) * pagesize
+
+	order := r.FormValue("order")
+
+	titles := []*model.Title{}
+
+	if order != "" {
+		err = DB.Model(&model.Title{}).Order(order).Offset(offset).Limit(pagesize).Find(&titles).Error
+	} else {
+		err = DB.Model(&model.Title{}).Offset(offset).Limit(pagesize).Find(&titles).Error
+	}
+
+	if err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 }
 
 func GetTitle(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -31,7 +53,7 @@ func GetTitle(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	writeJSON(w, title)
 }
 
-func PostTitle(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func AddTitle(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	title := &model.Title{}
 
 	if err := readJSON(r, title); err != nil {
@@ -45,7 +67,7 @@ func PostTitle(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	writeJSON(w, title)
 }
 
-func PutTitle(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+func UpdateTitle(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
 
 	title := &model.Title{}
@@ -60,7 +82,10 @@ func PutTitle(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		return
 	}
 
-	// TODO: copy necessary fields from updated to title
+	if err := dbmeta.Copy(title, updated); err != nil {
+		http.Error(w, err.Error(), http.StatusInternalServerError)
+		return
+	}
 
 	if err := DB.Save(title).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)

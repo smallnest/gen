@@ -24,6 +24,7 @@ import (
 )
 
 var (
+	sqlType     = goopt.String([]string{"--sqltype"}, "mysql", "sql database type such as mysql, postgres, etc.")
 	sqlConnStr  = goopt.String([]string{"-c", "--connstr"}, "nil", "database connection string")
 	sqlDatabase = goopt.String([]string{"-d", "--database"}, "nil", "Database to for connection")
 	sqlTable    = goopt.String([]string{"-t", "--table"}, "", "Table to build struct from")
@@ -64,7 +65,7 @@ func main() {
 		return
 	}
 
-	var db, err = sql.Open("mysql", *sqlConnStr)
+	var db, err = sql.Open(*sqlType, *sqlConnStr)
 	if err != nil {
 		fmt.Println("Error in open database: " + err.Error())
 		return

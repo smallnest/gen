@@ -6,6 +6,7 @@ import (
 	"encoding/json"
 	"io/ioutil"
 	"net/http"
+	"strconv"
 
 	"github.com/jinzhu/gorm"
 	"github.com/julienschmidt/httprouter"
@@ -27,6 +28,14 @@ func ConfigRouter() http.Handler {
     {{end}}
 	
 	return router
+}
+
+func readInt(r *http.Request, param string, v int64) (int64, error) {
+	p := r.FormValue(param)
+	if p == "" {
+		return v, nil
+	}
+	return strconv.ParseInt(p, 10, 64)
 }
 
 func writeJSON(w http.ResponseWriter, v interface{}) {
