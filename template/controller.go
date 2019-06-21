@@ -43,6 +43,7 @@ func GetAll{{pluralize .StructName}}(w http.ResponseWriter, r *http.Request, ps 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+	writeJSON(w, &{{pluralize .StructName | toLower}})
 }
 
 func Get{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
