@@ -147,6 +147,50 @@ func generateFieldsTypes(db *sql.DB, columns []*sql.ColumnType, depth int, jsonA
 	return fields
 }
 
+func generateMapTypes(db *sql.DB, columns []*sql.ColumnType, depth int, jsonAnnotation bool, gormAnnotation bool, gureguTypes bool) []string {
+
+	//sort.Strings(keys)
+
+	var fields []string
+	var field = ""
+	for i, c := range columns {
+		nullable, _ := c.Nullable()
+		key := c.Name()
+		valueType := sqlTypeToGoType(strings.ToLower(c.DatabaseTypeName()), nullable, gureguTypes)
+		if valueType == "" { // unknown type
+			continue
+		}
+		fieldName := FmtFieldName(stringifyFirstChar(key))
+
+		var annotations []string
+		if gormAnnotation == true {
+			if i == 0 {
+				annotations = append(annotations, fmt.Sprintf("gorm:\"column:%s;primary_key\"", key))
+			} else {
+				annotations = append(annotations, fmt.Sprintf("gorm:\"column:%s\"", key))
+			}
+
+		}
+		if jsonAnnotation == true {
+			annotations = append(annotations, fmt.Sprintf("json:\"%s\"", key))
+		}
+		if len(annotations) > 0 {
+			field = fmt.Sprintf("%s %s `%s`",
+				fieldName,
+				valueType,
+				strings.Join(annotations, " "))
+
+		} else {
+			field = fmt.Sprintf("%s %s",
+				fieldName,
+				valueType)
+		}
+
+		fields = append(fields, field)
+	}
+	return fields
+}
+
 func sqlTypeToGoType(mysqlType string, nullable bool, gureguTypes bool) string {
 	switch mysqlType {
 	case "tinyint", "int", "smallint", "mediumint":
