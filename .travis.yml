@@ -8,7 +8,7 @@ before_script:
   - go get -t -v github.com/smallnest/gen/...
 
 script:
-  - go build .
+  - go build main.go
 
 notifications:
   email:
