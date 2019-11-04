@@ -84,9 +84,19 @@ const (
 	golangTime       = "time.Time"
 )
 
+// driverDialect is a registry, mapping database/sql driver names to database dialects.
+// This is somewhat fragile.
+var tableNameFormat map[string]string = map[string]string{
+	"sqlite":   "`%s`",
+	"postgres": "`%s`",
+	"mysql":    "`%s`",
+	"mssql":    "%s",
+	"oracle":   "`%s`",
+}
+
 // GenerateStruct generates a struct for the given table.
-func GenerateStruct(db *sql.DB, tableName string, structName string, pkgName string, jsonAnnotation bool, gormAnnotation bool, gureguTypes bool) *ModelInfo {
-	cols, _ := schema.Table(db, "`"+tableName+"`")
+func GenerateStruct(db *sql.DB, sqlType string, tableName string, structName string, pkgName string, jsonAnnotation bool, gormAnnotation bool, gureguTypes bool) *ModelInfo {
+	cols, _ := schema.Table(db, fmt.Sprintf(tableNameFormat[sqlType], tableName))
 	fields := generateFieldsTypes(db, cols, 0, jsonAnnotation, gormAnnotation, gureguTypes)
 
 	//fields := generateMysqlTypes(db, columnTypes, 0, jsonAnnotation, gormAnnotation, gureguTypes)

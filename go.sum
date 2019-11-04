@@ -67,8 +67,8 @@ github.com/hashicorp/golang-lru v0.5.0/go.mod h1:/m3WP610KZHVQ1SGc6re/UDhFvYD7pJ
 github.com/hpcloud/tail v1.0.0 h1:nfCOvKYfkgYP8hkirhJocXT2+zOD8yUNjXaWfTlyFKI=
 github.com/hpcloud/tail v1.0.0/go.mod h1:ab1qPbhIpdTxEkNHXyeSf5vhxWSCs/tWer42PpOxQnU=
 github.com/jellevandenhooff/dkim v0.0.0-20150330215556-f50fe3d243e1/go.mod h1:E0B/fFc00Y+Rasa88328GlI/XbtyysCtTHZS8h7IrBU=
-github.com/jimsmart/schema v0.0.0-20181113191328-8d0563922e25 h1:ApI3RQzYrspNCHCbL1Ki15Qy3sA9qFqwRELTXRY8Oq8=
-github.com/jimsmart/schema v0.0.0-20181113191328-8d0563922e25/go.mod h1:s402qSZ/H+MBuvTa9BDxzA8jKJKLOyNEZg9/YZF2C0M=
+github.com/jimsmart/schema v0.0.0-20191104172732-39e4bec5335f h1:iglhLNJdBiU9MdQswh66+JhU46d5s39NrEgkxXPJtjk=
+github.com/jimsmart/schema v0.0.0-20191104172732-39e4bec5335f/go.mod h1:s402qSZ/H+MBuvTa9BDxzA8jKJKLOyNEZg9/YZF2C0M=
 github.com/jinzhu/gorm v1.9.4 h1:3KDoUjMEfH58nweXdD5Dng222YiwOVUNFShENhehJyQ=
 github.com/jinzhu/gorm v1.9.4/go.mod h1:7ZYqlk/T0SqZip7ZOIL1aC/sjDj+dJo6sN98WljHFXY=
 github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a h1:eeaG9XMUvRBYXJi4pg1ZKM7nxc5AfXfojeLLW7O5J3k=

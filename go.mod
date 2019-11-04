@@ -8,7 +8,7 @@ require (
 	github.com/erikstmartin/go-testdb v0.0.0-20160219214506-8d10e4a1bae5 // indirect
 	github.com/go-sql-driver/mysql v1.4.1
 	github.com/guregu/null v3.4.0+incompatible
-	github.com/jimsmart/schema v0.0.0-20181113191328-8d0563922e25
+	github.com/jimsmart/schema v0.0.0-20191104172732-39e4bec5335f
 	github.com/jinzhu/gorm v1.9.4
 	github.com/jinzhu/inflection v0.0.0-20180308033659-04140366298a
 	github.com/jinzhu/now v1.0.0 // indirect
