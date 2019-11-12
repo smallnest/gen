@@ -82,16 +82,18 @@ const (
 	sqlNullString    = "sql.NullString"
 	gureguNullTime   = "null.Time"
 	golangTime       = "time.Time"
+	golangBool       = "bool"
+
 )
 
 // driverDialect is a registry, mapping database/sql driver names to database dialects.
 // This is somewhat fragile.
 var tableNameFormat map[string]string = map[string]string{
 	"sqlite":   "`%s`",
-	"postgres": "`%s`",
+	"postgres": `"%s"`,
 	"mysql":    "`%s`",
-	"mssql":    "%s",
-	"oracle":   "`%s`",
+	"mssql":    "[%s]",
+	"oracle":   `"%s"`,
 }
 
 // GenerateStruct generates a struct for the given table.
@@ -203,7 +205,7 @@ func generateMapTypes(db *sql.DB, columns []*sql.ColumnType, depth int, jsonAnno
 
 func sqlTypeToGoType(mysqlType string, nullable bool, gureguTypes bool) string {
 	switch mysqlType {
-	case "tinyint", "int", "smallint", "mediumint":
+	case "tinyint", "int", "smallint", "mediumint", "int4", "int2":
 		if nullable {
 			if gureguTypes {
 				return gureguNullInt
@@ -211,7 +213,7 @@ func sqlTypeToGoType(mysqlType string, nullable bool, gureguTypes bool) string {
 			return sqlNullInt
 		}
 		return golangInt
-	case "bigint":
+	case "bigint","int8":
 		if nullable {
 			if gureguTypes {
 				return gureguNullInt
@@ -219,7 +221,7 @@ func sqlTypeToGoType(mysqlType string, nullable bool, gureguTypes bool) string {
 			return sqlNullInt
 		}
 		return golangInt64
-	case "char", "enum", "varchar", "longtext", "mediumtext", "text", "tinytext":
+	case "char", "enum", "varchar", "longtext", "mediumtext", "text", "tinytext","varchar2","json","jsonb":
 		if nullable {
 			if gureguTypes {
 				return gureguNullString
@@ -250,6 +252,10 @@ func sqlTypeToGoType(mysqlType string, nullable bool, gureguTypes bool) string {
 		return golangFloat32
 	case "binary", "blob", "longblob", "mediumblob", "varbinary":
 		return golangByteArray
+	case "bool":
+		return golangBool
 	}
+
 	return ""
 }
+
