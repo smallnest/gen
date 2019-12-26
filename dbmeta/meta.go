@@ -83,7 +83,6 @@ const (
 	gureguNullTime   = "null.Time"
 	golangTime       = "time.Time"
 	golangBool       = "bool"
-
 )
 
 // driverDialect is a registry, mapping database/sql driver names to database dialects.
@@ -91,7 +90,7 @@ const (
 var tableNameFormat map[string]string = map[string]string{
 	"sqlite":   "`%s`",
 	"postgres": `"%s"`,
-	"mysql":    "`%s`",
+	"mysql":    "%s",
 	"mssql":    "[%s]",
 	"oracle":   `"%s"`,
 }
@@ -213,7 +212,7 @@ func sqlTypeToGoType(mysqlType string, nullable bool, gureguTypes bool) string {
 			return sqlNullInt
 		}
 		return golangInt
-	case "bigint","int8":
+	case "bigint", "int8":
 		if nullable {
 			if gureguTypes {
 				return gureguNullInt
@@ -221,7 +220,7 @@ func sqlTypeToGoType(mysqlType string, nullable bool, gureguTypes bool) string {
 			return sqlNullInt
 		}
 		return golangInt64
-	case "char", "enum", "varchar", "longtext", "mediumtext", "text", "tinytext","varchar2","json","jsonb":
+	case "char", "enum", "varchar", "longtext", "mediumtext", "text", "tinytext", "varchar2", "json", "jsonb":
 		if nullable {
 			if gureguTypes {
 				return gureguNullString
@@ -258,4 +257,3 @@ func sqlTypeToGoType(mysqlType string, nullable bool, gureguTypes bool) string {
 
 	return ""
 }
-
