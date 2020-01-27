@@ -55,12 +55,12 @@ func init() {
 
 func main() {
 	// Username is required
-	if sqlConnStr == nil || *sqlConnStr == "" {
+	if sqlConnStr == nil || *sqlConnStr == "" || *sqlConnStr == "nil" {
 		fmt.Println("sql connection string is required! Add it with --connstr=s")
 		return
 	}
 
-	if sqlDatabase == nil || *sqlDatabase == "" {
+	if sqlDatabase == nil || *sqlDatabase == "" || *sqlDatabase == "nil" {
 		fmt.Println("Database can not be null")
 		return
 	}
@@ -71,6 +71,11 @@ func main() {
 		return
 	}
 	defer db.Close()
+	err = db.Ping()
+	if err != nil {
+		fmt.Println("Error connecting to database: " + err.Error())
+		return
+	}
 
 	// parse or read tables
 	var tables []string
