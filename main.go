@@ -92,7 +92,7 @@ func main() {
 	if packageName == nil || *packageName == "" {
 		*packageName = "generated"
 	}
-	os.Mkdir("model", 0777)
+	os.Mkdir(*packageName, 0777)
 
 	apiName := "api"
 	if *rest {
@@ -132,7 +132,7 @@ func main() {
 			fmt.Println("Error in formating source: " + err.Error())
 			return
 		}
-		ioutil.WriteFile(filepath.Join("model", inflection.Singular(tableName)+".go"), data, 0777)
+		ioutil.WriteFile(filepath.Join(*packageName, inflection.Singular(tableName)+".go"), data, 0777)
 
 		if *rest {
 			//write api
