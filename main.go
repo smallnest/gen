@@ -29,7 +29,7 @@ var (
 	sqlDatabase = goopt.String([]string{"-d", "--database"}, "nil", "Database to for connection")
 	sqlTable    = goopt.String([]string{"-t", "--table"}, "", "Table to build struct from")
 
-	packageName = goopt.String([]string{"--package"}, "", "name to set for package")
+	packageName = goopt.String([]string{"--package"}, "model", "name to set for package")
 
 	jsonAnnotation = goopt.Flag([]string{"--json"}, []string{"--no-json"}, "Add json annotations (default)", "Disable json annotations")
 	gormAnnotation = goopt.Flag([]string{"--gorm"}, []string{}, "Add gorm annotations (tags)", "")
