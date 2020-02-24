@@ -29,7 +29,7 @@ var (
 	sqlDatabase = goopt.String([]string{"-d", "--database"}, "nil", "Database to for connection")
 	sqlTable    = goopt.String([]string{"-t", "--table"}, "", "Table to build struct from")
 
-	packageName = goopt.String([]string{"--package"}, "", "name to set for package")
+	packageName = goopt.String([]string{"--package"}, "model", "name to set for package")
 
 	jsonAnnotation = goopt.Flag([]string{"--json"}, []string{"--no-json"}, "Add json annotations (default)", "Disable json annotations")
 	gormAnnotation = goopt.Flag([]string{"--gorm"}, []string{}, "Add gorm annotations (tags)", "")
@@ -92,7 +92,7 @@ func main() {
 	if packageName == nil || *packageName == "" {
 		*packageName = "generated"
 	}
-	os.Mkdir("model", 0777)
+	os.Mkdir(*packageName, 0777)
 
 	apiName := "api"
 	if *rest {
@@ -132,7 +132,7 @@ func main() {
 			fmt.Println("Error in formating source: " + err.Error())
 			return
 		}
-		ioutil.WriteFile(filepath.Join("model", inflection.Singular(tableName)+".go"), data, 0777)
+		ioutil.WriteFile(filepath.Join(*packageName, inflection.Singular(tableName)+".go"), data, 0777)
 
 		if *rest {
 			//write api
