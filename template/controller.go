@@ -5,9 +5,11 @@ var ControllerTmpl = `package api
 import (
 	"net/http"
 
+	"{{.PackageName}}"
+
+	"github.com/gin-gonic/gin"
 	"github.com/julienschmidt/httprouter"
 	"github.com/smallnest/gen/dbmeta"
-	"{{.PackageName}}"
 )
 
 func config{{pluralize .StructName}}Router(router *httprouter.Router) {
@@ -16,6 +18,14 @@ func config{{pluralize .StructName}}Router(router *httprouter.Router) {
 	router.GET("/{{pluralize .StructName | toLower}}/:id", Get{{.StructName}})
 	router.PUT("/{{pluralize .StructName | toLower}}/:id", Update{{.StructName}})
 	router.DELETE("/{{pluralize .StructName | toLower}}/:id", Delete{{.StructName}})
+}
+
+func configGin{{pluralize .StructName}}Router(router gin.IRoutes) {
+	router.GET("/{{pluralize .StructName | toLower}}", ConverHttprouterToGin(GetAll{{pluralize .StructName}}))
+	router.POST("/{{pluralize .StructName | toLower}}", ConverHttprouterToGin(Add{{.StructName}}))
+	router.GET("/{{pluralize .StructName | toLower}}/:id", ConverHttprouterToGin(Get{{.StructName}}))
+	router.PUT("/{{pluralize .StructName | toLower}}/:id", ConverHttprouterToGin(Update{{.StructName}}))
+	router.DELETE("/{{pluralize .StructName | toLower}}/:id", ConverHttprouterToGin(Delete{{.StructName}}))
 }
 
 func GetAll{{pluralize .StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
