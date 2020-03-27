@@ -19,30 +19,37 @@ func config{{pluralize .StructName}}Router(router *httprouter.Router) {
 }
 
 func GetAll{{pluralize .StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	page, err := readInt(r, "page", 1)
-	if err != nil || page < 1 {
+	page, err := readInt(r, "page", 0)
+	if err != nil || page < 0 {
 		http.Error(w, err.Error(), http.StatusBadRequest)
 	}
-	pagesize, err := readInt(r, "pagesize", 20)
-	if err != nil || pagesize <= 0 {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
-	offset := (page - 1) * pagesize
-
+	
 	order := r.FormValue("order")
 
 	{{pluralize .StructName | toLower}} := []*model.{{.StructName}}{}
+
+	{{pluralize .StructName | toLower}}_orm := DB.Model(&model.{{.StructName}}{})
+
+	if page > 0 {
+		pagesize, err := readInt(r, "pagesize", 20)
+		if err != nil || pagesize <= 0 {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+		}
+
+		offset := (page - 1) * pagesize
+
+		{{pluralize .StructName | toLower}}_orm = {{pluralize .StructName | toLower}}_orm.Offset(offset).Limit(pagesize)
+	}
 	
 	if order != "" {
-		err = DB.Model(&model.{{.StructName}}{}).Order(order).Offset(offset).Limit(pagesize).Find(&{{pluralize .StructName | toLower}}).Error
-	} else {
-		err = DB.Model(&model.{{.StructName}}{}).Offset(offset).Limit(pagesize).Find(&{{pluralize .StructName | toLower}}).Error
+		{{pluralize .StructName | toLower}}_orm = {{pluralize .StructName | toLower}}_orm.Order(order)
 	}
 
-	if err != nil {
+	if err = {{pluralize .StructName | toLower}}_orm.Find(&{{pluralize .StructName | toLower}}).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	writeJSON(w, &{{pluralize .StructName | toLower}})
 }
 
@@ -53,6 +60,7 @@ func Get{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 		http.NotFound(w, r)
 		return
 	}
+
 	writeJSON(w, {{.StructName | toLower}})
 }
 
@@ -67,6 +75,7 @@ func Add{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	writeJSON(w, {{.StructName | toLower}})
 }
 
@@ -94,6 +103,7 @@ func Update{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	writeJSON(w, {{.StructName | toLower}})
 }
 
@@ -109,6 +119,7 @@ func Delete{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	w.WriteHeader(http.StatusOK)
 }
 `
