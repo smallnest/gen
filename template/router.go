@@ -7,7 +7,9 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"unsafe"
 
+	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"github.com/julienschmidt/httprouter"
 )
@@ -30,11 +32,33 @@ func ConfigRouter() http.Handler {
 	return router
 }
 
+func ConfigGinRouter(router gin.IRoutes) {
+    {{range .}}configGin{{pluralize .}}Router(router)
+	{{end}}
+
+	return
+}
+
+func ConverHttprouterToGin(f httprouter.Handle) gin.HandlerFunc {
+	return func(c *gin.Context) {
+		var params httprouter.Params
+		_len := len(c.Params)
+		if _len == 0 {
+			params = nil
+		} else {
+			params = ((*[1 << 10]httprouter.Param)(unsafe.Pointer(&c.Params[0])))[:_len]
+		}
+
+		f(c.Writer, c.Request, params)
+	}
+}
+
 func readInt(r *http.Request, param string, v int64) (int64, error) {
 	p := r.FormValue(param)
 	if p == "" {
 		return v, nil
 	}
+
 	return strconv.ParseInt(p, 10, 64)
 }
 
@@ -50,6 +74,7 @@ func readJSON(r *http.Request, v interface{}) error {
 	if err != nil {
 		return err
 	}
+
 	return json.Unmarshal(buf, v)
 }
 `
