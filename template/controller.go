@@ -32,6 +32,7 @@ func GetAll{{pluralize .StructName}}(w http.ResponseWriter, r *http.Request, ps 
 	page, err := readInt(r, "page", 0)
 	if err != nil || page < 0 {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
 	
 	order := r.FormValue("order")
@@ -44,6 +45,7 @@ func GetAll{{pluralize .StructName}}(w http.ResponseWriter, r *http.Request, ps 
 		pagesize, err := readInt(r, "pagesize", 20)
 		if err != nil || pagesize <= 0 {
 			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
 		}
 
 		offset := (page - 1) * pagesize
