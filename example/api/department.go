@@ -3,9 +3,11 @@ package api
 import (
 	"net/http"
 
+	"github.com/smallnest/gen/example/model"
+
+	"github.com/gin-gonic/gin"
 	"github.com/julienschmidt/httprouter"
 	"github.com/smallnest/gen/dbmeta"
-	"github.com/smallnest/gen/example/model"
 )
 
 func configDepartmentsRouter(router *httprouter.Router) {
@@ -16,31 +18,49 @@ func configDepartmentsRouter(router *httprouter.Router) {
 	router.DELETE("/departments/:id", DeleteDepartment)
 }
 
+func configGinDepartmentsRouter(router gin.IRoutes) {
+	router.GET("/departments", ConverHttprouterToGin(GetAllDepartments))
+	router.POST("/departments", ConverHttprouterToGin(AddDepartment))
+	router.GET("/departments/:id", ConverHttprouterToGin(GetDepartment))
+	router.PUT("/departments/:id", ConverHttprouterToGin(UpdateDepartment))
+	router.DELETE("/departments/:id", ConverHttprouterToGin(DeleteDepartment))
+}
+
 func GetAllDepartments(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	page, err := readInt(r, "page", 1)
-	if err != nil || page < 1 {
+	page, err := readInt(r, "page", 0)
+	if err != nil || page < 0 {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
-	pagesize, err := readInt(r, "pagesize", 20)
-	if err != nil || pagesize <= 0 {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
-	offset := (page - 1) * pagesize
 
 	order := r.FormValue("order")
 
 	departments := []*model.Department{}
 
-	if order != "" {
-		err = DB.Model(&model.Department{}).Order(order).Offset(offset).Limit(pagesize).Find(&departments).Error
-	} else {
-		err = DB.Model(&model.Department{}).Offset(offset).Limit(pagesize).Find(&departments).Error
+	departments_orm := DB.Model(&model.Department{})
+
+	if page > 0 {
+		pagesize, err := readInt(r, "pagesize", 20)
+		if err != nil || pagesize <= 0 {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		offset := (page - 1) * pagesize
+
+		departments_orm = departments_orm.Offset(offset).Limit(pagesize)
 	}
 
-	if err != nil {
+	if order != "" {
+		departments_orm = departments_orm.Order(order)
+	}
+
+	if err = departments_orm.Find(&departments).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	writeJSON(w, &departments)
 }
 
 func GetDepartment(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -50,6 +70,7 @@ func GetDepartment(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 		http.NotFound(w, r)
 		return
 	}
+
 	writeJSON(w, department)
 }
 
@@ -64,6 +85,7 @@ func AddDepartment(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	writeJSON(w, department)
 }
 
@@ -91,6 +113,7 @@ func UpdateDepartment(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	writeJSON(w, department)
 }
 
@@ -106,5 +129,6 @@ func DeleteDepartment(w http.ResponseWriter, r *http.Request, ps httprouter.Para
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	w.WriteHeader(http.StatusOK)
 }

@@ -3,9 +3,11 @@ package api
 import (
 	"net/http"
 
+	"github.com/smallnest/gen/example/model"
+
+	"github.com/gin-gonic/gin"
 	"github.com/julienschmidt/httprouter"
 	"github.com/smallnest/gen/dbmeta"
-	"github.com/smallnest/gen/example/model"
 )
 
 func configDeptEmpsRouter(router *httprouter.Router) {
@@ -16,31 +18,49 @@ func configDeptEmpsRouter(router *httprouter.Router) {
 	router.DELETE("/deptemps/:id", DeleteDeptEmp)
 }
 
+func configGinDeptEmpsRouter(router gin.IRoutes) {
+	router.GET("/deptemps", ConverHttprouterToGin(GetAllDeptEmps))
+	router.POST("/deptemps", ConverHttprouterToGin(AddDeptEmp))
+	router.GET("/deptemps/:id", ConverHttprouterToGin(GetDeptEmp))
+	router.PUT("/deptemps/:id", ConverHttprouterToGin(UpdateDeptEmp))
+	router.DELETE("/deptemps/:id", ConverHttprouterToGin(DeleteDeptEmp))
+}
+
 func GetAllDeptEmps(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	page, err := readInt(r, "page", 1)
-	if err != nil || page < 1 {
+	page, err := readInt(r, "page", 0)
+	if err != nil || page < 0 {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
-	pagesize, err := readInt(r, "pagesize", 20)
-	if err != nil || pagesize <= 0 {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
-	offset := (page - 1) * pagesize
 
 	order := r.FormValue("order")
 
 	deptemps := []*model.DeptEmp{}
 
-	if order != "" {
-		err = DB.Model(&model.DeptEmp{}).Order(order).Offset(offset).Limit(pagesize).Find(&deptemps).Error
-	} else {
-		err = DB.Model(&model.DeptEmp{}).Offset(offset).Limit(pagesize).Find(&deptemps).Error
+	deptemps_orm := DB.Model(&model.DeptEmp{})
+
+	if page > 0 {
+		pagesize, err := readInt(r, "pagesize", 20)
+		if err != nil || pagesize <= 0 {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		offset := (page - 1) * pagesize
+
+		deptemps_orm = deptemps_orm.Offset(offset).Limit(pagesize)
 	}
 
-	if err != nil {
+	if order != "" {
+		deptemps_orm = deptemps_orm.Order(order)
+	}
+
+	if err = deptemps_orm.Find(&deptemps).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	writeJSON(w, &deptemps)
 }
 
 func GetDeptEmp(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -50,6 +70,7 @@ func GetDeptEmp(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		http.NotFound(w, r)
 		return
 	}
+
 	writeJSON(w, deptemp)
 }
 
@@ -64,6 +85,7 @@ func AddDeptEmp(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	writeJSON(w, deptemp)
 }
 
@@ -91,6 +113,7 @@ func UpdateDeptEmp(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	writeJSON(w, deptemp)
 }
 
@@ -106,5 +129,6 @@ func DeleteDeptEmp(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	w.WriteHeader(http.StatusOK)
 }

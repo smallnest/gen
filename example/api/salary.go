@@ -3,9 +3,11 @@ package api
 import (
 	"net/http"
 
+	"github.com/smallnest/gen/example/model"
+
+	"github.com/gin-gonic/gin"
 	"github.com/julienschmidt/httprouter"
 	"github.com/smallnest/gen/dbmeta"
-	"github.com/smallnest/gen/example/model"
 )
 
 func configSalariesRouter(router *httprouter.Router) {
@@ -16,31 +18,49 @@ func configSalariesRouter(router *httprouter.Router) {
 	router.DELETE("/salaries/:id", DeleteSalary)
 }
 
+func configGinSalariesRouter(router gin.IRoutes) {
+	router.GET("/salaries", ConverHttprouterToGin(GetAllSalaries))
+	router.POST("/salaries", ConverHttprouterToGin(AddSalary))
+	router.GET("/salaries/:id", ConverHttprouterToGin(GetSalary))
+	router.PUT("/salaries/:id", ConverHttprouterToGin(UpdateSalary))
+	router.DELETE("/salaries/:id", ConverHttprouterToGin(DeleteSalary))
+}
+
 func GetAllSalaries(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	page, err := readInt(r, "page", 1)
-	if err != nil || page < 1 {
+	page, err := readInt(r, "page", 0)
+	if err != nil || page < 0 {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
-	pagesize, err := readInt(r, "pagesize", 20)
-	if err != nil || pagesize <= 0 {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
-	offset := (page - 1) * pagesize
 
 	order := r.FormValue("order")
 
 	salaries := []*model.Salary{}
 
-	if order != "" {
-		err = DB.Model(&model.Salary{}).Order(order).Offset(offset).Limit(pagesize).Find(&salaries).Error
-	} else {
-		err = DB.Model(&model.Salary{}).Offset(offset).Limit(pagesize).Find(&salaries).Error
+	salaries_orm := DB.Model(&model.Salary{})
+
+	if page > 0 {
+		pagesize, err := readInt(r, "pagesize", 20)
+		if err != nil || pagesize <= 0 {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		offset := (page - 1) * pagesize
+
+		salaries_orm = salaries_orm.Offset(offset).Limit(pagesize)
 	}
 
-	if err != nil {
+	if order != "" {
+		salaries_orm = salaries_orm.Order(order)
+	}
+
+	if err = salaries_orm.Find(&salaries).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	writeJSON(w, &salaries)
 }
 
 func GetSalary(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -50,6 +70,7 @@ func GetSalary(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		http.NotFound(w, r)
 		return
 	}
+
 	writeJSON(w, salary)
 }
 
@@ -64,6 +85,7 @@ func AddSalary(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	writeJSON(w, salary)
 }
 
@@ -91,6 +113,7 @@ func UpdateSalary(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	writeJSON(w, salary)
 }
 
@@ -106,5 +129,6 @@ func DeleteSalary(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	w.WriteHeader(http.StatusOK)
 }

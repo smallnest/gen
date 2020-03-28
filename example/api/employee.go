@@ -3,9 +3,11 @@ package api
 import (
 	"net/http"
 
+	"github.com/smallnest/gen/example/model"
+
+	"github.com/gin-gonic/gin"
 	"github.com/julienschmidt/httprouter"
 	"github.com/smallnest/gen/dbmeta"
-	"github.com/smallnest/gen/example/model"
 )
 
 func configEmployeesRouter(router *httprouter.Router) {
@@ -16,31 +18,49 @@ func configEmployeesRouter(router *httprouter.Router) {
 	router.DELETE("/employees/:id", DeleteEmployee)
 }
 
+func configGinEmployeesRouter(router gin.IRoutes) {
+	router.GET("/employees", ConverHttprouterToGin(GetAllEmployees))
+	router.POST("/employees", ConverHttprouterToGin(AddEmployee))
+	router.GET("/employees/:id", ConverHttprouterToGin(GetEmployee))
+	router.PUT("/employees/:id", ConverHttprouterToGin(UpdateEmployee))
+	router.DELETE("/employees/:id", ConverHttprouterToGin(DeleteEmployee))
+}
+
 func GetAllEmployees(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	page, err := readInt(r, "page", 1)
-	if err != nil || page < 1 {
+	page, err := readInt(r, "page", 0)
+	if err != nil || page < 0 {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
-	pagesize, err := readInt(r, "pagesize", 20)
-	if err != nil || pagesize <= 0 {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
-	offset := (page - 1) * pagesize
 
 	order := r.FormValue("order")
 
 	employees := []*model.Employee{}
 
-	if order != "" {
-		err = DB.Model(&model.Employee{}).Order(order).Offset(offset).Limit(pagesize).Find(&employees).Error
-	} else {
-		err = DB.Model(&model.Employee{}).Offset(offset).Limit(pagesize).Find(&employees).Error
+	employees_orm := DB.Model(&model.Employee{})
+
+	if page > 0 {
+		pagesize, err := readInt(r, "pagesize", 20)
+		if err != nil || pagesize <= 0 {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		offset := (page - 1) * pagesize
+
+		employees_orm = employees_orm.Offset(offset).Limit(pagesize)
 	}
 
-	if err != nil {
+	if order != "" {
+		employees_orm = employees_orm.Order(order)
+	}
+
+	if err = employees_orm.Find(&employees).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	writeJSON(w, &employees)
 }
 
 func GetEmployee(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -50,6 +70,7 @@ func GetEmployee(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		http.NotFound(w, r)
 		return
 	}
+
 	writeJSON(w, employee)
 }
 
@@ -64,6 +85,7 @@ func AddEmployee(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	writeJSON(w, employee)
 }
 
@@ -91,6 +113,7 @@ func UpdateEmployee(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	writeJSON(w, employee)
 }
 
@@ -106,5 +129,6 @@ func DeleteEmployee(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	w.WriteHeader(http.StatusOK)
 }
