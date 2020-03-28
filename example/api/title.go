@@ -3,9 +3,11 @@ package api
 import (
 	"net/http"
 
+	"github.com/smallnest/gen/example/model"
+
+	"github.com/gin-gonic/gin"
 	"github.com/julienschmidt/httprouter"
 	"github.com/smallnest/gen/dbmeta"
-	"github.com/smallnest/gen/example/model"
 )
 
 func configTitlesRouter(router *httprouter.Router) {
@@ -16,31 +18,49 @@ func configTitlesRouter(router *httprouter.Router) {
 	router.DELETE("/titles/:id", DeleteTitle)
 }
 
+func configGinTitlesRouter(router gin.IRoutes) {
+	router.GET("/titles", ConverHttprouterToGin(GetAllTitles))
+	router.POST("/titles", ConverHttprouterToGin(AddTitle))
+	router.GET("/titles/:id", ConverHttprouterToGin(GetTitle))
+	router.PUT("/titles/:id", ConverHttprouterToGin(UpdateTitle))
+	router.DELETE("/titles/:id", ConverHttprouterToGin(DeleteTitle))
+}
+
 func GetAllTitles(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	page, err := readInt(r, "page", 1)
-	if err != nil || page < 1 {
+	page, err := readInt(r, "page", 0)
+	if err != nil || page < 0 {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
-	pagesize, err := readInt(r, "pagesize", 20)
-	if err != nil || pagesize <= 0 {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
-	offset := (page - 1) * pagesize
 
 	order := r.FormValue("order")
 
 	titles := []*model.Title{}
 
-	if order != "" {
-		err = DB.Model(&model.Title{}).Order(order).Offset(offset).Limit(pagesize).Find(&titles).Error
-	} else {
-		err = DB.Model(&model.Title{}).Offset(offset).Limit(pagesize).Find(&titles).Error
+	titles_orm := DB.Model(&model.Title{})
+
+	if page > 0 {
+		pagesize, err := readInt(r, "pagesize", 20)
+		if err != nil || pagesize <= 0 {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		offset := (page - 1) * pagesize
+
+		titles_orm = titles_orm.Offset(offset).Limit(pagesize)
 	}
 
-	if err != nil {
+	if order != "" {
+		titles_orm = titles_orm.Order(order)
+	}
+
+	if err = titles_orm.Find(&titles).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	writeJSON(w, &titles)
 }
 
 func GetTitle(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -50,6 +70,7 @@ func GetTitle(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		http.NotFound(w, r)
 		return
 	}
+
 	writeJSON(w, title)
 }
 
@@ -64,6 +85,7 @@ func AddTitle(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	writeJSON(w, title)
 }
 
@@ -91,6 +113,7 @@ func UpdateTitle(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	writeJSON(w, title)
 }
 
@@ -106,5 +129,6 @@ func DeleteTitle(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	w.WriteHeader(http.StatusOK)
 }

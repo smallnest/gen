@@ -14,8 +14,8 @@ var (
 )
 
 type Department struct {
-	DeptNo   string `gorm:"column:dept_no;primary_key" json:"dept_no"`
-	DeptName string `gorm:"column:dept_name" json:"dept_name"`
+	DeptNo   string      `gorm:"column:dept_no;primary_key" json:"dept_no"`
+	DeptName null.String `gorm:"column:dept_name" json:"dept_name"`
 }
 
 // TableName sets the insert table name for this struct type

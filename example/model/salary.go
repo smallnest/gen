@@ -15,9 +15,9 @@ var (
 
 type Salary struct {
 	EmpNo    int       `gorm:"column:emp_no;primary_key" json:"emp_no"`
-	Salary   int       `gorm:"column:salary" json:"salary"`
-	FromDate time.Time `gorm:"column:from_date" json:"from_date"`
-	ToDate   time.Time `gorm:"column:to_date" json:"to_date"`
+	Salary   null.Int  `gorm:"column:salary" json:"salary"`
+	FromDate null.Time `gorm:"column:from_date" json:"from_date"`
+	ToDate   null.Time `gorm:"column:to_date" json:"to_date"`
 }
 
 // TableName sets the insert table name for this struct type

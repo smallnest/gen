@@ -3,9 +3,11 @@ package api
 import (
 	"net/http"
 
+	"github.com/smallnest/gen/example/model"
+
+	"github.com/gin-gonic/gin"
 	"github.com/julienschmidt/httprouter"
 	"github.com/smallnest/gen/dbmeta"
-	"github.com/smallnest/gen/example/model"
 )
 
 func configDeptManagersRouter(router *httprouter.Router) {
@@ -16,31 +18,49 @@ func configDeptManagersRouter(router *httprouter.Router) {
 	router.DELETE("/deptmanagers/:id", DeleteDeptManager)
 }
 
+func configGinDeptManagersRouter(router gin.IRoutes) {
+	router.GET("/deptmanagers", ConverHttprouterToGin(GetAllDeptManagers))
+	router.POST("/deptmanagers", ConverHttprouterToGin(AddDeptManager))
+	router.GET("/deptmanagers/:id", ConverHttprouterToGin(GetDeptManager))
+	router.PUT("/deptmanagers/:id", ConverHttprouterToGin(UpdateDeptManager))
+	router.DELETE("/deptmanagers/:id", ConverHttprouterToGin(DeleteDeptManager))
+}
+
 func GetAllDeptManagers(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	page, err := readInt(r, "page", 1)
-	if err != nil || page < 1 {
+	page, err := readInt(r, "page", 0)
+	if err != nil || page < 0 {
 		http.Error(w, err.Error(), http.StatusBadRequest)
+		return
 	}
-	pagesize, err := readInt(r, "pagesize", 20)
-	if err != nil || pagesize <= 0 {
-		http.Error(w, err.Error(), http.StatusBadRequest)
-	}
-	offset := (page - 1) * pagesize
 
 	order := r.FormValue("order")
 
 	deptmanagers := []*model.DeptManager{}
 
-	if order != "" {
-		err = DB.Model(&model.DeptManager{}).Order(order).Offset(offset).Limit(pagesize).Find(&deptmanagers).Error
-	} else {
-		err = DB.Model(&model.DeptManager{}).Offset(offset).Limit(pagesize).Find(&deptmanagers).Error
+	deptmanagers_orm := DB.Model(&model.DeptManager{})
+
+	if page > 0 {
+		pagesize, err := readInt(r, "pagesize", 20)
+		if err != nil || pagesize <= 0 {
+			http.Error(w, err.Error(), http.StatusBadRequest)
+			return
+		}
+
+		offset := (page - 1) * pagesize
+
+		deptmanagers_orm = deptmanagers_orm.Offset(offset).Limit(pagesize)
 	}
 
-	if err != nil {
+	if order != "" {
+		deptmanagers_orm = deptmanagers_orm.Order(order)
+	}
+
+	if err = deptmanagers_orm.Find(&deptmanagers).Error; err != nil {
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
+	writeJSON(w, &deptmanagers)
 }
 
 func GetDeptManager(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -50,6 +70,7 @@ func GetDeptManager(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 		http.NotFound(w, r)
 		return
 	}
+
 	writeJSON(w, deptmanager)
 }
 
@@ -64,6 +85,7 @@ func AddDeptManager(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	writeJSON(w, deptmanager)
 }
 
@@ -91,6 +113,7 @@ func UpdateDeptManager(w http.ResponseWriter, r *http.Request, ps httprouter.Par
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	writeJSON(w, deptmanager)
 }
 
@@ -106,5 +129,6 @@ func DeleteDeptManager(w http.ResponseWriter, r *http.Request, ps httprouter.Par
 		http.Error(w, err.Error(), http.StatusInternalServerError)
 		return
 	}
+
 	w.WriteHeader(http.StatusOK)
 }
