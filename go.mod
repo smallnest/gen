@@ -10,6 +10,7 @@ require (
 	github.com/gobuffalo/packd v1.0.0
 	github.com/gobuffalo/packr/v2 v2.8.0
 	github.com/guregu/null v3.4.0+incompatible
+	github.com/iancoleman/strcase v0.0.0-20191112232945-16388991a334
 	github.com/jimsmart/schema v0.0.4
 	github.com/jinzhu/gorm v1.9.11
 	github.com/jinzhu/inflection v1.0.0

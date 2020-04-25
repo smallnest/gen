@@ -17,3 +17,17 @@
 # vendor/
 
 .idea/
+
+#
+# only store sample db in git
+#
+example/.gitignore
+example/README.md
+example/api/
+example/app/
+example/dao/
+example/go.mod
+example/model/
+example/Makefile
+example/docs/
+example/go.sum

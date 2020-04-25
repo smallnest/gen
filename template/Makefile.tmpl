@@ -121,7 +121,7 @@ doc:
 	godoc -http=:6060
 
 deps:
-	go list -f '{{ join .Deps  "\n"}}' . |grep "/" | grep -v $(PROJ_PATH)| grep "\." | sort |uniq
+	{{.deps}} |grep "/" | grep -v $(PROJ_PATH)| grep "\." | sort |uniq
 
 lint:
 	golint ./...

@@ -277,10 +277,24 @@ func main() {
 		structName := dbmeta.FmtFieldName(tableName)
 		structNameInflection := inflection.Singular(structName)
 		structName = inflection.Singular(structName)
+		tableInfo := dbmeta.GenerateStruct(db, *sqlDatabase, tableName, structName, *modelPackageName, *jsonAnnotation, *gormAnnotation, *gureguTypes)
+
+		if len(tableInfo.Fields) == 0 {
+			fmt.Printf("[%d] Table: %s - No Fields Available\n", i, tableName)
+			continue
+		}
+
+		var modelInfo = map[string]interface{}{
+			"ModelPackageName": *modelPackageName,
+			"StructName":       structName,
+			"TableName":        tableName,
+			"ShortStructName":  strings.ToLower(string(structName[0])),
+			"Fields":           tableInfo.Fields,
+			"DBColumns":        tableInfo.DBCols,
+		}
+
 		structNames = append(structNames, structName)
 		fmt.Printf("[%d] Table: %s Struct: %s inflection: %s\n", i, tableName, structName, structNameInflection)
-
-		modelInfo := dbmeta.GenerateStruct(db, *sqlDatabase, tableName, structName, *modelPackageName, *jsonAnnotation, *gormAnnotation, *gureguTypes)
 
 		modelFile := filepath.Join(modelDir, inflection.Singular(tableName)+".go")
 		writeTemplate("model", ModelTmpl, modelInfo, modelFile, *overwrite, true)
@@ -325,7 +339,9 @@ func main() {
 	}
 
 	if *makefileGenerate {
-		data := map[string]interface{}{}
+		data := map[string]interface{}{
+			"deps": "go list -f '{{ join .Deps  \"\\n\"}}' .",
+		}
 		writeTemplate("makefile", MakefileTmpl, data, filepath.Join(*outDir, "Makefile"), *overwrite, false)
 		writeTemplate("gitignore", GitIgnoreTmpl, data, filepath.Join(*outDir, ".gitignore"), *overwrite, false)
 

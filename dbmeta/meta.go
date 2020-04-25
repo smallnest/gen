@@ -5,6 +5,7 @@ import (
 	"fmt"
 	"strings"
 
+	"github.com/iancoleman/strcase"
 	"github.com/jimsmart/schema"
 )
 
@@ -77,27 +78,36 @@ const (
 	golangBool       = "bool"
 )
 
+type ModelInfo struct {
+	PackageName     string
+	StructName      string
+	ShortStructName string
+	TableName       string
+	Fields          []string
+	DBCols          []*sql.ColumnType
+}
+
 // GenerateStruct generates a struct for the given table.
-func GenerateStruct(db *sql.DB, dbName, tableName string, structName string, modelPkgName string, jsonAnnotation bool, gormAnnotation bool, gureguTypes bool) map[string]interface{} {
+func GenerateStruct(db *sql.DB, sqlDatabase, tableName string, structName string, pkgName string, jsonAnnotation bool, gormAnnotation bool, gureguTypes bool) *ModelInfo {
 	cols, _ := schema.Table(db, tableName)
-	fields := generateFieldsTypes(db, cols, 0, jsonAnnotation, gormAnnotation, gureguTypes)
+	fields := generateFieldsTypes(db, tableName, cols, 0, jsonAnnotation, gormAnnotation, gureguTypes)
 
 	//fields := generateMysqlTypes(db, columnTypes, 0, jsonAnnotation, gormAnnotation, gureguTypes)
 
-	var modelInfo = map[string]interface{}{
-		"ModelPackageName": modelPkgName,
-		"StructName":       structName,
-		"TableName":        tableName,
-		"ShortStructName":  strings.ToLower(string(structName[0])),
-		"Fields":           fields,
-		"DBColumns":        cols,
+	var modelInfo = &ModelInfo{
+		PackageName:     pkgName,
+		StructName:      structName,
+		TableName:       tableName,
+		ShortStructName: strings.ToLower(string(structName[0])),
+		Fields:          fields,
+		DBCols:          cols,
 	}
 
 	return modelInfo
 }
 
 // Generate fields string
-func generateFieldsTypes(db *sql.DB, columns []*sql.ColumnType, depth int, jsonAnnotation bool, gormAnnotation bool, gureguTypes bool) []string {
+func generateFieldsTypes(db *sql.DB, tableName string, columns []*sql.ColumnType, depth int, jsonAnnotation bool, gormAnnotation bool, gureguTypes bool) []string {
 
 	//sort.Strings(keys)
 
@@ -106,8 +116,11 @@ func generateFieldsTypes(db *sql.DB, columns []*sql.ColumnType, depth int, jsonA
 	for i, c := range columns {
 		nullable, _ := c.Nullable()
 		key := c.Name()
+		fmt.Printf("   [%s]   [%d] field: %s type: %s\n", tableName, i, key, c.DatabaseTypeName())
+
 		valueType := sqlTypeToGoType(strings.ToLower(c.DatabaseTypeName()), nullable, gureguTypes)
 		if valueType == "" { // unknown type
+			fmt.Printf("unable to generate struct field: %s type: %s\n", key, c.DatabaseTypeName())
 			continue
 		}
 		fieldName := FmtFieldName(stringifyFirstChar(key))
@@ -122,7 +135,8 @@ func generateFieldsTypes(db *sql.DB, columns []*sql.ColumnType, depth int, jsonA
 
 		}
 		if jsonAnnotation == true {
-			annotations = append(annotations, fmt.Sprintf("json:\"%s\"", key))
+			jsonName := strcase.ToSnake(key)
+			annotations = append(annotations, fmt.Sprintf("json:\"%s\"", jsonName))
 		}
 		if len(annotations) > 0 {
 			field = fmt.Sprintf("%s %s `%s`",
@@ -186,8 +200,11 @@ func generateMapTypes(db *sql.DB, columns []*sql.ColumnType, depth int, jsonAnno
 }
 
 func sqlTypeToGoType(mysqlType string, nullable bool, gureguTypes bool) string {
+	mysqlType = strings.Trim(mysqlType, " \t")
+	mysqlType = strings.ToLower(mysqlType)
+
 	switch mysqlType {
-	case "tinyint", "int", "smallint", "mediumint", "int4", "int2":
+	case "tinyint", "int", "smallint", "mediumint", "int4", "int2", "integer":
 		if nullable {
 			if gureguTypes {
 				return gureguNullInt
@@ -238,6 +255,26 @@ func sqlTypeToGoType(mysqlType string, nullable bool, gureguTypes bool) string {
 		return golangBool
 	}
 
+	if strings.HasPrefix(mysqlType, "nvarchar") || strings.HasPrefix(mysqlType, "varchar") {
+		if nullable {
+			if gureguTypes {
+				return gureguNullString
+			}
+			return sqlNullString
+		}
+		return "string"
+	}
+
+	if strings.HasPrefix(mysqlType, "numeric") {
+		if nullable {
+			if gureguTypes {
+				return gureguNullFloat
+			}
+			return sqlNullFloat
+		}
+		return golangFloat64
+	}
+
 	return ""
 }
 
@@ -250,4 +287,3 @@ func ColumnLength(colType *sql.ColumnType) int64 {
 	len, _ := colType.Length()
 	return len
 }
-

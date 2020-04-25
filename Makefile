@@ -48,3 +48,42 @@ build:
 
 test:
 	go test  -v .
+
+
+generate_example: clean_example
+	ls -latr ./example
+	go run . \
+		--sqltype=sqlite3 \
+		--connstr "./example/sample.db" \
+		--database main  \
+		--json \
+		--gorm \
+		--guregu \
+		--rest \
+		--out ./example \
+		--module github.com/alexj212/generated \
+		--mod \
+		--server \
+		--makefile \
+		--overwrite
+
+	cd ./example && $(MAKE) example
+
+run_example: generate_example
+	ls -latr ./example/bin
+	./example/bin/example
+
+
+clean_example:
+	rm -rf ./example/Makefile \
+	 ./example/README.md \
+	 ./example/api \
+	 ./example/app \
+	 ./example/bin \
+	 ./example/dao \
+	 ./example/docs \
+	 ./example/go.mod \
+	 ./example/go.sum \
+	 ./example/model \
+	 ./example/.gitignore
+
