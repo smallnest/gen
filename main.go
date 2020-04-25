@@ -80,15 +80,17 @@ var (
 	RouterTmpl     string
 	DaoInitTmpl    string
 	GoModuleTmpl   string
-	MainServer     string
-	HttpUtils      string
+	MainServerTmpl string
+	HttpUtilsTmpl  string
 	ReadMeTmpl     string
 	GitIgnoreTmpl  string
 	MakefileTmpl   string
-	modelFQPN      string
-	daoFQPN        string
-	apiFQPN        string
-	SwaggerInfo    = &swaggerInfo{
+
+	modelFQPN string
+	daoFQPN   string
+	apiFQPN   string
+
+	SwaggerInfo = &swaggerInfo{
 		Version:      "1.0",
 		Host:         "localhost:8080",
 		BasePath:     "/",
@@ -117,10 +119,16 @@ func init() {
 func main() {
 
 	baseTemplates = packr.New("gen", "./template")
-	fmt.Printf("Base Template Details: Name: %v Path: %v ResolutionDir: %v\n", baseTemplates.Name, baseTemplates.Path, baseTemplates.ResolutionDir)
 
-	for i, file := range baseTemplates.List() {
-		fmt.Printf("   [%d] [%s]\n", i, file)
+	if *verbose {
+		fmt.Printf("Base Template Details: Name: %v Path: %v ResolutionDir: %v\n", baseTemplates.Name, baseTemplates.Path, baseTemplates.ResolutionDir)
+	}
+
+
+	if *verbose {
+		for i, file := range baseTemplates.List() {
+			fmt.Printf("   [%d] [%s]\n", i, file)
+		}
 	}
 
 	if *saveTemplateDir != "" {
@@ -236,11 +244,11 @@ func main() {
 		fmt.Printf("Error loading template %v\n", err)
 		return
 	}
-	if HttpUtils, err = loadTemplate("http_utils.go.tmpl"); err != nil {
+	if HttpUtilsTmpl, err = loadTemplate("http_utils.go.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
 		return
 	}
-	if MainServer, err = loadTemplate("MainServer.go.tmpl"); err != nil {
+	if MainServerTmpl, err = loadTemplate("MainServer.go.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
 		return
 	}
@@ -279,10 +287,22 @@ func main() {
 		structName := dbmeta.FmtFieldName(tableName)
 		structNameInflection := inflection.Singular(structName)
 		structName = inflection.Singular(structName)
-		tableInfo := dbmeta.GenerateStruct(db, *sqlDatabase, tableName, structName, *modelPackageName, *jsonAnnotation, *gormAnnotation, *gureguTypes, *jsonNameFormat)
+		tableInfo := dbmeta.GenerateStruct(db,
+			*sqlDatabase,
+			tableName,
+			structName,
+			*modelPackageName,
+			*jsonAnnotation,
+			*gormAnnotation,
+			*gureguTypes,
+			*jsonNameFormat,
+			*verbose)
 
 		if len(tableInfo.Fields) == 0 {
-			fmt.Printf("[%d] Table: %s - No Fields Available\n", i, tableName)
+			if *verbose {
+				fmt.Printf("[%d] Table: %s - No Fields Available\n", i, tableName)
+			}
+
 			continue
 		}
 
@@ -296,7 +316,9 @@ func main() {
 		}
 
 		structNames = append(structNames, structName)
-		fmt.Printf("[%d] Table: %s Struct: %s inflection: %s\n", i, tableName, structName, structNameInflection)
+		if *verbose {
+			fmt.Printf("[%d] Table: %s Struct: %s inflection: %s\n", i, tableName, structName, structNameInflection)
+		}
 
 		modelFile := filepath.Join(modelDir, inflection.Singular(tableName)+".go")
 		writeTemplate("model", ModelTmpl, modelInfo, modelFile, *overwrite, true)
@@ -326,7 +348,7 @@ func main() {
 		}
 
 		writeTemplate("router", RouterTmpl, data, filepath.Join(apiDir, "router.go"), *overwrite, true)
-		writeTemplate("example server", HttpUtils, data, filepath.Join(apiDir, "http_utils.go"), *overwrite, true)
+		writeTemplate("example server", HttpUtilsTmpl, data, filepath.Join(apiDir, "http_utils.go"), *overwrite, true)
 	}
 
 	data := map[string]interface{}{
@@ -363,7 +385,7 @@ func main() {
 			fmt.Printf("unable to create serverDir: %s error: %v\n", serverDir, err)
 			return
 		}
-		writeTemplate("example server", MainServer, data, filepath.Join(serverDir, "main.go"), *overwrite, true)
+		writeTemplate("example server", MainServerTmpl, data, filepath.Join(serverDir, "main.go"), *overwrite, true)
 	}
 }
 
@@ -412,8 +434,10 @@ func writeTemplate(name, templateStr string, data map[string]interface{}, output
 		fmt.Printf("error writing %s - error: %v\n", outputFile, err)
 		return
 	}
-	fmt.Printf("writing %s\n", outputFile)
 
+	if *verbose {
+		fmt.Printf("writing %s\n", outputFile)
+	}
 }
 
 // Exists reports whether the named file or directory exists.
@@ -538,6 +562,9 @@ func loadTemplate(filename string) (content string, err error) {
 	if err != nil {
 		return "", fmt.Errorf("%s not found", filename)
 	}
-	fmt.Printf("Loaded template from app: %s\n", filename)
+	if *verbose {
+		fmt.Printf("Loaded template from app: %s\n", filename)
+	}
+
 	return content, nil
 }

@@ -96,10 +96,11 @@ func GenerateStruct(db *sql.DB,
 	jsonAnnotation bool,
 	gormAnnotation bool,
 	gureguTypes bool,
-	jsonNameFormat string) *ModelInfo {
+	jsonNameFormat string,
+	verbose bool) *ModelInfo {
 
 	cols, _ := schema.Table(db, tableName)
-	fields := generateFieldsTypes(db, tableName, cols, 0, jsonAnnotation, gormAnnotation, gureguTypes, jsonNameFormat)
+	fields := generateFieldsTypes(db, tableName, cols, 0, jsonAnnotation, gormAnnotation, gureguTypes, jsonNameFormat, verbose)
 
 	//fields := generateMysqlTypes(db, columnTypes, 0, jsonAnnotation, gormAnnotation, gureguTypes)
 
@@ -116,14 +117,16 @@ func GenerateStruct(db *sql.DB,
 }
 
 // Generate fields string
-func generateFieldsTypes(db *sql.DB,
+func generateFieldsTypes(
+	db *sql.DB,
 	tableName string,
 	columns []*sql.ColumnType,
 	depth int,
 	jsonAnnotation bool,
 	gormAnnotation bool,
 	gureguTypes bool,
-	jsonNameFormat string) []string {
+	jsonNameFormat string,
+	verbose bool) []string {
 
 	//sort.Strings(keys)
 
@@ -132,11 +135,15 @@ func generateFieldsTypes(db *sql.DB,
 	for i, c := range columns {
 		nullable, _ := c.Nullable()
 		key := c.Name()
-		fmt.Printf("   [%s]   [%d] field: %s type: %s\n", tableName, i, key, c.DatabaseTypeName())
+		if verbose {
+			fmt.Printf("   [%s]   [%d] field: %s type: %s\n", tableName, i, key, c.DatabaseTypeName())
+		}
 
 		valueType := sqlTypeToGoType(strings.ToLower(c.DatabaseTypeName()), nullable, gureguTypes)
 		if valueType == "" { // unknown type
-			fmt.Printf("unable to generate struct field: %s type: %s\n", key, c.DatabaseTypeName())
+			if verbose {
+				fmt.Printf("table: %s unable to generate struct field: %s type: %s\n", tableName, key, c.DatabaseTypeName())
+			}
 			continue
 		}
 		fieldName := FmtFieldName(stringifyFirstChar(key))

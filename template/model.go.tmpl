@@ -17,8 +17,7 @@ var (
 DB Table Details
 table {{.DatabaseName}}.{{.TableName}} {
 {{ range $i, $value := .DBColumns }}
-{{$nullable := IsNullable $value}}{{$colLen := ColumnLength $value}}
-{{ printf "    [%-02d]  %-20s %-20s nullable: %t len: %d" $i $value.Name $value.DatabaseTypeName $nullable $colLen }}{{ end }}
+{{$nullable := IsNullable $value}}{{$colLen := ColumnLength $value}}{{ printf "    [%-02d]  %-25s %-20s nullable: %t len: %d" $i $value.Name $value.DatabaseTypeName $nullable $colLen }}{{ end }}
 }
 
 */
@@ -36,13 +35,3 @@ func ({{.ShortStructName}} *{{.StructName}}) TableName() string {
 	return "{{.TableName}}"
 }
 
-
-/*
-{{ range $key, $value := . }}
-   {{ printf "%#-20v" $key }}   {{ printf "[%T] %#v" $value $value }}{{ end }}
-
-table {{.DatabaseName}}.{{.TableName}} {
-{{ range $i, $value := .DBColumns }}
-{{ printf "    [%-02d]  %-20s %-20s" $i $value.Name $value.DatabaseTypeName }}{{ end }}
-}
-*/

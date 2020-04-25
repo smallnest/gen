@@ -35,7 +35,7 @@ func configGin{{pluralize .StructName}}Router(router gin.IRoutes) {
 // @Param   page     query    int     false        "page requested (defaults to 0)"
 // @Param   pagesize query    int     false        "number of records in a page  (defaults to 20)"
 // @Param   order    query    string  false        "db sort order column"
-// @Success 200 {object} api.PagedResults
+// @Success 200 {object} api.PagedResults{data=[]model.{{.StructName}}}
 // @Failure 400 {object} api.HTTPError
 // @Failure 404 {object} api.HTTPError
 // @Router /{{pluralize .StructName | toLower}} [get]
