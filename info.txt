@@ -1,0 +1,2 @@
+gen --connstr "root:123@pawmoji@tcp(127.0.0.1:3306)/pawmoji?&parseTime=True" --database pawmoji  --json --gorm --guregu --rest
+

@@ -1,0 +1,10 @@
+
+/*
+{{ range $key, $value := . }}
+   {{ printf "%#-20v" $key }}   {{ printf "[%T] %#v" $value $value }}{{ end }}
+
+table {{.DatabaseName}}.{{.TableName}} {
+{{ range $i, $value := .DBColumns }}
+{{ printf "    [%-02d]  %-20s %-20s" $i $value.Name $value.DatabaseTypeName }}{{ end }}
+}
+*/

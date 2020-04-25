@@ -7,6 +7,8 @@ require (
 	github.com/droundy/goopt v0.0.0-20170604162106-0b8effe182da
 	github.com/gin-gonic/gin v1.6.2
 	github.com/go-sql-driver/mysql v1.4.1
+	github.com/gobuffalo/packd v1.0.0
+	github.com/gobuffalo/packr/v2 v2.8.0
 	github.com/guregu/null v3.4.0+incompatible
 	github.com/jimsmart/schema v0.0.4
 	github.com/jinzhu/gorm v1.9.11

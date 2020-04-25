@@ -8,14 +8,6 @@ import (
 	"github.com/jimsmart/schema"
 )
 
-type ModelInfo struct {
-	PackageName     string
-	StructName      string
-	ShortStructName string
-	TableName       string
-	Fields          []string
-}
-
 // commonInitialisms is a set of common initialisms.
 // Only add entries that are highly unlikely to be non-initialisms.
 // For instance, "ID" is fine (Freudian code is rare), but "AND" is not.
@@ -83,23 +75,22 @@ const (
 	gureguNullTime   = "null.Time"
 	golangTime       = "time.Time"
 	golangBool       = "bool"
-
 )
 
-
 // GenerateStruct generates a struct for the given table.
-func GenerateStruct(db *sql.DB, tableName string, structName string, pkgName string, jsonAnnotation bool, gormAnnotation bool, gureguTypes bool) *ModelInfo {
+func GenerateStruct(db *sql.DB, dbName, tableName string, structName string, modelPkgName string, jsonAnnotation bool, gormAnnotation bool, gureguTypes bool) map[string]interface{} {
 	cols, _ := schema.Table(db, tableName)
 	fields := generateFieldsTypes(db, cols, 0, jsonAnnotation, gormAnnotation, gureguTypes)
 
 	//fields := generateMysqlTypes(db, columnTypes, 0, jsonAnnotation, gormAnnotation, gureguTypes)
 
-	var modelInfo = &ModelInfo{
-		PackageName:     pkgName,
-		StructName:      structName,
-		TableName:       tableName,
-		ShortStructName: strings.ToLower(string(structName[0])),
-		Fields:          fields,
+	var modelInfo = map[string]interface{}{
+		"ModelPackageName": modelPkgName,
+		"StructName":       structName,
+		"TableName":        tableName,
+		"ShortStructName":  strings.ToLower(string(structName[0])),
+		"Fields":           fields,
+		"DBColumns":        cols,
 	}
 
 	return modelInfo
@@ -204,7 +195,7 @@ func sqlTypeToGoType(mysqlType string, nullable bool, gureguTypes bool) string {
 			return sqlNullInt
 		}
 		return golangInt
-	case "bigint","int8":
+	case "bigint", "int8":
 		if nullable {
 			if gureguTypes {
 				return gureguNullInt
@@ -212,7 +203,7 @@ func sqlTypeToGoType(mysqlType string, nullable bool, gureguTypes bool) string {
 			return sqlNullInt
 		}
 		return golangInt64
-	case "char", "enum", "varchar", "longtext", "mediumtext", "text", "tinytext","varchar2","json","jsonb", "nvarchar":
+	case "char", "enum", "varchar", "longtext", "mediumtext", "text", "tinytext", "varchar2", "json", "jsonb", "nvarchar":
 		if nullable {
 			if gureguTypes {
 				return gureguNullString
@@ -248,5 +239,15 @@ func sqlTypeToGoType(mysqlType string, nullable bool, gureguTypes bool) string {
 	}
 
 	return ""
+}
+
+func IsNullable(colType *sql.ColumnType) bool {
+	nullable, _ := colType.Nullable()
+	return nullable
+}
+
+func ColumnLength(colType *sql.ColumnType) int64 {
+	len, _ := colType.Length()
+	return len
 }
 
