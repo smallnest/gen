@@ -53,6 +53,7 @@ var (
 	module           = goopt.String([]string{"--module"}, "model", "module path")
 
 	jsonAnnotation   = goopt.Flag([]string{"--json"}, []string{"--no-json"}, "Add json annotations (default)", "Disable json annotations")
+	jsonNameFormat   = goopt.String([]string{"--json-fmt"}, "snake", "json name format [snake | camel | lower_camel | none")
 	gormAnnotation   = goopt.Flag([]string{"--gorm"}, []string{}, "Add gorm annotations (tags)", "")
 	gureguTypes      = goopt.Flag([]string{"--guregu"}, []string{}, "Add guregu null types", "")
 	modGenerate      = goopt.Flag([]string{"--mod"}, []string{}, "Generate go.mod in output dir", "")
@@ -271,13 +272,14 @@ func main() {
 	SwaggerInfo.ContactEmail = *swaggerContactEmail
 
 	var structNames []string
+	*jsonNameFormat = strings.ToLower(*jsonNameFormat)
 
 	// generate go files for each table
 	for i, tableName := range tables {
 		structName := dbmeta.FmtFieldName(tableName)
 		structNameInflection := inflection.Singular(structName)
 		structName = inflection.Singular(structName)
-		tableInfo := dbmeta.GenerateStruct(db, *sqlDatabase, tableName, structName, *modelPackageName, *jsonAnnotation, *gormAnnotation, *gureguTypes)
+		tableInfo := dbmeta.GenerateStruct(db, *sqlDatabase, tableName, structName, *modelPackageName, *jsonAnnotation, *gormAnnotation, *gureguTypes, *jsonNameFormat)
 
 		if len(tableInfo.Fields) == 0 {
 			fmt.Printf("[%d] Table: %s - No Fields Available\n", i, tableName)
