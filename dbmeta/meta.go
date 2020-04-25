@@ -9,6 +9,15 @@ import (
 	"github.com/jimsmart/schema"
 )
 
+type ModelInfo struct {
+	PackageName     string
+	StructName      string
+	ShortStructName string
+	TableName       string
+	Fields          []string
+	DBCols          []*sql.ColumnType
+}
+
 // commonInitialisms is a set of common initialisms.
 // Only add entries that are highly unlikely to be non-initialisms.
 // For instance, "ID" is fine (Freudian code is rare), but "AND" is not.
@@ -78,15 +87,6 @@ const (
 	golangBool       = "bool"
 )
 
-type ModelInfo struct {
-	PackageName     string
-	StructName      string
-	ShortStructName string
-	TableName       string
-	Fields          []string
-	DBCols          []*sql.ColumnType
-}
-
 // GenerateStruct generates a struct for the given table.
 func GenerateStruct(db *sql.DB,
 	sqlDatabase,
@@ -101,8 +101,6 @@ func GenerateStruct(db *sql.DB,
 
 	cols, _ := schema.Table(db, tableName)
 	fields := generateFieldsTypes(db, tableName, cols, 0, jsonAnnotation, gormAnnotation, gureguTypes, jsonNameFormat, verbose)
-
-	//fields := generateMysqlTypes(db, columnTypes, 0, jsonAnnotation, gormAnnotation, gureguTypes)
 
 	var modelInfo = &ModelInfo{
 		PackageName:     pkgName,

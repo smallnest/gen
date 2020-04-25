@@ -124,7 +124,6 @@ func main() {
 		fmt.Printf("Base Template Details: Name: %v Path: %v ResolutionDir: %v\n", baseTemplates.Name, baseTemplates.Path, baseTemplates.ResolutionDir)
 	}
 
-
 	if *verbose {
 		for i, file := range baseTemplates.List() {
 			fmt.Printf("   [%d] [%s]\n", i, file)
