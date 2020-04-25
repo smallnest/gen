@@ -1,6 +1,16 @@
 WORKDIR=`pwd`
+export PACKR2_EXECUTABLE := $(shell command -v packr2  2> /dev/null)
+
 
 default: build
+
+
+check_prereq:
+ifndef PACKR2_EXECUTABLE
+	go get -u github.com/gobuffalo/packr/v2/packr2
+endif
+	$(warning "found packr2")
+
 
 install:
 	go get github.com/smallnest/gen
@@ -15,6 +25,7 @@ tools:
 	go get -u github.com/gordonklaus/ineffassign
 	go get -u github.com/fzipp/gocyclo
 	go get -u github.com/golang/lint/golint
+	go get -u github.com/gobuffalo/packr/v2/packr2
 
 lint:
 	golint ./...
@@ -43,8 +54,8 @@ deps:
 fmt:
 	go fmt .
 
-build:
-	go build .
+build: check_prereq
+	packr2 build .
 
 test:
 	go test  -v .
