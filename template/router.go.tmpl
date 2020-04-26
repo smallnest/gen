@@ -1,4 +1,4 @@
-package api
+package {{.apiPackageName}}
 
 import (
 	"encoding/json"
@@ -98,17 +98,17 @@ func readJSON(r *http.Request, v interface{}) error {
 func returnError(w http.ResponseWriter, r *http.Request, err error) {
 	status :=0
 	switch err {
-	case dao.NotFound:
+	case {{.daoPackageName}}.NotFound:
 		status = http.StatusBadRequest
-	case dao.UnableToMarshalJson:
+	case {{.daoPackageName}}.UnableToMarshalJson:
 		status = http.StatusBadRequest
-	case dao.UpdateFailedError:
+	case {{.daoPackageName}}.UpdateFailedError:
 		status = http.StatusBadRequest
-	case dao.InsertFailedError:
+	case {{.daoPackageName}}.InsertFailedError:
 		status = http.StatusBadRequest
-	case dao.DeleteFailedError:
+	case {{.daoPackageName}}.DeleteFailedError:
 		status = http.StatusBadRequest
-	case dao.BadParamsError:
+	case {{.daoPackageName}}.BadParamsError:
 		status = http.StatusBadRequest
 	default:
 		status = http.StatusBadRequest

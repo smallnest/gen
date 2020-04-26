@@ -17,10 +17,10 @@ import (
 	"github.com/swaggo/files"       // swagger embed files
 	"github.com/swaggo/gin-swagger" // gin-swagger middleware
 
-	"{{.module}}/api"
-    "{{.module}}/dao"
+	"{{.module}}/{{.apiPackageName}}"
+    "{{.module}}/{{.daoPackageName}}"
     _ "{{.module}}/docs"
-    "{{.module}}/model"
+    "{{.module}}/{{.modelPackageName}}"
 )
 
 var (
@@ -35,13 +35,13 @@ var (
 
 // gin
 func GinServer() {
-	url := ginSwagger.URL("http://localhost:8080/swagger/doc.json") // The url pointing to API definition
+	url := ginSwagger.URL("http://{{.serverHost}}:{{.serverPort}}/swagger/doc.json") // The url pointing to API definition
 
 	router := gin.Default()
 	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, url))
 
-	api.ConfigGinRouter(router)
-	router.Run(":8080")
+	{{.apiPackageName}}.ConfigGinRouter(router)
+	router.Run(":{{.serverPort}}")
 }
 
 
@@ -58,7 +58,7 @@ func GinServer() {
 // @license.name Apache 2.0
 // @license.url http://www.apache.org/licenses/LICENSE-2.0.html
 
-// @host {{.SwaggerInfo.Host}}
+// @host {{.serverHost}}:{{.serverPort}}
 // @BasePath {{.SwaggerInfo.BasePath}}
 func main() {
     OsSignal = make(chan os.Signal, 1)
@@ -69,8 +69,8 @@ func main() {
 	}
 
 	db.LogMode(true)
-	api.DB = db
-	dao.DB = db
+	{{.apiPackageName}}.DB = db
+	{{.daoPackageName}}.DB = db
 
     {{ $modelPackage := .modelPackageName }}
 	db.AutoMigrate(
