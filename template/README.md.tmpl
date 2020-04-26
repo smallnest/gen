@@ -1,18 +1,50 @@
-### Project Auto Generated
+### Sample CRUD API for the {{.sqlType}} database {{.sqlConnStr}}
 
+## Example
+The project is a RESTful api for accessing the {{.sqlType}} database {{.sqlConnStr}}.
 
+## Building
+```.bash
+make example
+```
+Will create a binary `./bin/example` - THis will start a http server on port {{.serverPort}}.
+
+## Project Files
+The generated project will contain the following code under the `./example` directory.
+* Makefile
+  * useful Makefile for installing tools building project etc. Issue `make` to display help
+* .gitignore
+  * git ignore for go project
+* go.mod
+  * go module setup, pass `--module` flag for setting the project module default `example.com/example`
+* README.md
+  * Project readme
+* app/server/main.go
+  * Sample Gin Server, with swagger init and comments
+* api/*.go
+  * REST crud controllers
+* dao/*.go
+  * DAO functions providing CRUD access to database
+* model/*.go
+  * Structs representing a row for each database table
+
+The REST api server utilizes the Gin framework, GORM db api and Swag for providing swagger documentation
+* [Gin](https://github.com/gin-gonic/gin)
+* [Swaggo](https://github.com/swaggo/swag)
+* [Gorm](https://github.com/jinzhu/gorm)
+
+## Swagger
+http://{{.serverHost}}:{{.serverPort}}/swagger/index.html
+
+## REST urls for fetching data
+{{ range $i, $value := .structs }}
+* http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize $value | toLower}}{{ end }}
+
+{{/*
+## Project Generated Details
 {{markdownCodeBlock ".bash" (wrapBash .CommandLine)}}
+*/}}
 
 
 
 
-{{ range $key, $value := . }}
-   {{ printf "%#-20v" $key }}   {{ printf "[%T] %#v" $value $value }}{{ end }}
-
-
-
-echo '{ "user": { "name": "john", "age": 10 } }' |  http POST http://localhost:8080/albums  X-API-Token:123
-
-
-
-http GET http://localhost:8080/albums?page=aa  X-API-Token:123

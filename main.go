@@ -50,21 +50,21 @@ var (
 	daoPackageName   = goopt.String([]string{"--dao"}, "dao", "name to set for dao package")
 	apiPackageName   = goopt.String([]string{"--api"}, "api", "name to set for api package")
 	outDir           = goopt.String([]string{"--out"}, ".", "output dir")
-	module           = goopt.String([]string{"--module"}, "model", "module path")
+	module           = goopt.String([]string{"--module"}, "example.com/example", "module path")
 
 	jsonAnnotation   = goopt.Flag([]string{"--json"}, []string{"--no-json"}, "Add json annotations (default)", "Disable json annotations")
 	jsonNameFormat   = goopt.String([]string{"--json-fmt"}, "snake", "json name format [snake | camel | lower_camel | none")
 	gormAnnotation   = goopt.Flag([]string{"--gorm"}, []string{}, "Add gorm annotations (tags)", "")
 	gureguTypes      = goopt.Flag([]string{"--guregu"}, []string{}, "Add guregu null types", "")
 	modGenerate      = goopt.Flag([]string{"--mod"}, []string{}, "Generate go.mod in output dir", "")
-	makefileGenerate = goopt.Flag([]string{"--makefile"}, []string{}, "Generate MakefileTmpl in output dir", "")
+	makefileGenerate = goopt.Flag([]string{"--makefile"}, []string{}, "Generate Makefile in output dir", "")
 	serverGenerate   = goopt.Flag([]string{"--server"}, []string{}, "Generate server app output dir", "")
 	overwrite        = goopt.Flag([]string{"--overwrite"}, []string{"--no-overwrite"}, "Overwrite existing files (default)", "disable overwriting files")
-
-	rest = goopt.Flag([]string{"--rest"}, []string{}, "Enable generating RESTful api", "")
+	serverHost       = goopt.String([]string{"--host"}, "localhost", "host for server")
+	serverPort       = goopt.Int([]string{"--port"}, 8080, "port for server")
+	rest             = goopt.Flag([]string{"--rest"}, []string{}, "Enable generating RESTful api", "")
 
 	swaggerVersion      = goopt.String([]string{"--swagger_version"}, "1.0", "swagger version")
-	swaggerHost         = goopt.String([]string{"--swagger_host"}, "localhost:8080", "swagger host")
 	swaggerBasePath     = goopt.String([]string{"--swagger_path"}, "/", "swagger base path")
 	swaggerTos          = goopt.String([]string{"--swagger_tos"}, "", "swagger tos url")
 	swaggerContactName  = goopt.String([]string{"--swagger_contact_name"}, "Me", "swagger contact name")
@@ -92,7 +92,6 @@ var (
 
 	SwaggerInfo = &swaggerInfo{
 		Version:      "1.0",
-		Host:         "localhost:8080",
 		BasePath:     "/",
 		Title:        "Swagger Example API",
 		Description:  "This is a sample server Petstore server.",
@@ -269,7 +268,6 @@ func main() {
 	}
 
 	SwaggerInfo.Version = *swaggerVersion
-	SwaggerInfo.Host = *swaggerHost
 	SwaggerInfo.BasePath = *swaggerBasePath
 	SwaggerInfo.Title = fmt.Sprintf("Sample CRUD api for %s db", *sqlDatabase)
 	SwaggerInfo.Description = fmt.Sprintf("Sample CRUD api for %s db", *sqlDatabase)
@@ -277,6 +275,7 @@ func main() {
 	SwaggerInfo.ContactName = *swaggerContactName
 	SwaggerInfo.ContactUrl = *swaggerContactUrl
 	SwaggerInfo.ContactEmail = *swaggerContactEmail
+	SwaggerInfo.Host = fmt.Sprintf("%s:%d", *serverHost, *serverPort)
 
 	var structNames []string
 	*jsonNameFormat = strings.ToLower(*jsonNameFormat)
@@ -369,7 +368,10 @@ func main() {
 		writeTemplate("gitignore", GitIgnoreTmpl, data, filepath.Join(*outDir, ".gitignore"), *overwrite, false)
 
 		cmdLine := strings.Join(os.Args, " ")
-		data = map[string]interface{}{"CommandLine": cmdLine}
+		data = map[string]interface{}{
+			"CommandLine": cmdLine,
+			"structs": structNames,
+		}
 		writeTemplate("readme", ReadMeTmpl, data, filepath.Join(*outDir, "README.md"), *overwrite, false)
 	}
 
@@ -404,6 +406,8 @@ func writeTemplate(name, templateStr string, data map[string]interface{}, output
 	data["apiPackageName"] = *apiPackageName
 	data["sqlType"] = *sqlType
 	data["sqlConnStr"] = *sqlConnStr
+	data["serverPort"] = *serverPort
+	data["serverHost"] = *serverHost
 	data["SwaggerInfo"] = SwaggerInfo
 
 	rt, err := getTemplate(templateStr)

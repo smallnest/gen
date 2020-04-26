@@ -1,4 +1,4 @@
-package api
+package {{.apiPackageName}}
 
 import (
 	"net/http"
@@ -35,26 +35,26 @@ func configGin{{pluralize .StructName}}Router(router gin.IRoutes) {
 // @Param   page     query    int     false        "page requested (defaults to 0)"
 // @Param   pagesize query    int     false        "number of records in a page  (defaults to 20)"
 // @Param   order    query    string  false        "db sort order column"
-// @Success 200 {object} api.PagedResults{data=[]model.{{.StructName}}}
-// @Failure 400 {object} api.HTTPError
-// @Failure 404 {object} api.HTTPError
+// @Success 200 {object} {{.apiPackageName}}.PagedResults{data=[]{{.modelPackageName}}.{{.StructName}}}
+// @Failure 400 {object} {{.apiPackageName}}.HTTPError
+// @Failure 404 {object} {{.apiPackageName}}.HTTPError
 // @Router /{{pluralize .StructName | toLower}} [get]
 func GetAll{{pluralize .StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     page, err := readInt(r, "page", 0)
 	if err != nil || page < 0 {
-		returnError(w, r, dao.BadParamsError)
+		returnError(w, r, {{.daoPackageName}}.BadParamsError)
 		return
 	}
 
 	pagesize, err := readInt(r, "pagesize", 20)
 	if err != nil || pagesize <= 0 {
-		returnError(w, r, dao.BadParamsError)
+		returnError(w, r, {{.daoPackageName}}.BadParamsError)
 		return
 	}
 
 	order := r.FormValue("order")
 
-    records, totalRows, err :=  dao.GetAll{{pluralize .StructName}}(r.Context(), page, pagesize, order)
+    records, totalRows, err :=  {{.daoPackageName}}.GetAll{{pluralize .StructName}}(r.Context(), page, pagesize, order)
 	if err != nil {
 	    returnError(w, r, err)
 		return
@@ -73,14 +73,14 @@ func GetAll{{pluralize .StructName}}(w http.ResponseWriter, r *http.Request, ps 
 // @Accept  json
 // @Produce  json
 // @Param  id path int true "record id"
-// @Success 200 {object} model.{{.StructName}}
-// @Failure 400 {object} api.HTTPError
-// @Failure 404 {object} api.HTTPError "NotFound, db record for id not found - returns NotFound HTTP 404 not found error"
+// @Success 200 {object} {{.modelPackageName}}.{{.StructName}}
+// @Failure 400 {object} {{.apiPackageName}}.HTTPError
+// @Failure 404 {object} {{.apiPackageName}}.HTTPError "NotFound, db record for id not found - returns NotFound HTTP 404 not found error"
 // @Router /{{pluralize .StructName | toLower}}/{id} [get]
 func Get{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
 
-	record, err := dao.Get{{.StructName}}(r.Context(), id)
+	record, err := {{.daoPackageName}}.Get{{.StructName}}(r.Context(), id)
 	if err != nil {
 		returnError(w, r, err)
 		return
@@ -97,20 +97,20 @@ func Get{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 // @Tags {{.StructName}}
 // @Accept  json
 // @Produce  json
-// @Param {{.StructName}} body model.{{.StructName}} true "Add {{.StructName}}"
-// @Success 200 {object} model.{{.StructName}}
-// @Failure 400 {object} api.HTTPError
-// @Failure 404 {object} api.HTTPError
+// @Param {{.StructName}} body {{.modelPackageName}}.{{.StructName}} true "Add {{.StructName}}"
+// @Success 200 {object} {{.modelPackageName}}.{{.StructName}}
+// @Failure 400 {object} {{.apiPackageName}}.HTTPError
+// @Failure 404 {object} {{.apiPackageName}}.HTTPError
 // @Router /{{pluralize .StructName | toLower}} [post]
 func Add{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	{{.StructName | toLower}} := &model.{{.StructName}}{}
+	{{.StructName | toLower}} := &{{.modelPackageName}}.{{.StructName}}{}
 
 	if err := readJSON(r, {{.StructName | toLower}}); err != nil {
-		returnError(w, r, dao.BadParamsError)
+		returnError(w, r, {{.daoPackageName}}.BadParamsError)
 		return
 	}
 
-	err := dao.Add{{.StructName}}(r.Context(), {{.StructName | toLower}})
+	err := {{.daoPackageName}}.Add{{.StructName}}(r.Context(), {{.StructName | toLower}})
 	if err != nil {
 		returnError(w, r, err)
 		return
@@ -127,21 +127,21 @@ func Add{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 // @Accept  json
 // @Produce  json
 // @Param  id path int true "Account ID"
-// @Param  {{.StructName}} body model.{{.StructName}} true "Update {{.StructName}} record"
-// @Success 200 {object} model.{{.StructName}}
-// @Failure 400 {object} api.HTTPError
-// @Failure 404 {object} api.HTTPError
+// @Param  {{.StructName}} body {{.modelPackageName}}.{{.StructName}} true "Update {{.StructName}} record"
+// @Success 200 {object} {{.modelPackageName}}.{{.StructName}}
+// @Failure 400 {object} {{.apiPackageName}}.HTTPError
+// @Failure 404 {object} {{.apiPackageName}}.HTTPError
 // @Router /{{pluralize .StructName | toLower}}/{id} [patch]
 func Update{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
 
-	updated := &model.{{.StructName}}{}
+	updated := &{{.modelPackageName}}.{{.StructName}}{}
 	if err := readJSON(r, updated); err != nil {
-		returnError(w, r, dao.BadParamsError)
+		returnError(w, r, {{.daoPackageName}}.BadParamsError)
 		return
 	}
 
-	err := dao.Update{{.StructName}}(r.Context(), id, updated)
+	err := {{.daoPackageName}}.Update{{.StructName}}(r.Context(), id, updated)
 	if err != nil {
 	    returnError(w, r, err)
    	    return
@@ -159,14 +159,14 @@ func Update{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter
 // @Accept  json
 // @Produce  json
 // @Param  id path int true "ID" Format(int64)
-// @Success 204 {object} model.{{.StructName}}
-// @Failure 400 {object} api.HTTPError
-// @Failure 500 {object} api.HTTPError
+// @Success 204 {object} {{.modelPackageName}}.{{.StructName}}
+// @Failure 400 {object} {{.apiPackageName}}.HTTPError
+// @Failure 500 {object} {{.apiPackageName}}.HTTPError
 // @Router /{{pluralize .StructName | toLower}}/{id} [delete]
 func Delete{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
 
-	err := dao.Delete{{.StructName}}(r.Context(), id)
+	err := {{.daoPackageName}}.Delete{{.StructName}}(r.Context(), id)
 	if err != nil {
 	    returnError(w, r, err)
 	    return
