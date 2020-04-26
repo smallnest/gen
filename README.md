@@ -16,14 +16,15 @@ and the expected basic built in go types.
 
 ## Binary Installation
 ```BASH
-go get -u github.com/smallnest/gen
+## install gen tool (should be installed to ~/go/bin, make sure ~/go/bin is in your path.
+$ go get -u github.com/smallnest/gen
 
-```
+## download sample sqlite database
+$ wget https://github.com/smallnest/gen/raw/master/example/sample.db
 
-## Usage
-```BASH
-gen --sqltype=sqlite3 \
-   	--connstr "./example/sample.db" \
+## generate code based on the sqlite database (project will be containied within the ./example dir)
+$ gen --sqltype=sqlite3 \
+   	--connstr "./sample.db" \
    	--database main  \
    	--json \
    	--gorm \
@@ -36,10 +37,27 @@ gen --sqltype=sqlite3 \
    	--makefile \
    	--json-fmt=snake \
    	--overwrite
+
+## build example code (build process will install packr2 if not installed)
+$ cd ./example
+$ make example
+
+## binary will be located at ./bin/example
+## when launching make sure that the sqlite file sample.db is located in the same dir as the binary 
+$ cp ../../sample.db  .
+$ ./example 
+
+
+## Open a browser to http://localhost:8080/swagger/index.html
+
+## Use wge/curl/httpie to fetch via command line
+http http://localhost:8080/albums
+curl http://localhost:8080/artists
+
 ```
 
 
-## Options
+## Usage
 ```BASH
 $ ./gen --help
 Usage of gen:

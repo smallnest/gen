@@ -483,10 +483,12 @@ func camelToLowerCamel(s string) string {
 }
 
 func markdownCodeBlock(contentType, content string) string {
+	// fmt.Printf("%s - %s\n", contentType, content)
 	return fmt.Sprintf("```%s\n%s\n```\n", contentType, content)
 }
 
 func wrapBash(content string) string {
+	// fmt.Printf("wrapBash - %s\n",  content)
 	parts := strings.Split(content, " ")
 	return strings.Join(parts, " \\\n    ")
 }

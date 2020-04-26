@@ -75,21 +75,21 @@ example: generate_example##
 
 generate_example: clean_example## generate example project code from sqlite db in ./examples
 	ls -latr ./example
-	go run . \
+	cd ./example && go run .. \
 		--sqltype=sqlite3 \
-		--connstr "./example/sample.db" \
+		--connstr "./sample.db" \
 		--database main \
 		--templateDir=./template \
 		--json \
 		--gorm \
 		--guregu \
 		--rest \
-		--out ./example \
+		--out ./ \
 		--module github.com/alexj212/generated \
 		--mod \
 		--server \
-		--makefile \
 		--verbose \
+		--makefile \
 		--overwrite
 
 
@@ -97,8 +97,7 @@ build_example: generate_example## generate and build example
 	cd ./example && $(MAKE) example
 
 run_example: example ## run example project server
-	ls -latr ./example/bin
-	./example/bin/example
+	cd ./example && ./bin/example
 
 
 clean_example: ## remove generated example code
