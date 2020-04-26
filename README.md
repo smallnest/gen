@@ -14,11 +14,14 @@ and the expected basic built in go types.
 `gen` is based / inspired by the work of Seth Shelnutt's [db2struct](https://github.com/Shelnutt2/db2struct), and Db2Struct is based/inspired by the work of ChimeraCoder's gojson package [gojson](https://github.com/ChimeraCoder/gojson).
 
 
-## Installation
+## Binary Installation
 ```BASH
-go get github.com/smallnest/gen
+go get -u github.com/smallnest/gen
 
+```
 
+## Usage
+```BASH
 gen --sqltype=sqlite3 \
    	--connstr "./example/sample.db" \
    	--database main  \
@@ -36,7 +39,7 @@ gen --sqltype=sqlite3 \
 ```
 
 
-## Usage
+## Options
 ```BASH
 $ ./gen --help
 Usage of gen:
@@ -78,7 +81,12 @@ Options:
 
 ```
 
-
+## Building
+The project contains a makefile for easy building and common tasks.
+* `make help` - list available targets
+* `make build` - generate the binary `./gen`
+* `make example` - run the gen process on the example sqlite db located in ./examples place the sources in ./example
+Other targets exist for dev tasks.
 
 ## Example
 The projects provides a sample SQLite database in the `./example` directory. From the project `Makefile` can be used to generate the example code. 
