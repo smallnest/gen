@@ -7,11 +7,29 @@ import (
 	"strconv"
 	"unsafe"
 
+	"{{.daoFQPN}}"
+
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"github.com/julienschmidt/httprouter"
 )
 
+var (
+	DB           *gorm.DB
+)
+
+type PagedResults struct {
+	Page         int64       `json:"page"`
+	PageSize     int64       `json:"page_size"`
+	Data         interface{} `json:"data"`
+    TotalRecords int         `json:"total_records"`
+}
+
+// HTTPError example
+type HTTPError struct {
+	Code    int    `json:"code" example:"400"`
+	Message string `json:"message" example:"status bad request"`
+}
 // example for init the database:
 //
 //  DB, err := gorm.Open("mysql", "root@tcp(127.0.0.1:3306)/employees?charset=utf8&parseTime=true")
@@ -20,27 +38,19 @@ import (
 //  }
 //  defer db.Close()
 
-var DB *gorm.DB
+
 
 func ConfigRouter() http.Handler {
 	router := httprouter.New()
-	configDepartmentsRouter(router)
-	configDeptEmpsRouter(router)
-	configDeptManagersRouter(router)
-	configEmployeesRouter(router)
-	configSalariesRouter(router)
-	configTitlesRouter(router)
+    {{range .structs}}config{{pluralize .}}Router(router)
+    {{end}}
 
 	return router
 }
 
 func ConfigGinRouter(router gin.IRoutes) {
-	configGinDepartmentsRouter(router)
-	configGinDeptEmpsRouter(router)
-	configGinDeptManagersRouter(router)
-	configGinEmployeesRouter(router)
-	configGinSalariesRouter(router)
-	configGinTitlesRouter(router)
+    {{range .structs}}configGin{{pluralize .}}Router(router)
+	{{end}}
 
 	return
 }
@@ -82,4 +92,41 @@ func readJSON(r *http.Request, v interface{}) error {
 	}
 
 	return json.Unmarshal(buf, v)
+}
+
+
+func returnError(w http.ResponseWriter, r *http.Request, err error) {
+	status :=0
+	switch err {
+	case dao.NotFound:
+		status = http.StatusBadRequest
+	case dao.UnableToMarshalJson:
+		status = http.StatusBadRequest
+	case dao.UpdateFailedError:
+		status = http.StatusBadRequest
+	case dao.InsertFailedError:
+		status = http.StatusBadRequest
+	case dao.DeleteFailedError:
+		status = http.StatusBadRequest
+	case dao.BadParamsError:
+		status = http.StatusBadRequest
+	default:
+		status = http.StatusBadRequest
+	}
+	er := HTTPError{
+		Code:    status,
+		Message: err.Error(),
+	}
+
+	SendJson(w, r, er.Code, er)
+}
+
+
+// NewError example
+func NewError(ctx *gin.Context, status int, err error) {
+	er := HTTPError{
+		Code:    status,
+		Message: err.Error(),
+	}
+	ctx.JSON(status, er)
 }

@@ -1,0 +1,93 @@
+package main
+
+import (
+	"fmt"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+
+    _ "github.com/jinzhu/gorm/dialects/mysql"
+    _ "github.com/jinzhu/gorm/dialects/sqlite"
+    // _ "github.com/jinzhu/gorm/dialects/postgres"
+    // _ "github.com/jinzhu/gorm/dialects/mssql"
+
+	"github.com/gin-gonic/gin"
+	"github.com/jinzhu/gorm"
+	"github.com/swaggo/files"       // swagger embed files
+	"github.com/swaggo/gin-swagger" // gin-swagger middleware
+
+	"{{.module}}/api"
+    "{{.module}}/dao"
+    _ "{{.module}}/docs"
+    "{{.module}}/model"
+)
+
+var (
+	BuildDate    string
+	LatestCommit string
+	BuildNumber  string
+	BuiltOnIp    string
+	BuiltOnOs    string
+	RuntimeVer   string
+	OsSignal     chan os.Signal
+)
+
+// gin
+func GinServer() {
+	url := ginSwagger.URL("http://localhost:8080/swagger/doc.json") // The url pointing to API definition
+
+	router := gin.Default()
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, url))
+
+	api.ConfigGinRouter(router)
+	router.Run(":8080")
+}
+
+
+
+// @title {{.SwaggerInfo.Title}}
+// @version {{.SwaggerInfo.Version}}
+// @description {{.SwaggerInfo.Description}}
+// @termsOfService {{.SwaggerInfo.TOS}}
+
+// @contact.name {{.SwaggerInfo.ContactName}}
+// @contact.url {{.SwaggerInfo.ContactUrl}}
+// @contact.email {{.SwaggerInfo.ContactEmail}}
+
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host {{.SwaggerInfo.Host}}
+// @BasePath {{.SwaggerInfo.BasePath}}
+func main() {
+    OsSignal = make(chan os.Signal, 1)
+
+	db, err := gorm.Open("{{.sqlType}}", "{{.sqlConnStr}}")
+	if err != nil {
+		log.Fatalf("Got error when connect database, the error is '%v'", err)
+	}
+
+	db.LogMode(true)
+	api.DB = db
+	dao.DB = db
+
+    {{ $modelPackage := .modelPackageName }}
+	db.AutoMigrate(
+        {{range .models}} &{{ $modelPackage}}.{{.}}{},
+        {{end}} )
+
+	go GinServer()
+    LoopForever()
+}
+
+// Loop on signal processing
+func LoopForever() {
+	fmt.Printf("Entering infinite loop\n")
+
+	signal.Notify(OsSignal, syscall.SIGINT, syscall.SIGTERM, syscall.SIGUSR1)
+	_ = <-OsSignal
+
+	fmt.Printf("Exiting infinite loop received OsSignal\n")
+
+}

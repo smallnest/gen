@@ -1,0 +1,18 @@
+### Project Auto Generated
+
+
+{{markdownCodeBlock ".bash" (wrapBash .CommandLine)}}
+
+
+
+
+{{ range $key, $value := . }}
+   {{ printf "%#-20v" $key }}   {{ printf "[%T] %#v" $value $value }}{{ end }}
+
+
+
+echo '{ "user": { "name": "john", "age": 10 } }' |  http POST http://localhost:8080/albums  X-API-Token:123
+
+
+
+http GET http://localhost:8080/albums?page=aa  X-API-Token:123
