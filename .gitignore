@@ -17,8 +17,8 @@
 # vendor/
 
 .idea/
-packrd/
-main-packr.go
+#packrd/
+#main-packr.go
 gen
 #
 # only store sample db in git
