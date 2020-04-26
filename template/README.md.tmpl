@@ -3,12 +3,6 @@
 ## Example
 The project is a RESTful api for accessing the {{.sqlType}} database {{.sqlConnStr}}.
 
-## Building
-```.bash
-make example
-```
-Will create a binary `./bin/example` - THis will start a http server on port {{.serverPort}}.
-
 ## Project Files
 The generated project will contain the following code under the `./example` directory.
 * Makefile
@@ -33,16 +27,30 @@ The REST api server utilizes the Gin framework, GORM db api and Swag for providi
 * [Swaggo](https://github.com/swaggo/swag)
 * [Gorm](https://github.com/jinzhu/gorm)
 
+## Building
+```.bash
+make example
+```
+Will create a binary `./bin/example`
+
+## Running
+```.bash
+./bin/example
+```
+This will launch the web server on {{$.serverHost}}:{{$.serverPort}}
+
 ## Swagger
+The swagger web ui contains the documentation for the http server, it also provides an interactive interface to exercise the api and view results.
 http://{{.serverHost}}:{{.serverPort}}/swagger/index.html
 
 ## REST urls for fetching data
 {{ range $i, $value := .structs }}
 * http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize $value | toLower}}{{ end }}
 
-{{/*
 ## Project Generated Details
 {{markdownCodeBlock ".bash" (wrapBash .CommandLine)}}
+
+{{/*
 */}}
 
 
