@@ -8,7 +8,7 @@ connect to the db connection string analyze the database and generate the code b
 By reading details from the database about the column structure, gen generates a go compatible struct type
 with the required column names, data types, and annotations.
 
-It supports [gorm](https://github.com/jinzhu/gorm) tags and implements some usable methods. Generated datatypes include support for nullable columns [sql.NullX types](https://golang.org/pkg/database/sql/#NullBool) or [guregu null.X types](https://github.com/guregu/null)
+It supports [gorm](https://github.com/jinzhu/gorm) tags and implements some usable methods. Generated data types include support for nullable columns [sql.NullX types](https://golang.org/pkg/database/sql/#NullBool) or [guregu null.X types](https://github.com/guregu/null)
 and the expected basic built in go types.
 
 `gen` is based / inspired by the work of Seth Shelnutt's [db2struct](https://github.com/Shelnutt2/db2struct), and Db2Struct is based/inspired by the work of ChimeraCoder's gojson package [gojson](https://github.com/ChimeraCoder/gojson).
@@ -50,7 +50,7 @@ $ ./example
 
 ## Open a browser to http://localhost:8080/swagger/index.html
 
-## Use wge/curl/httpie to fetch via command line
+## Use wget/curl/httpie to fetch via command line
 http http://localhost:8080/albums
 curl http://localhost:8080/artists
 
@@ -103,18 +103,18 @@ Options:
 The project contains a makefile for easy building and common tasks.
 * `make help` - list available targets
 * `make build` - generate the binary `./gen`
-* `make example` - run the gen process on the example sqlite db located in ./examples place the sources in ./example
+* `make example` - run the gen process on the example SqlLite db located in ./examples place the sources in ./example
 Other targets exist for dev tasks.
 
 ## Example
-The projects provides a sample SQLite database in the `./example` directory. From the project `Makefile` can be used to generate the example code. 
+The project provides a sample SQLite database in the `./example` directory. From the project `Makefile` can be used to generate the example code. 
 ```.bash
 make example
 ``` 
 
 The generated project will contain the following code under the `./example` directory.
 * Makefile
-  * useful Makefile for installing tools building project etc. Issue `make` to display help
+  * useful Makefile for installing tools building project etc. Issue `make` to display help output.
 * .gitignore
   * git ignore for go project
 * go.mod
@@ -140,7 +140,6 @@ The REST api server utilizes the Gin framework, GORM db api and Swag for providi
 
 
 ## Supported Databases
-
 Currently Supported
 - MariaDB
 - MySQL
@@ -190,4 +189,4 @@ Currently only a limited number of datatypes are supported. Initial support incl
 ## Issues
 
 - Postgres and SQLite driver support for sql.ColumnType.Nullable() ([#3](https://github.com/smallnest/gen/issues/3))
-- Can not distinguish primay key of tables. Only set the first field as primay key. So you need to change it in some cases.
+- Can not distinguish primary key of tables. Only set the first field as primary key. So you need to change it in some cases.
