@@ -15,18 +15,17 @@ var (
 
 /*
 DB Table Details
-table {{.DatabaseName}}.{{.TableName}} {
-{{ range $i, $value := .DBColumns }}
-{{$nullable := IsNullable $value}}{{$colLen := ColumnLength $value}}{{ printf "    [%-02d]  %-25s %-20s nullable: %t len: %d" $i $value.Name $value.DatabaseTypeName $nullable $colLen }}{{ end }}
-}
-
+{{ $ddl := .TableInfo.DBMeta.DDL }}
+{{if $ddl }}
+{{$ddl}}
+{{end}}
 */
 
 
 
 // {{.StructName}} struct is a row record of the {{.TableName}} table in the {{.DatabaseName}} database
 type {{.StructName}} struct {
-    {{range .Fields}}{{.}}
+    {{range .TableInfo.Fields}}{{.}}
     {{end}}
 }
 
@@ -35,3 +34,17 @@ func ({{.ShortStructName}} *{{.StructName}}) TableName() string {
 	return "{{.TableName}}"
 }
 
+
+
+
+func ({{.ShortStructName}} *{{.StructName}}) BeforeSave() error {
+	return nil
+}
+
+func ({{.ShortStructName}} *{{.StructName}}) Prepare() {
+}
+
+func ({{.ShortStructName}} *{{.StructName}}) Validate(action Action) error {
+
+    return nil
+}

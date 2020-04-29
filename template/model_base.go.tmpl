@@ -1,0 +1,18 @@
+package {{.modelPackageName}}
+
+type Action int32
+
+var (
+	Create   = 0
+	Retrieve = 1
+	Update   = 2
+	Delete   = 3
+)
+
+
+type Model interface {
+    TableName() string
+    BeforeSave() error
+    Prepare()
+    Validate(action Action) error
+}

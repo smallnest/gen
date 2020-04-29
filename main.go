@@ -75,6 +75,7 @@ var (
 
 	baseTemplates  *packr.Box
 	ModelTmpl      string
+	ModelBaseTmpl  string
 	ControllerTmpl string
 	DaoTmpl        string
 	RouterTmpl     string
@@ -119,9 +120,9 @@ func main() {
 
 	baseTemplates = packr.New("gen", "./template")
 
-	if *verbose {
-		fmt.Printf("Base Template Details: Name: %v Path: %v ResolutionDir: %v\n", baseTemplates.Name, baseTemplates.Path, baseTemplates.ResolutionDir)
-	}
+	//if *verbose {
+	//	fmt.Printf("Base Template Details: Name: %v Path: %v ResolutionDir: %v\n", baseTemplates.Name, baseTemplates.Path, baseTemplates.ResolutionDir)
+	//}
 
 	if *verbose {
 		for i, file := range baseTemplates.List() {
@@ -258,6 +259,11 @@ func main() {
 		fmt.Printf("Error loading template %v\n", err)
 		return
 	}
+	if ModelBaseTmpl, err = loadTemplate("model_base.go.tmpl"); err != nil {
+		fmt.Printf("Error loading template %v\n", err)
+		return
+	}
+
 	if ReadMeTmpl, err = loadTemplate("README.md.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
 		return
@@ -282,10 +288,14 @@ func main() {
 
 	// generate go files for each table
 	for i, tableName := range tables {
+		if strings.HasPrefix(tableName, "[") && strings.HasSuffix(tableName, "]") {
+			tableName = tableName[1 : len(tableName)-1]
+		}
 		structName := dbmeta.FmtFieldName(tableName)
-		structNameInflection := inflection.Singular(structName)
+
 		structName = inflection.Singular(structName)
-		tableInfo := dbmeta.GenerateStruct(db,
+		tableInfo, err := dbmeta.GenerateStruct(*sqlType,
+			db,
 			*sqlDatabase,
 			tableName,
 			structName,
@@ -296,6 +306,10 @@ func main() {
 			*jsonNameFormat,
 			*verbose)
 
+		if err != nil {
+			fmt.Printf("Error dbmeta.GenerateStruct tableName: %s error: %v\n", tableName, err)
+			return
+		}
 		if len(tableInfo.Fields) == 0 {
 			if *verbose {
 				fmt.Printf("[%d] Table: %s - No Fields Available\n", i, tableName)
@@ -309,14 +323,15 @@ func main() {
 			"StructName":       structName,
 			"TableName":        tableName,
 			"ShortStructName":  strings.ToLower(string(structName[0])),
-			"Fields":           tableInfo.Fields,
-			"DBColumns":        tableInfo.DBCols,
+			//"Fields":           TableInfo.Fields,
+			//"DBColumns":        tableInfo.DBCols,
+			"TableInfo": tableInfo,
 		}
 
 		structNames = append(structNames, structName)
-		if *verbose {
-			fmt.Printf("[%d] Table: %s Struct: %s inflection: %s\n", i, tableName, structName, structNameInflection)
-		}
+		//if *verbose {
+		//	fmt.Printf("[%d] Table: %s Struct: %s inflection: %s\n", i, tableName, structName, structNameInflection)
+		//}
 
 		modelFile := filepath.Join(modelDir, inflection.Singular(tableName)+".go")
 		writeTemplate("model", ModelTmpl, modelInfo, modelFile, *overwrite, true)
@@ -354,6 +369,7 @@ func main() {
 	}
 
 	writeTemplate("daoBase", DaoInitTmpl, data, filepath.Join(daoDir, "dao_base.go"), *overwrite, true)
+	writeTemplate("modelBase", ModelBaseTmpl, data, filepath.Join(modelDir, "model_base.go"), *overwrite, true)
 
 	if *modGenerate {
 		data := map[string]interface{}{}
@@ -370,7 +386,7 @@ func main() {
 		cmdLine := strings.Join(os.Args, " ")
 		data = map[string]interface{}{
 			"CommandLine": cmdLine,
-			"structs": structNames,
+			"structs":     structNames,
 		}
 		writeTemplate("readme", ReadMeTmpl, data, filepath.Join(*outDir, "README.md"), *overwrite, false)
 	}
@@ -410,9 +426,9 @@ func writeTemplate(name, templateStr string, data map[string]interface{}, output
 	data["serverHost"] = *serverHost
 	data["SwaggerInfo"] = SwaggerInfo
 
-	rt, err := getTemplate(templateStr)
+	rt, err := getTemplate(name, templateStr)
 	if err != nil {
-		fmt.Printf("Error in loading %s template\n", name)
+		fmt.Printf("Error in loading %s template, error: %v\n", name, err)
 		return
 	}
 	var buf bytes.Buffer
@@ -453,7 +469,7 @@ func Exists(name string) bool {
 	return true
 }
 
-func getTemplate(t string) (*template.Template, error) {
+func getTemplate(name, t string) (*template.Template, error) {
 	var funcMap = template.FuncMap{
 		"pluralize":         inflection.Plural,
 		"title":             strings.Title,
@@ -462,11 +478,9 @@ func getTemplate(t string) (*template.Template, error) {
 		"toSnakeCase":       snaker.CamelToSnake,
 		"markdownCodeBlock": markdownCodeBlock,
 		"wrapBash":          wrapBash,
-		"IsNullable":        dbmeta.IsNullable,
-		"ColumnLength":      dbmeta.ColumnLength,
 	}
 
-	tmpl, err := template.New("model").Funcs(funcMap).Parse(t)
+	tmpl, err := template.New(name).Funcs(funcMap).Parse(t)
 
 	if err != nil {
 		return nil, err

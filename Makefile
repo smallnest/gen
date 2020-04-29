@@ -79,7 +79,7 @@ generate_example: clean_example## generate example project code from sqlite db i
 		--sqltype=sqlite3 \
 		--connstr "./sample.db" \
 		--database main \
-		--templateDir=./template \
+		--templateDir=../template \
 		--json \
 		--gorm \
 		--guregu \
