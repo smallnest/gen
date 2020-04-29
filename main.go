@@ -52,17 +52,19 @@ var (
 	outDir           = goopt.String([]string{"--out"}, ".", "output dir")
 	module           = goopt.String([]string{"--module"}, "example.com/example", "module path")
 
-	jsonAnnotation   = goopt.Flag([]string{"--json"}, []string{"--no-json"}, "Add json annotations (default)", "Disable json annotations")
-	jsonNameFormat   = goopt.String([]string{"--json-fmt"}, "snake", "json name format [snake | camel | lower_camel | none")
-	gormAnnotation   = goopt.Flag([]string{"--gorm"}, []string{}, "Add gorm annotations (tags)", "")
-	gureguTypes      = goopt.Flag([]string{"--guregu"}, []string{}, "Add guregu null types", "")
-	modGenerate      = goopt.Flag([]string{"--mod"}, []string{}, "Generate go.mod in output dir", "")
-	makefileGenerate = goopt.Flag([]string{"--makefile"}, []string{}, "Generate Makefile in output dir", "")
-	serverGenerate   = goopt.Flag([]string{"--server"}, []string{}, "Generate server app output dir", "")
-	overwrite        = goopt.Flag([]string{"--overwrite"}, []string{"--no-overwrite"}, "Overwrite existing files (default)", "disable overwriting files")
-	serverHost       = goopt.String([]string{"--host"}, "localhost", "host for server")
-	serverPort       = goopt.Int([]string{"--port"}, 8080, "port for server")
-	rest             = goopt.Flag([]string{"--rest"}, []string{}, "Enable generating RESTful api", "")
+	jsonAnnotation     = goopt.Flag([]string{"--json"}, []string{"--no-json"}, "Add json annotations (default)", "Disable json annotations")
+	jsonNameFormat     = goopt.String([]string{"--json-fmt"}, "snake", "json name format [snake | camel | lower_camel | none")
+	gormAnnotation     = goopt.Flag([]string{"--gorm"}, []string{}, "Add gorm annotations (tags)", "")
+	protobufAnnotation = goopt.Flag([]string{"--protobuf"}, []string{}, "Add protobuf annotations (tags)", "")
+	dbAnnotation       = goopt.Flag([]string{"--db"}, []string{}, "Add db annotations (tags)", "")
+	gureguTypes        = goopt.Flag([]string{"--guregu"}, []string{}, "Add guregu null types", "")
+	modGenerate        = goopt.Flag([]string{"--mod"}, []string{}, "Generate go.mod in output dir", "")
+	makefileGenerate   = goopt.Flag([]string{"--makefile"}, []string{}, "Generate Makefile in output dir", "")
+	serverGenerate     = goopt.Flag([]string{"--server"}, []string{}, "Generate server app output dir", "")
+	overwrite          = goopt.Flag([]string{"--overwrite"}, []string{"--no-overwrite"}, "Overwrite existing files (default)", "disable overwriting files")
+	serverHost         = goopt.String([]string{"--host"}, "localhost", "host for server")
+	serverPort         = goopt.Int([]string{"--port"}, 8080, "port for server")
+	rest               = goopt.Flag([]string{"--rest"}, []string{}, "Enable generating RESTful api", "")
 
 	swaggerVersion      = goopt.String([]string{"--swagger_version"}, "1.0", "swagger version")
 	swaggerBasePath     = goopt.String([]string{"--swagger_path"}, "/", "swagger base path")
@@ -193,26 +195,26 @@ func main() {
 	apiDir := filepath.Join(*outDir, *apiPackageName)
 	daoDir := filepath.Join(*outDir, *daoPackageName)
 
-	err = os.Mkdir(*outDir, 0777)
+	err = os.MkdirAll(*outDir, 0777)
 	if err != nil && !*overwrite {
 		fmt.Printf("unable to create outDir: %s error: %v\n", *outDir, err)
 		return
 	}
 
-	err = os.Mkdir(modelDir, 0777)
+	err = os.MkdirAll(modelDir, 0777)
 	if err != nil && !*overwrite {
 		fmt.Printf("unable to create modelDir: %s error: %v\n", modelDir, err)
 		return
 	}
 
-	err = os.Mkdir(daoDir, 0777)
+	err = os.MkdirAll(daoDir, 0777)
 	if err != nil && !*overwrite {
 		fmt.Printf("unable to create daoDir: %s error: %v\n", daoDir, err)
 		return
 	}
 
 	if *rest {
-		err = os.Mkdir(apiDir, 0777)
+		err = os.MkdirAll(apiDir, 0777)
 		if err != nil && !*overwrite {
 			fmt.Printf("unable to create apiDir: %s error: %v\n", apiDir, err)
 			return
@@ -302,6 +304,8 @@ func main() {
 			*modelPackageName,
 			*jsonAnnotation,
 			*gormAnnotation,
+			*protobufAnnotation,
+			*dbAnnotation,
 			*gureguTypes,
 			*jsonNameFormat,
 			*verbose)
@@ -323,8 +327,6 @@ func main() {
 			"StructName":       structName,
 			"TableName":        tableName,
 			"ShortStructName":  strings.ToLower(string(structName[0])),
-			//"Fields":           TableInfo.Fields,
-			//"DBColumns":        tableInfo.DBCols,
 			"TableInfo": tableInfo,
 		}
 
@@ -442,7 +444,7 @@ func writeTemplate(name, templateStr string, data map[string]interface{}, output
 		formattedSource, err := format.Source(buf.Bytes())
 		if err != nil {
 			fmt.Printf("Error in formatting %s source: %s\n", name, err.Error())
-			return
+			formattedSource = buf.Bytes()
 		}
 		err = ioutil.WriteFile(outputFile, formattedSource, 0777)
 	} else {

@@ -85,6 +85,13 @@ func writeJSON(w http.ResponseWriter, v interface{}) {
 	w.Write(data)
 }
 
+func writeRowsAffected(w http.ResponseWriter, rowsAffected int64) {
+	data, _ := json.Marshal(rowsAffected)
+	w.Header().Set("Content-Type", "application/json; charset=utf-8")
+	w.Header().Set("Cache-Control", "no-cache")
+	w.Write(data)
+}
+
 func readJSON(r *http.Request, v interface{}) error {
 	buf, err := ioutil.ReadAll(r.Body)
 	if err != nil {

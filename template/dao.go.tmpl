@@ -53,56 +53,55 @@ func Get{{.StructName}}(ctx context.Context, id interface{}) (record *{{.modelPa
 
 // Add{{.StructName}} is a function to add a single record to {{.TableName}} table in the {{.DatabaseName}} database
 // error - InsertFailedError, db save call failed
-func Add{{.StructName}}(ctx context.Context, {{.StructName | toLower}} *{{.modelPackageName}}.{{.StructName}}) (err error) {
-
-	if err = DB.Save({{.StructName | toLower}}).Error; err != nil {
-	    err = InsertFailedError
-		return
+func Add{{.StructName}}(ctx context.Context, {{.StructName | toLower}} *{{.modelPackageName}}.{{.StructName}}) (result *{{.modelPackageName}}.{{.StructName}}, RowsAffected int64, err error) {
+    db := DB.Save({{.StructName | toLower}})
+	if err = db.Error; err != nil {
+	    return nil, -1, InsertFailedError
 	}
 
-	return nil
+	return {{.StructName | toLower}}, db.RowsAffected, nil
 }
 
 // Update{{.StructName}} is a function to update a single record from {{.TableName}} table in the {{.DatabaseName}} database
 // error - NotFound, db record for id not found
 // error - UpdateFailedError, db meta data copy failed or db.Save call failed
-func Update{{.StructName}}(ctx context.Context, id interface{}, updated *{{.modelPackageName}}.{{.StructName}}) (err error) {
+func Update{{.StructName}}(ctx context.Context, id interface{}, updated *{{.modelPackageName}}.{{.StructName}}) (result *{{.modelPackageName}}.{{.StructName}}, RowsAffected int64, err error) {
 
-	{{.StructName | toLower}} := &{{.modelPackageName}}.{{.StructName}}{}
-	if err = DB.First({{.StructName | toLower}}, id).Error; err != nil {
-	    err = NotFound
-		return
-	}
+	result = &{{.modelPackageName}}.{{.StructName}}{}
+   db := DB.First(result, id)
+   if err = db.Error; err != nil {
+      return nil, -1, NotFound
+   }
 
-	if err = dbmeta.Copy({{.StructName | toLower}}, updated); err != nil{
-	    err = UpdateFailedError
-		return
-	}
+   if err = dbmeta.Copy(result, updated); err != nil {
+      return nil, -1, UpdateFailedError
+      return
+   }
 
-	if err = DB.Save({{.StructName | toLower}}).Error; err != nil {
-	    err = UpdateFailedError
-		return
-	}
+   db = db.Save(result)
+   if err = db.Error; err != nil  {
+      return nil, -1, UpdateFailedError
+   }
 
-	return nil
+   return result, db.RowsAffected, nil
 }
 
 // Delete{{.StructName}} is a function to delete a single record from {{.TableName}} table in the {{.DatabaseName}} database
 // error - NotFound, db Find error
 // error - DeleteFailedError, db Delete failed error
-func Delete{{.StructName}}(ctx context.Context, id interface{}) (err error) {
+func Delete{{.StructName}}(ctx context.Context, id interface{}) (rowsAffected int64, err error) {
 
-	{{.StructName | toLower}} := &{{.modelPackageName}}.{{.StructName}}{}
+    {{.StructName | toLower}} := &{{.modelPackageName}}.{{.StructName}}{}
+    db := DB.First({{.StructName | toLower}}, id)
+    if db.Error != nil {
+        return -1, NotFound
+    }
 
-	if DB.First({{.StructName | toLower}}, id).Error != nil {
-		err = NotFound
-		return
-	}
-	if err = DB.Delete({{.StructName | toLower}}).Error; err != nil {
-	    err = DeleteFailedError
-		return
-	}
+    db = db.Delete({{.StructName | toLower}})
+    if err = db.Error; err != nil {
+        return -1, DeleteFailedError
+    }
 
-	return nil
+   return db.RowsAffected, nil
 }
 

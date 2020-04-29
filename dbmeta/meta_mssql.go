@@ -21,6 +21,52 @@ func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 	m.ddl = BuildDefaultTableDDL(tableName, cols)
 	m.columns = make([]ColumnMeta, len(cols))
 
+	colInfo := make(map[string]*columnInfo)
+
+	identitySql := fmt.Sprintf("SELECT name, is_identity, is_nullable FROM sys.columns WHERE  object_id = object_id('dbo.%s')", tableName)
+
+	res, err := db.Query(identitySql)
+	if err != nil {
+		return nil, fmt.Errorf("unable to load ddl from ms sql: %v", err)
+	}
+
+	for res.Next() {
+		var name string
+		var is_identity, is_nullable bool
+		err = res.Scan(&name, &is_identity, &is_nullable)
+		if err != nil {
+			return nil, fmt.Errorf("unable to load identity info from ms sql Scan: %v", err)
+		}
+
+		colInfo[name] = &columnInfo{
+			name:        name,
+			is_identity: is_identity,
+			is_nullable: is_nullable,
+		}
+
+	}
+
+	primaryKeySql := fmt.Sprintf("SELECT Col.Column_Name from \n    INFORMATION_SCHEMA.TABLE_CONSTRAINTS Tab, \n    INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE Col \nWHERE \n    Col.Constraint_Name = Tab.Constraint_Name\n    AND Col.Table_Name = Tab.Table_Name\n    AND Constraint_Type = 'PRIMARY KEY'\n    AND Col.Table_Name = '%s'", tableName)
+	res, err = db.Query(primaryKeySql)
+	if err != nil {
+		return nil, fmt.Errorf("unable to load ddl from ms sql: %v", err)
+	}
+	for res.Next() {
+
+		var columnName string
+		err = res.Scan( &columnName)
+		if err != nil {
+			return nil, fmt.Errorf("unable to load identity info from ms sql Scan: %v", err)
+		}
+
+		//fmt.Printf("## PRIMARY KEY COLUMN_NAME: %s\n", columnName)
+		colInfo, ok := colInfo[columnName]
+		if ok {
+			colInfo.primary_key = true
+			//fmt.Printf("name: %s primary_key: %t\n", colInfo.name, colInfo.primary_key)
+		}
+	}
+
 	for i, v := range cols {
 
 		nullable, ok := v.Nullable()
@@ -28,7 +74,16 @@ func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 			nullable = false
 		}
 		isAutoIncrement := false
-		isPrimaryKey := i==0
+		isPrimaryKey := i == 0
+
+		colInfo, ok := colInfo[v.Name()]
+		if ok {
+			//fmt.Printf("name: %s primary_key: %t is_identity: %t is_nullable: %t\n", colInfo.name, colInfo.primary_key, colInfo.is_identity, colInfo.is_nullable)
+			isPrimaryKey = colInfo.primary_key
+			nullable = colInfo.is_nullable
+			isAutoIncrement = colInfo.is_identity
+		}
+
 		colDDL := v.DatabaseTypeName()
 
 		colMeta := &columnMeta{
@@ -48,32 +103,9 @@ func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 	return m, nil
 }
 
-func fetchMSSqlTable(db *sql.DB, tableName string) string {
-	/*
-		SELECT ORDINAL_POSITION, COLUMN_NAME, DATA_TYPE, CHARACTER_MAXIMUM_LENGTH
-		       , IS_NULLABLE
-		FROM INFORMATION_SCHEMA.COLUMNS
-		WHERE TABLE_NAME = 'Customers'
-
-		SELECT CONSTRAINT_NAME
-		FROM INFORMATION_SCHEMA.CONSTRAINT_TABLE_USAGE
-		WHERE TABLE_NAME = 'Customers'
-
-		SELECT name, type_desc, is_unique, is_primary_key
-		FROM sys.indexes
-		WHERE [object_id] = OBJECT_ID('dbo.Customers')
-
-		sp_help 'TableName'
-
-
-	*/
-	var ddl string
-	sql := fmt.Sprintf("%s", tableName)
-	db.Query(sql)
-
-	row := db.QueryRow(sql, 0)
-	_ = row.Scan(&ddl)
-
-	fmt.Printf("fetchMSsqlTable: %s\n\n\n", ddl)
-	return ddl
+type columnInfo struct {
+	name        string
+	is_identity bool
+	is_nullable bool
+	primary_key bool
 }

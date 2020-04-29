@@ -3,10 +3,10 @@ package {{.modelPackageName}}
 type Action int32
 
 var (
-	Create   = 0
-	Retrieve = 1
-	Update   = 2
-	Delete   = 3
+	Create   = Action(0)
+	Retrieve = Action(1)
+	Update   = Action(2)
+	Delete   = Action(3)
 )
 
 
