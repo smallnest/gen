@@ -17,7 +17,9 @@ require (
 	github.com/julienschmidt/httprouter v1.2.0
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/lib/pq v1.3.0
-	github.com/mattn/go-sqlite3 v2.0.2+incompatible
+	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/serenize/snaker v0.0.0-20171204205717-a683aaf2d516
+	golang.org/x/tools v0.0.0-20200428211428-0c9eba77bc32 // indirect
 	google.golang.org/appengine v1.6.5 // indirect
+	honnef.co/go/tools v0.0.1-2020.1.3 // indirect
 )
