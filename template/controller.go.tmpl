@@ -110,7 +110,20 @@ func Add{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 		return
 	}
 
-	err := {{.daoPackageName}}.Add{{.StructName}}(r.Context(), {{.StructName | toLower}})
+
+   if err := {{.StructName | toLower}}.BeforeSave(); err != nil {
+      returnError(w, r, dao.BadParamsError)
+   }
+
+   {{.StructName | toLower}}.Prepare()
+
+   if err := {{.StructName | toLower}}.Validate(model.Create); err != nil {
+      returnError(w, r, dao.BadParamsError)
+      return
+   }
+
+    var err error
+	{{.StructName | toLower}}, _, err = {{.daoPackageName}}.Add{{.StructName}}(r.Context(), {{.StructName | toLower}})
 	if err != nil {
 		returnError(w, r, err)
 		return
@@ -135,19 +148,30 @@ func Add{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 func Update{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
 
-	updated := &{{.modelPackageName}}.{{.StructName}}{}
-	if err := readJSON(r, updated); err != nil {
+	{{.StructName | toLower}} := &{{.modelPackageName}}.{{.StructName}}{}
+	if err := readJSON(r, {{.StructName | toLower}}); err != nil {
 		returnError(w, r, {{.daoPackageName}}.BadParamsError)
 		return
 	}
 
-	err := {{.daoPackageName}}.Update{{.StructName}}(r.Context(), id, updated)
+   if err := {{.StructName | toLower}}.BeforeSave(); err != nil {
+      returnError(w, r, dao.BadParamsError)
+   }
+
+   {{.StructName | toLower}}.Prepare()
+
+   if err := {{.StructName | toLower}}.Validate(model.Update); err != nil {
+      returnError(w, r, dao.BadParamsError)
+      return
+   }
+
+	{{.StructName | toLower}}, _, err := {{.daoPackageName}}.Update{{.StructName}}(r.Context(), id, {{.StructName | toLower}})
 	if err != nil {
 	    returnError(w, r, err)
    	    return
 	}
 
-	writeJSON(w, updated)
+	writeJSON(w, {{.StructName | toLower}})
 }
 
 
@@ -166,21 +190,12 @@ func Update{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter
 func Delete{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id := ps.ByName("id")
 
-	err := {{.daoPackageName}}.Delete{{.StructName}}(r.Context(), id)
+	rowsAffected, err := {{.daoPackageName}}.Delete{{.StructName}}(r.Context(), id)
 	if err != nil {
 	    returnError(w, r, err)
 	    return
 	}
 
-	w.WriteHeader(http.StatusOK)
+	writeRowsAffected(w, rowsAffected )
 }
-
-
-
-
-
-
-
-
-
 

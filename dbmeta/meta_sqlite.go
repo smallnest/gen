@@ -28,26 +28,26 @@ func NewSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 
 	/*
 
-	CREATE TABLE "employees"
-	(
-	    [EmployeeId] INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
-	    [LastName] NVARCHAR(20)  NOT NULL,
-	    [FirstName] NVARCHAR(20)  NOT NULL,
-	    [Title] NVARCHAR(30),
-	    [ReportsTo] INTEGER,
-	    [BirthDate] DATETIME,
-	    [HireDate] DATETIME,
-	    [Address] NVARCHAR(70),
-	    [City] NVARCHAR(40),
-	    [State] NVARCHAR(40),
-	    [Country] NVARCHAR(40),
-	    [PostalCode] NVARCHAR(10),
-	    [Phone] NVARCHAR(24),
-	    [Fax] NVARCHAR(24),
-	    [Email] NVARCHAR(60),
-	    FOREIGN KEY ([ReportsTo]) REFERENCES "employees" ([EmployeeId])
-			ON DELETE NO ACTION ON UPDATE NO ACTION
-	)
+		CREATE TABLE "employees"
+		(
+		    [EmployeeId] INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+		    [LastName] NVARCHAR(20)  NOT NULL,
+		    [FirstName] NVARCHAR(20)  NOT NULL,
+		    [Title] NVARCHAR(30),
+		    [ReportsTo] INTEGER,
+		    [BirthDate] DATETIME,
+		    [HireDate] DATETIME,
+		    [Address] NVARCHAR(70),
+		    [City] NVARCHAR(40),
+		    [State] NVARCHAR(40),
+		    [Country] NVARCHAR(40),
+		    [PostalCode] NVARCHAR(10),
+		    [Phone] NVARCHAR(24),
+		    [Fax] NVARCHAR(24),
+		    [Email] NVARCHAR(60),
+		    FOREIGN KEY ([ReportsTo]) REFERENCES "employees" ([EmployeeId])
+				ON DELETE NO ACTION ON UPDATE NO ACTION
+		)
 	*/
 
 	colsDDL := make(map[string]string)
@@ -62,8 +62,20 @@ func NewSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 			idx := strings.Index(line, "]")
 			if idx > 0 {
 				name := line[1:idx]
-				colDDL := line[idx+1:len(line)-2]
+				colDDL := line[idx+1:]
 
+				name = strings.Trim(name, " \t")
+				colDDL = strings.Trim(colDDL, " \t")
+				colDDL = colDDL[0 : len(colDDL)-1]
+
+				sz := len(colDDL)
+
+				if sz > 0 && colDDL[sz-1] == ',' {
+					colDDL = colDDL[0 : sz-1]
+				}
+
+				//fmt.Printf("name: [%s]\n", name)
+				//fmt.Printf("colDDL: [%s]\n", colDDL)
 				colsDDL[name] = colDDL
 			}
 		}

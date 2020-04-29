@@ -81,6 +81,8 @@ generate_example: clean_example## generate example project code from sqlite db i
 		--database main \
 		--templateDir=../template \
 		--json \
+		--db \
+		--protobuf \
 		--gorm \
 		--guregu \
 		--rest \

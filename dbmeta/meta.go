@@ -26,13 +26,10 @@ func init() {
 type ColumnMeta interface {
 	Name() string
 	String() string
-	//Length() (length int64, ok bool)
-	//DecimalSize() (precision, scale int64, ok bool)
-	//ScanType() reflect.Type
 	Nullable() bool
 	DatabaseTypeName() string
 	GetGoType(gureguTypes bool) (string, error)
-	//IsNullable() bool
+	Index() int
 	IsPrimaryKey() bool
 	IsAutoIncrement() bool
 	ColumnLength() int64
@@ -65,10 +62,13 @@ func (ci *columnMeta) Name() string {
 	return ci.ct.Name()
 }
 
+func (ci *columnMeta) Index() int {
+	return ci.index
+}
+
 func (ci *columnMeta) String() string {
 	return ci.colDDL
 }
-
 
 // Nullable reports whether the column may be null.
 // If a driver does not support this property ok will be false.
@@ -214,8 +214,10 @@ func GenerateStruct(sqlType string,
 	tableName string,
 	structName string,
 	pkgName string,
-	jsonAnnotation bool,
-	gormAnnotation bool,
+	addJsonAnnotation bool,
+	addGormAnnotation bool,
+	addDBAnnotation bool,
+	addProtobufAnnotation bool,
 	gureguTypes bool,
 	jsonNameFormat string,
 	verbose bool) (*ModelInfo, error) {
@@ -230,7 +232,7 @@ func GenerateStruct(sqlType string,
 		return nil, err
 	}
 
-	fields := generateFieldsTypes(dbMeta, 0, jsonAnnotation, gormAnnotation, gureguTypes, jsonNameFormat, verbose)
+	fields := generateFieldsTypes(dbMeta, addJsonAnnotation, addGormAnnotation, addDBAnnotation, addProtobufAnnotation,gureguTypes, jsonNameFormat, verbose)
 
 	var modelInfo = &ModelInfo{
 		PackageName:     pkgName,
@@ -246,9 +248,10 @@ func GenerateStruct(sqlType string,
 
 // Generate fields string
 func generateFieldsTypes(dbMeta DbTableMeta,
-	depth int,
-	jsonAnnotation bool,
-	gormAnnotation bool,
+	addJsonAnnotation bool,
+	addGormAnnotation bool,
+	addDBAnnotation bool,
+	addProtobufAnnotation bool,
 	gureguTypes bool,
 	jsonNameFormat string,
 	verbose bool) []string {
@@ -274,13 +277,26 @@ func generateFieldsTypes(dbMeta DbTableMeta,
 		fieldName := FmtFieldName(stringifyFirstChar(key))
 
 		var annotations []string
-		if gormAnnotation == true {
+		if addGormAnnotation == true {
 			annotations = append(annotations, createGormAnnotation(c))
 		}
 
-		if jsonAnnotation == true {
+		if addJsonAnnotation == true {
 			annotations = append(annotations, createJsonAnnotation(jsonNameFormat, c))
 		}
+
+		if addDBAnnotation == true {
+			annotations = append(annotations, createDBAnnotation( c))
+		}
+
+		if addProtobufAnnotation == true {
+			annnotation, err := createProtobufAnnotation( c)
+			if err == nil {
+				annotations = append(annotations, annnotation)
+			}
+		}
+
+
 
 		if len(annotations) > 0 {
 			field = fmt.Sprintf("%s %s `%s`",
@@ -338,10 +354,9 @@ func createGormAnnotation(c ColumnMeta) string {
 	}
 	buf.WriteString("gorm:\"")
 
-	if c.IsAutoIncrement(){
+	if c.IsAutoIncrement() {
 		buf.WriteString("AUTO_INCREMENT;")
 	}
-
 
 	buf.WriteString("column:")
 	buf.WriteString(key)
@@ -363,11 +378,11 @@ func createGormAnnotation(c ColumnMeta) string {
 	return buf.String()
 }
 
-func sqlTypeToGoType(mysqlType string, nullable bool, gureguTypes bool) (string, error) {
-	mysqlType = strings.Trim(mysqlType, " \t")
-	mysqlType = strings.ToLower(mysqlType)
+func sqlTypeToGoType(sqlType string, nullable bool, gureguTypes bool) (string, error) {
+	sqlType = strings.Trim(sqlType, " \t")
+	sqlType = strings.ToLower(sqlType)
 
-	switch mysqlType {
+	switch sqlType {
 	case "bit":
 		if nullable {
 			if gureguTypes {
@@ -428,7 +443,7 @@ func sqlTypeToGoType(mysqlType string, nullable bool, gureguTypes bool) (string,
 		return golangBool, nil
 	}
 
-	if strings.HasPrefix(mysqlType, "nvarchar") || strings.HasPrefix(mysqlType, "varchar") {
+	if strings.HasPrefix(sqlType, "nvarchar") || strings.HasPrefix(sqlType, "varchar") {
 		if nullable {
 			if gureguTypes {
 				return gureguNullString, nil
@@ -438,7 +453,7 @@ func sqlTypeToGoType(mysqlType string, nullable bool, gureguTypes bool) (string,
 		return "string", nil
 	}
 
-	if strings.HasPrefix(mysqlType, "numeric") {
+	if strings.HasPrefix(sqlType, "numeric") {
 		if nullable {
 			if gureguTypes {
 				return gureguNullFloat, nil
@@ -448,17 +463,73 @@ func sqlTypeToGoType(mysqlType string, nullable bool, gureguTypes bool) (string,
 		return golangFloat64, nil
 	}
 
-	return "", fmt.Errorf("unknown sql type: %s", mysqlType)
+	return "", fmt.Errorf("unknown sql type: %s", sqlType)
 }
 
 func BuildDefaultTableDDL(tableName string, cols []*sql.ColumnType) string {
 	buf := bytes.Buffer{}
-	buf.WriteString("Table: ")
-	buf.WriteString(tableName)
-	buf.WriteString("\nn")
+	buf.WriteString(fmt.Sprintf("Table: %s\n", tableName))
 
 	for i, ct := range cols {
 		buf.WriteString(fmt.Sprintf("[%d] %-20s %s\n", i, ct.Name(), ct.DatabaseTypeName()))
 	}
 	return buf.String()
+}
+
+func createDBAnnotation(c ColumnMeta) string {
+	return fmt.Sprintf("db:\"%s\"", c.Name())
+}
+
+func createProtobufAnnotation(c ColumnMeta) (string, error) {
+	protoBufType, err:=sqlTypeToProtobufType(c)
+	if err != nil {
+		return "", err
+	}
+	return fmt.Sprintf("protobuf:\"%s,%d,opt,name=%s\"", protoBufType, c.Index(), c.Name()), nil
+}
+
+
+
+func sqlTypeToProtobufType(c ColumnMeta) (string, error) {
+	sqlType := strings.Trim(c.DatabaseTypeName(), " \t")
+	sqlType = strings.ToLower(sqlType)
+
+	switch sqlType {
+	case "bit":
+		return "bool", nil
+	case "tinyint":
+		return "uint8", nil
+	case "smallint":
+		return "int16", nil
+	case "int":
+		return "int32", nil
+	case "bigint":
+		return "int64", nil
+	case "mediumint", "int4", "int2", "integer":
+		return "int32", nil
+	case "int8":
+		return "int8", nil
+	case "char", "enum", "varchar", "longtext", "mediumtext", "text", "tinytext", "varchar2", "json", "jsonb", "nvarchar", "nchar":
+		return "string", nil
+	case "date", "datetime", "time", "timestamp", "smalldatetime":
+		return "uint64", nil
+	case "decimal", "double", "money", "real":
+		return "float", nil
+	case "float":
+		return "float", nil
+	case "binary", "blob", "longblob", "mediumblob", "varbinary":
+		return "bytes", nil
+	case "bool":
+		return "bool", nil
+	}
+
+	if strings.HasPrefix(sqlType, "nvarchar") || strings.HasPrefix(sqlType, "varchar") {
+		return "string", nil
+	}
+
+	if strings.HasPrefix(sqlType, "numeric") {
+		return "float", nil
+	}
+
+	return "", fmt.Errorf("unknown sql type: %s", sqlType)
 }
