@@ -144,3 +144,6 @@ tools:
 	go get -u github.com/fzipp/gocyclo
 	go get -u github.com/golang/lint/golint
 
+
+regen:
+	{{wrapBash .RegenCmdLine}}

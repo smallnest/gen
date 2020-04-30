@@ -24,7 +24,7 @@ endif
 
 
 install: ## go install binary info $GOPATH/binn
-	go get github.com/smallnest/gen
+	packr2 install github.com/smallnest/gen
 
 vet: ## run go vet on the project
 	go vet .
@@ -65,8 +65,10 @@ deps:## analyze project deps
 fmt: ## run fmt on the project
 	go fmt .
 
-build: check_prereq ## perform packr2 build for binary
+build: check_prereq ## build gen binary
 	packr2 build .
+
+gen: build ## build gen binary
 
 test: ## run go test on the project
 	go test  -v .
@@ -79,6 +81,10 @@ generate_example: clean_example## generate example project code from sqlite db i
 		--sqltype=sqlite3 \
 		--connstr "./sample.db" \
 		--database main \
+		--module github.com/alexj212/generated \
+		--verbose \
+		--overwrite \
+		--out ./ \
 		--templateDir=../template \
 		--json \
 		--db \
@@ -86,13 +92,22 @@ generate_example: clean_example## generate example project code from sqlite db i
 		--gorm \
 		--guregu \
 		--rest \
-		--out ./ \
-		--module github.com/alexj212/generated \
 		--mod \
 		--server \
-		--verbose \
 		--makefile \
-		--overwrite
+		--copy-templates
+
+test_exec: clean_example## test example using sqlite db in ./examples
+	ls -latr ./example
+	cd ./custom && go run .. \
+		--sqltype=sqlite3 \
+		--connstr "../example/sample.db" \
+		--database main \
+		--module github.com/alexj212/generated \
+		--verbose \
+		--overwrite \
+		--out ./ \
+		--exec=./sample.gen
 
 
 build_example: generate_example## generate and build example
