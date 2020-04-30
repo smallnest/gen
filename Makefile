@@ -13,9 +13,6 @@ help: ## This help.
 
 .DEFAULT_GOAL := help
 
-
-
-
 check_prereq: ## check pre requisites exist
 ifndef PACKR2_EXECUTABLE
 	go get -u github.com/gobuffalo/packr/v2/packr2
@@ -29,7 +26,7 @@ install: ## go install binary info $GOPATH/binn
 vet: ## run go vet on the project
 	go vet .
 
-tools:
+tools: ## install dependent tools
 	go get -u honnef.co/go/tools/cmd/staticcheck
 	go get -u honnef.co/go/tools/cmd/gosimple
 	go get -u honnef.co/go/tools/cmd/unused
@@ -56,7 +53,7 @@ gocyclo: ## run gocyclo on the project
 
 check: staticcheck gosimple unused gocyclo ## run code checks on the project
 
-doc:## run godoc
+doc: ## run godoc
 	godoc -http=:6060
 
 deps:## analyze project deps
@@ -73,9 +70,9 @@ gen: build ## build gen binary
 test: ## run go test on the project
 	go test  -v .
 
-example: generate_example##
+example: generate_example ## generate example
 
-generate_example: clean_example## generate example project code from sqlite db in ./examples
+generate_example: clean_example ## generate example project code from sqlite db in ./examples
 	ls -latr ./example
 	cd ./example && go run .. \
 		--sqltype=sqlite3 \
@@ -97,7 +94,7 @@ generate_example: clean_example## generate example project code from sqlite db i
 		--makefile \
 		--copy-templates
 
-test_exec: clean_example## test example using sqlite db in ./examples
+test_exec: clean_example ## test example using sqlite db in ./examples
 	ls -latr ./example
 	cd ./custom && go run .. \
 		--sqltype=sqlite3 \
@@ -110,7 +107,7 @@ test_exec: clean_example## test example using sqlite db in ./examples
 		--exec=./sample.gen
 
 
-build_example: generate_example## generate and build example
+build_example: generate_example ## generate and build example
 	cd ./example && $(MAKE) example
 
 run_example: example ## run example project server
