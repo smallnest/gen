@@ -21,7 +21,7 @@ func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 	m.ddl = BuildDefaultTableDDL(tableName, cols)
 	m.columns = make([]ColumnMeta, len(cols))
 
-	colInfo := make(map[string]*columnInfo)
+	colInfo := make(map[string]*msSqlColumnInfo)
 
 	identitySql := fmt.Sprintf("SELECT name, is_identity, is_nullable FROM sys.columns WHERE  object_id = object_id('dbo.%s')", tableName)
 
@@ -38,7 +38,7 @@ func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 			return nil, fmt.Errorf("unable to load identity info from ms sql Scan: %v", err)
 		}
 
-		colInfo[name] = &columnInfo{
+		colInfo[name] = &msSqlColumnInfo{
 			name:        name,
 			is_identity: is_identity,
 			is_nullable: is_nullable,
@@ -103,7 +103,7 @@ func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 	return m, nil
 }
 
-type columnInfo struct {
+type msSqlColumnInfo struct {
 	name        string
 	is_identity bool
 	is_nullable bool
