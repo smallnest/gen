@@ -33,4 +33,5 @@ example/go.mod
 example/model/
 example/Makefile
 example/docs/
+example/templates/
 example/go.sum

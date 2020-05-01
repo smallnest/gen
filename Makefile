@@ -13,9 +13,6 @@ help: ## This help.
 
 .DEFAULT_GOAL := help
 
-
-
-
 check_prereq: ## check pre requisites exist
 ifndef PACKR2_EXECUTABLE
 	go get -u github.com/gobuffalo/packr/v2/packr2
@@ -24,12 +21,12 @@ endif
 
 
 install: ## go install binary info $GOPATH/binn
-	go get github.com/smallnest/gen
+	packr2 install github.com/smallnest/gen
 
 vet: ## run go vet on the project
 	go vet .
 
-tools:
+tools: ## install dependent tools
 	go get -u honnef.co/go/tools/cmd/staticcheck
 	go get -u honnef.co/go/tools/cmd/gosimple
 	go get -u honnef.co/go/tools/cmd/unused
@@ -56,7 +53,7 @@ gocyclo: ## run gocyclo on the project
 
 check: staticcheck gosimple unused gocyclo ## run code checks on the project
 
-doc:## run godoc
+doc: ## run godoc
 	godoc -http=:6060
 
 deps:## analyze project deps
@@ -65,20 +62,26 @@ deps:## analyze project deps
 fmt: ## run fmt on the project
 	go fmt .
 
-build: check_prereq ## perform packr2 build for binary
+build: check_prereq ## build gen binary
 	packr2 build .
+
+gen: build ## build gen binary
 
 test: ## run go test on the project
 	go test  -v .
 
-example: generate_example##
+example: generate_example ## generate example
 
-generate_example: clean_example## generate example project code from sqlite db in ./examples
+generate_example: clean_example ## generate example project code from sqlite db in ./examples
 	ls -latr ./example
 	cd ./example && go run .. \
 		--sqltype=sqlite3 \
 		--connstr "./sample.db" \
 		--database main \
+		--module github.com/alexj212/generated \
+		--verbose \
+		--overwrite \
+		--out ./ \
 		--templateDir=../template \
 		--json \
 		--db \
@@ -86,16 +89,25 @@ generate_example: clean_example## generate example project code from sqlite db i
 		--gorm \
 		--guregu \
 		--rest \
-		--out ./ \
-		--module github.com/alexj212/generated \
 		--mod \
 		--server \
-		--verbose \
 		--makefile \
-		--overwrite
+		--copy-templates
+
+test_exec: clean_example ## test example using sqlite db in ./examples
+	ls -latr ./example
+	cd ./custom && go run .. \
+		--sqltype=sqlite3 \
+		--connstr "../example/sample.db" \
+		--database main \
+		--module github.com/alexj212/generated \
+		--verbose \
+		--overwrite \
+		--out ./ \
+		--exec=./sample.gen
 
 
-build_example: generate_example## generate and build example
+build_example: generate_example ## generate and build example
 	cd ./example && $(MAKE) example
 
 run_example: example ## run example project server

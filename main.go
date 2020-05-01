@@ -51,21 +51,23 @@ var (
 	apiPackageName   = goopt.String([]string{"--api"}, "api", "name to set for api package")
 	outDir           = goopt.String([]string{"--out"}, ".", "output dir")
 	module           = goopt.String([]string{"--module"}, "example.com/example", "module path")
+	overwrite        = goopt.Flag([]string{"--overwrite"}, []string{"--no-overwrite"}, "Overwrite existing files (default)", "disable overwriting files")
 
-	jsonAnnotation     = goopt.Flag([]string{"--json"}, []string{"--no-json"}, "Add json annotations (default)", "Disable json annotations")
-	jsonNameFormat     = goopt.String([]string{"--json-fmt"}, "snake", "json name format [snake | camel | lower_camel | none")
-	gormAnnotation     = goopt.Flag([]string{"--gorm"}, []string{}, "Add gorm annotations (tags)", "")
-	protobufAnnotation = goopt.Flag([]string{"--protobuf"}, []string{}, "Add protobuf annotations (tags)", "")
-	dbAnnotation       = goopt.Flag([]string{"--db"}, []string{}, "Add db annotations (tags)", "")
-	gureguTypes        = goopt.Flag([]string{"--guregu"}, []string{}, "Add guregu null types", "")
-	modGenerate        = goopt.Flag([]string{"--mod"}, []string{}, "Generate go.mod in output dir", "")
-	makefileGenerate   = goopt.Flag([]string{"--makefile"}, []string{}, "Generate Makefile in output dir", "")
-	serverGenerate     = goopt.Flag([]string{"--server"}, []string{}, "Generate server app output dir", "")
-	overwrite          = goopt.Flag([]string{"--overwrite"}, []string{"--no-overwrite"}, "Overwrite existing files (default)", "disable overwriting files")
-	serverHost         = goopt.String([]string{"--host"}, "localhost", "host for server")
-	serverPort         = goopt.Int([]string{"--port"}, 8080, "port for server")
-	rest               = goopt.Flag([]string{"--rest"}, []string{}, "Enable generating RESTful api", "")
+	exec = goopt.String([]string{"--exec"}, "", "execute script for custom code generation")
 
+	jsonAnnotation      = goopt.Flag([]string{"--json"}, []string{"--no-json"}, "Add json annotations (default)", "Disable json annotations")
+	jsonNameFormat      = goopt.String([]string{"--json-fmt"}, "snake", "json name format [snake | camel | lower_camel | none")
+	gormAnnotation      = goopt.Flag([]string{"--gorm"}, []string{}, "Add gorm annotations (tags)", "")
+	protobufAnnotation  = goopt.Flag([]string{"--protobuf"}, []string{}, "Add protobuf annotations (tags)", "")
+	dbAnnotation        = goopt.Flag([]string{"--db"}, []string{}, "Add db annotations (tags)", "")
+	gureguTypes         = goopt.Flag([]string{"--guregu"}, []string{}, "Add guregu null types", "")
+	modGenerate         = goopt.Flag([]string{"--mod"}, []string{}, "Generate go.mod in output dir", "")
+	makefileGenerate    = goopt.Flag([]string{"--makefile"}, []string{}, "Generate Makefile in output dir", "")
+	serverGenerate      = goopt.Flag([]string{"--server"}, []string{}, "Generate server app output dir", "")
+	serverHost          = goopt.String([]string{"--host"}, "localhost", "host for server")
+	serverPort          = goopt.Int([]string{"--port"}, 8080, "port for server")
+	rest                = goopt.Flag([]string{"--rest"}, []string{}, "Enable generating RESTful api", "")
+	copyTemplates       = goopt.Flag([]string{"--copy-templates"}, []string{}, "Copy regeneration templates to project directory", "")
 	swaggerVersion      = goopt.String([]string{"--swagger_version"}, "1.0", "swagger version")
 	swaggerBasePath     = goopt.String([]string{"--swagger_path"}, "/", "swagger base path")
 	swaggerTos          = goopt.String([]string{"--swagger_tos"}, "", "swagger tos url")
@@ -75,23 +77,15 @@ var (
 
 	verbose = goopt.Flag([]string{"-v", "--verbose"}, []string{}, "Enable verbose output", "")
 
-	baseTemplates  *packr.Box
-	ModelTmpl      string
-	ModelBaseTmpl  string
-	ControllerTmpl string
-	DaoTmpl        string
-	RouterTmpl     string
-	DaoInitTmpl    string
-	GoModuleTmpl   string
-	MainServerTmpl string
-	HttpUtilsTmpl  string
-	ReadMeTmpl     string
-	GitIgnoreTmpl  string
-	MakefileTmpl   string
+	baseTemplates *packr.Box
 
-	modelFQPN string
-	daoFQPN   string
-	apiFQPN   string
+	modelFQPN   string
+	daoFQPN     string
+	apiFQPN     string
+	cmdLine     string
+	structNames []string
+	tableInfos  = make(map[string]*dbmeta.ModelInfo)
+	tables      []string
 
 	SwaggerInfo = &swaggerInfo{
 		Version:      "1.0",
@@ -143,35 +137,37 @@ func main() {
 
 	// Username is required
 	if sqlConnStr == nil || *sqlConnStr == "" || *sqlConnStr == "nil" {
-		fmt.Println("sql connection string is required! Add it with --connstr=s")
+		fmt.Printf("sql connection string is required! Add it with --connstr=s\n\n")
+		fmt.Println(goopt.Usage())
 		return
 	}
 
 	if sqlDatabase == nil || *sqlDatabase == "" || *sqlDatabase == "nil" {
-		fmt.Println("Database can not be null")
+		fmt.Printf("Database can not be null\n\n")
+		fmt.Println(goopt.Usage())
 		return
 	}
 
 	var db, err = sql.Open(*sqlType, *sqlConnStr)
 	if err != nil {
-		fmt.Println("Error in open database: " + err.Error())
+		fmt.Printf("Error in open database: %v\n\n", err.Error())
 		return
 	}
 	defer db.Close()
 	err = db.Ping()
 	if err != nil {
-		fmt.Println("Error connecting to database: " + err.Error())
+		fmt.Printf("Error connecting to database: %v\n\n", err.Error())
 		return
 	}
 
+	var dbTables []string
 	// parse or read tables
-	var tables []string
 	if *sqlTable != "" {
-		tables = strings.Split(*sqlTable, ",")
+		dbTables = strings.Split(*sqlTable, ",")
 	} else {
-		tables, err = schema.TableNames(db)
+		dbTables, err = schema.TableNames(db)
 		if err != nil {
-			fmt.Println("Error in fetching tables information from mysql information schema")
+			fmt.Printf("Error in fetching tables information from mysql information schema\n")
 			return
 		}
 	}
@@ -191,6 +187,119 @@ func main() {
 		*apiPackageName = "api"
 	}
 
+	modelFQPN = *module + "/" + *modelPackageName
+	daoFQPN = *module + "/" + *daoPackageName
+	apiFQPN = *module + "/" + *apiPackageName
+
+	SwaggerInfo.Version = *swaggerVersion
+	SwaggerInfo.BasePath = *swaggerBasePath
+	SwaggerInfo.Title = fmt.Sprintf("Sample CRUD api for %s db", *sqlDatabase)
+	SwaggerInfo.Description = fmt.Sprintf("Sample CRUD api for %s db", *sqlDatabase)
+	SwaggerInfo.TOS = *swaggerTos
+	SwaggerInfo.ContactName = *swaggerContactName
+	SwaggerInfo.ContactUrl = *swaggerContactUrl
+	SwaggerInfo.ContactEmail = *swaggerContactEmail
+	SwaggerInfo.Host = fmt.Sprintf("%s:%d", *serverHost, *serverPort)
+
+	// generate go files for each table
+	for i, tableName := range dbTables {
+		if strings.HasPrefix(tableName, "[") && strings.HasSuffix(tableName, "]") {
+			tableName = tableName[1 : len(tableName)-1]
+		}
+		structName := dbmeta.FmtFieldName(tableName)
+		structName = inflection.Singular(structName)
+
+		tableInfo, err := dbmeta.GenerateStruct(*sqlType,
+			db,
+			*sqlDatabase,
+			tableName,
+			structName,
+			*modelPackageName,
+			*jsonAnnotation,
+			*gormAnnotation,
+			*protobufAnnotation,
+			*dbAnnotation,
+			*gureguTypes,
+			*jsonNameFormat,
+			*verbose)
+
+		if err != nil {
+			fmt.Printf("Error getting table info for %s error: %v\n", tableName, err)
+			continue
+		}
+
+		if len(tableInfo.Fields) == 0 {
+			if *verbose {
+				fmt.Printf("[%d] Table: %s - No Fields Available\n", i, tableName)
+			}
+			continue
+		}
+
+		tableInfos[tableName] = tableInfo
+		structNames = append(structNames, structName)
+		tables = append(tables, tableName)
+	}
+
+	cmdLine = strings.Join(os.Args, " ")
+
+	if *exec != "" {
+		fmt.Printf("Executing script %s\n", *exec)
+
+		var b []byte
+		b, err = ioutil.ReadFile(*exec)
+		if err != nil {
+			fmt.Printf("Error Loading exec script: %s, error: %v\n", *exec, err)
+			return
+		}
+		content := string(b)
+		data := map[string]interface{}{}
+		execTemplate("exec", content, data)
+		return
+	}
+
+	generate()
+}
+
+func execTemplate(name, templateStr string, data map[string]interface{}) {
+
+	data["DatabaseName"] = *sqlDatabase
+	data["module"] = *module
+	data["modelFQPN"] = modelFQPN
+	data["daoFQPN"] = daoFQPN
+	data["apiFQPN"] = apiFQPN
+	data["modelPackageName"] = *modelPackageName
+	data["daoPackageName"] = *daoPackageName
+	data["apiPackageName"] = *apiPackageName
+	data["sqlType"] = *sqlType
+	data["sqlConnStr"] = *sqlConnStr
+	data["serverPort"] = *serverPort
+	data["serverHost"] = *serverHost
+	data["SwaggerInfo"] = SwaggerInfo
+	data["structs"] = structNames
+	data["tableInfos"] = tableInfos
+	data["tables"] = tables
+	data["CommandLine"] = cmdLine
+	data["outDir"] = *outDir
+
+	rt, err := getTemplate(name, templateStr)
+	if err != nil {
+		fmt.Printf("Error in loading %s template, error: %v\n", name, err)
+		return
+	}
+	var buf bytes.Buffer
+	err = rt.Execute(&buf, data)
+	if err != nil {
+		fmt.Printf("Error in rendering %s: %s\n", name, err.Error())
+		return
+	}
+
+	fmt.Printf("%s\n", buf.String())
+}
+
+func generate() {
+	var err error
+
+	*jsonNameFormat = strings.ToLower(*jsonNameFormat)
 	modelDir := filepath.Join(*outDir, *modelPackageName)
 	apiDir := filepath.Join(*outDir, *apiPackageName)
 	daoDir := filepath.Join(*outDir, *daoPackageName)
@@ -220,10 +329,18 @@ func main() {
 			return
 		}
 	}
-
-	modelFQPN = *module + "/" + *modelPackageName
-	daoFQPN = *module + "/" + *daoPackageName
-	apiFQPN = *module + "/" + *apiPackageName
+	var ModelTmpl string
+	var ModelBaseTmpl string
+	var ControllerTmpl string
+	var DaoTmpl string
+	var RouterTmpl string
+	var DaoInitTmpl string
+	var GoModuleTmpl string
+	var MainServerTmpl string
+	var HttpUtilsTmpl string
+	var ReadMeTmpl string
+	var GitIgnoreTmpl string
+	var MakefileTmpl string
 
 	if ControllerTmpl, err = loadTemplate("controller.go.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
@@ -275,45 +392,16 @@ func main() {
 		return
 	}
 
-	SwaggerInfo.Version = *swaggerVersion
-	SwaggerInfo.BasePath = *swaggerBasePath
-	SwaggerInfo.Title = fmt.Sprintf("Sample CRUD api for %s db", *sqlDatabase)
-	SwaggerInfo.Description = fmt.Sprintf("Sample CRUD api for %s db", *sqlDatabase)
-	SwaggerInfo.TOS = *swaggerTos
-	SwaggerInfo.ContactName = *swaggerContactName
-	SwaggerInfo.ContactUrl = *swaggerContactUrl
-	SwaggerInfo.ContactEmail = *swaggerContactEmail
-	SwaggerInfo.Host = fmt.Sprintf("%s:%d", *serverHost, *serverPort)
-
-	var structNames []string
 	*jsonNameFormat = strings.ToLower(*jsonNameFormat)
 
 	// generate go files for each table
 	for i, tableName := range tables {
-		if strings.HasPrefix(tableName, "[") && strings.HasSuffix(tableName, "]") {
-			tableName = tableName[1 : len(tableName)-1]
+		tableInfo, ok := tableInfos[tableName]
+		if !ok {
+			fmt.Printf("[%d] Table: %s - No tableInfo found\n", i, tableName)
+			continue
 		}
-		structName := dbmeta.FmtFieldName(tableName)
 
-		structName = inflection.Singular(structName)
-		tableInfo, err := dbmeta.GenerateStruct(*sqlType,
-			db,
-			*sqlDatabase,
-			tableName,
-			structName,
-			*modelPackageName,
-			*jsonAnnotation,
-			*gormAnnotation,
-			*protobufAnnotation,
-			*dbAnnotation,
-			*gureguTypes,
-			*jsonNameFormat,
-			*verbose)
-
-		if err != nil {
-			fmt.Printf("Error dbmeta.GenerateStruct tableName: %s error: %v\n", tableName, err)
-			return
-		}
 		if len(tableInfo.Fields) == 0 {
 			if *verbose {
 				fmt.Printf("[%d] Table: %s - No Fields Available\n", i, tableName)
@@ -323,80 +411,121 @@ func main() {
 		}
 
 		var modelInfo = map[string]interface{}{
-			"ModelPackageName": *modelPackageName,
-			"StructName":       structName,
-			"TableName":        tableName,
-			"ShortStructName":  strings.ToLower(string(structName[0])),
-			"TableInfo": tableInfo,
+			"StructName":      tableInfo.StructName,
+			"TableName":       tableName,
+			"ShortStructName": strings.ToLower(string(tableInfo.StructName[0])),
+			"TableInfo":       tableInfo,
 		}
-
-		structNames = append(structNames, structName)
-		//if *verbose {
-		//	fmt.Printf("[%d] Table: %s Struct: %s inflection: %s\n", i, tableName, structName, structNameInflection)
-		//}
 
 		modelFile := filepath.Join(modelDir, inflection.Singular(tableName)+".go")
 		writeTemplate("model", ModelTmpl, modelInfo, modelFile, *overwrite, true)
 
 		if *rest {
-			restData := map[string]interface{}{
-				"StructName": structName,
-				"TableName":  tableName,
-			}
-
 			restFile := filepath.Join(apiDir, inflection.Singular(tableName)+".go")
-			writeTemplate("rest", ControllerTmpl, restData, restFile, *overwrite, true)
+			writeTemplate("rest", ControllerTmpl, modelInfo, restFile, *overwrite, true)
 		}
 
 		//write dao
-		daoData := map[string]interface{}{
-			"StructName": structName,
-			"TableName":  tableName,
-		}
 		outputFile := filepath.Join(daoDir, inflection.Singular(tableName)+".go")
-		writeTemplate("dao", DaoTmpl, daoData, outputFile, *overwrite, true)
+		writeTemplate("dao", DaoTmpl, modelInfo, outputFile, *overwrite, true)
 	}
+
+	data := map[string]interface{}{}
 
 	if *rest {
-		data := map[string]interface{}{
-			"structs": structNames,
-		}
-
 		writeTemplate("router", RouterTmpl, data, filepath.Join(apiDir, "router.go"), *overwrite, true)
 		writeTemplate("example server", HttpUtilsTmpl, data, filepath.Join(apiDir, "http_utils.go"), *overwrite, true)
-	}
-
-	data := map[string]interface{}{
-		"structs": structNames,
 	}
 
 	writeTemplate("daoBase", DaoInitTmpl, data, filepath.Join(daoDir, "dao_base.go"), *overwrite, true)
 	writeTemplate("modelBase", ModelBaseTmpl, data, filepath.Join(modelDir, "model_base.go"), *overwrite, true)
 
 	if *modGenerate {
-		data := map[string]interface{}{}
 		writeTemplate("go.mod", GoModuleTmpl, data, filepath.Join(*outDir, "go.mod"), *overwrite, false)
 	}
 
 	if *makefileGenerate {
+		buf := bytes.Buffer{}
+
+		buf.WriteString("gen")
+		buf.WriteString(fmt.Sprintf(" --sqltype=%s", *sqlType))
+		buf.WriteString(fmt.Sprintf(" --connstr=%s", *sqlConnStr))
+		buf.WriteString(fmt.Sprintf(" --database=%s", *sqlDatabase))
+		buf.WriteString(fmt.Sprintf(" --templateDir=%s", "./templates"))
+
+		if *sqlTable != "" {
+			buf.WriteString(fmt.Sprintf(" --table=%s", *sqlTable))
+		}
+
+		buf.WriteString(fmt.Sprintf(" --model=%s", *modelPackageName))
+		buf.WriteString(fmt.Sprintf(" --dao=%s", *daoPackageName))
+		buf.WriteString(fmt.Sprintf(" --api=%s", *apiPackageName))
+		buf.WriteString(fmt.Sprintf(" --out=%s", "./"))
+		buf.WriteString(fmt.Sprintf(" --module=%s", *module))
+		if *jsonAnnotation {
+			buf.WriteString(fmt.Sprintf(" --json"))
+			buf.WriteString(fmt.Sprintf(" --json-fmt=%s", *jsonNameFormat))
+		}
+		if *gormAnnotation {
+			buf.WriteString(fmt.Sprintf(" --gorm"))
+		}
+		if *protobufAnnotation {
+			buf.WriteString(fmt.Sprintf(" --protobuf"))
+		}
+		if *dbAnnotation {
+			buf.WriteString(fmt.Sprintf(" --db"))
+		}
+		if *gureguTypes {
+			buf.WriteString(fmt.Sprintf(" --guregu"))
+		}
+		if *modGenerate {
+			buf.WriteString(fmt.Sprintf(" --mod"))
+		}
+		if *makefileGenerate {
+			buf.WriteString(fmt.Sprintf(" --makefile"))
+		}
+		if *serverGenerate {
+			buf.WriteString(fmt.Sprintf(" --server"))
+		}
+		if *overwrite {
+			buf.WriteString(fmt.Sprintf(" --overwrite"))
+		}
+		buf.WriteString(fmt.Sprintf(" --host=%s", *serverHost))
+		buf.WriteString(fmt.Sprintf(" --port=%d", *serverPort))
+		if *rest {
+			buf.WriteString(fmt.Sprintf(" --rest"))
+		}
+		if *verbose {
+			buf.WriteString(fmt.Sprintf(" --verbose"))
+		}
+
+		buf.WriteString(fmt.Sprintf(" --swagger_version=%s", *swaggerVersion))
+		buf.WriteString(fmt.Sprintf(" --swagger_path=%s", *swaggerBasePath))
+		buf.WriteString(fmt.Sprintf(" --swagger_tos=%s", *swaggerTos))
+		buf.WriteString(fmt.Sprintf(" --swagger_contact_name=%s", *swaggerContactName))
+		buf.WriteString(fmt.Sprintf(" --swagger_contact_url=%s", *swaggerContactUrl))
+		buf.WriteString(fmt.Sprintf(" --swagger_contact_email=%s", *swaggerContactEmail))
+
+		regenCmdLine := buf.String()
+		regenCmdLine = strings.Trim(regenCmdLine, " \t")
+
 		data := map[string]interface{}{
-			"deps": "go list -f '{{ join .Deps  \"\\n\"}}' .",
+			"deps":         "go list -f '{{ join .Deps  \"\\n\"}}' .",
+			"RegenCmdLine": regenCmdLine,
 		}
 		writeTemplate("makefile", MakefileTmpl, data, filepath.Join(*outDir, "Makefile"), *overwrite, false)
-		writeTemplate("gitignore", GitIgnoreTmpl, data, filepath.Join(*outDir, ".gitignore"), *overwrite, false)
-
-		cmdLine := strings.Join(os.Args, " ")
-		data = map[string]interface{}{
-			"CommandLine": cmdLine,
-			"structs":     structNames,
-		}
-		writeTemplate("readme", ReadMeTmpl, data, filepath.Join(*outDir, "README.md"), *overwrite, false)
 	}
 
+	data = map[string]interface{}{
+		"deps":        "go list -f '{{ join .Deps  \"\\n\"}}' .",
+		"CommandLine": cmdLine,
+	}
+
+	writeTemplate("gitignore", GitIgnoreTmpl, data, filepath.Join(*outDir, ".gitignore"), *overwrite, false)
+	writeTemplate("readme", ReadMeTmpl, data, filepath.Join(*outDir, "README.md"), *overwrite, false)
+
 	if *serverGenerate {
-		data := map[string]interface{}{
-			"models": structNames,
-		}
+		data := map[string]interface{}{}
 
 		serverDir := filepath.Join(*outDir, "app/server")
 		err = os.MkdirAll(serverDir, 0777)
@@ -406,6 +535,87 @@ func main() {
 		}
 		writeTemplate("example server", MainServerTmpl, data, filepath.Join(serverDir, "main.go"), *overwrite, true)
 	}
+
+	if *copyTemplates {
+		templatesDir := filepath.Join(*outDir, "templates")
+		err = os.MkdirAll(templatesDir, 0777)
+		if err != nil && !*overwrite {
+			fmt.Printf("unable to create templatesDir: %s error: %v\n", templatesDir, err)
+			return
+		}
+
+		fmt.Printf("Saving templates to %s\n", templatesDir)
+		err := SaveAssets(templatesDir, baseTemplates)
+		if err != nil {
+			fmt.Printf("Error saving: %v\n", err)
+		}
+	}
+}
+
+func GenerateTableFile(tableName, templateFilename, outputDirectory, outputFileName string) string {
+	buf := bytes.Buffer{}
+
+	buf.WriteString(fmt.Sprintf("GenerateTableFile( %s, %s, %s, %s)\n", tableName, templateFilename, outputDirectory, outputFileName))
+
+	tableInfo, ok := tableInfos[tableName]
+	if !ok {
+		buf.WriteString(fmt.Sprintf("Table: %s - No tableInfo found\n", tableName))
+		return buf.String()
+	}
+
+	if len(tableInfo.Fields) == 0 {
+		buf.WriteString(fmt.Sprintf("able: %s - No Fields Available\n", tableName))
+		return buf.String()
+	}
+
+	var data = map[string]interface{}{
+		"StructName":      tableInfo.StructName,
+		"TableName":       tableName,
+		"ShortStructName": strings.ToLower(string(tableInfo.StructName[0])),
+		"TableInfo":       tableInfo,
+	}
+
+	fileOutDir := filepath.Join(*outDir, outputDirectory)
+	err := os.MkdirAll(fileOutDir, 0777)
+	if err != nil && !*overwrite {
+		buf.WriteString(fmt.Sprintf("unable to create fileOutDir: %s error: %v\n", fileOutDir, err))
+		return buf.String()
+	}
+
+	var tpl string
+	if tpl, err = loadTemplate(templateFilename); err != nil {
+		buf.WriteString(fmt.Sprintf("Error loading template %v\n", err))
+		return buf.String()
+	}
+
+	outputFile := filepath.Join(fileOutDir, outputFileName)
+	buf.WriteString(fmt.Sprintf("Writing %s -> %s\n", templateFilename, outputFile))
+	writeTemplate(templateFilename, tpl, data, outputFile, *overwrite, false)
+	return buf.String()
+}
+
+func GenerateFile(templateFilename, outputDirectory, outputFileName string) string {
+	buf := bytes.Buffer{}
+	buf.WriteString(fmt.Sprintf("GenerateFile( %s, %s, %s)\n", templateFilename, outputDirectory, outputFileName))
+	fileOutDir := filepath.Join(*outDir, outputDirectory)
+	err := os.MkdirAll(fileOutDir, 0777)
+	if err != nil && !*overwrite {
+		buf.WriteString(fmt.Sprintf("unable to create fileOutDir: %s error: %v\n", fileOutDir, err))
+		return buf.String()
+	}
+
+	data := map[string]interface{}{}
+
+	var tpl string
+	if tpl, err = loadTemplate(templateFilename); err != nil {
+		buf.WriteString(fmt.Sprintf("Error loading template %v\n", err))
+		return buf.String()
+	}
+
+	outputFile := filepath.Join(fileOutDir, outputFileName)
+	buf.WriteString(fmt.Sprintf("Writing %s -> %s\n", templateFilename, outputFile))
+	writeTemplate(templateFilename, tpl, data, outputFile, *overwrite, false)
+	return buf.String()
 }
 
 func writeTemplate(name, templateStr string, data map[string]interface{}, outputFile string, overwrite, formatOutput bool) {
@@ -427,6 +637,11 @@ func writeTemplate(name, templateStr string, data map[string]interface{}, output
 	data["serverPort"] = *serverPort
 	data["serverHost"] = *serverHost
 	data["SwaggerInfo"] = SwaggerInfo
+	data["structs"] = structNames
+	data["tableInfos"] = tableInfos
+	data["tables"] = tables
+	data["CommandLine"] = cmdLine
+	data["outDir"] = *outDir
 
 	rt, err := getTemplate(name, templateStr)
 	if err != nil {
@@ -473,13 +688,18 @@ func Exists(name string) bool {
 
 func getTemplate(name, t string) (*template.Template, error) {
 	var funcMap = template.FuncMap{
+		"FmtFieldName":      dbmeta.FmtFieldName,
+		"singular":          inflection.Singular,
 		"pluralize":         inflection.Plural,
 		"title":             strings.Title,
 		"toLower":           strings.ToLower,
+		"toUpper":           strings.ToUpper,
 		"toLowerCamelCase":  camelToLowerCamel,
 		"toSnakeCase":       snaker.CamelToSnake,
 		"markdownCodeBlock": markdownCodeBlock,
 		"wrapBash":          wrapBash,
+		"GenerateTableFile": GenerateTableFile,
+		"GenerateFile":      GenerateFile,
 	}
 
 	tmpl, err := template.New(name).Funcs(funcMap).Parse(t)
