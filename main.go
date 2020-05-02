@@ -39,7 +39,7 @@ type swaggerInfo struct {
 }
 
 var (
-	sqlType         = goopt.String([]string{"--sqltype"}, "mysql", "sql database type such as mysql, postgres, etc.")
+	sqlType         = goopt.String([]string{"--sqltype"}, "mysql", "sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]")
 	sqlConnStr      = goopt.String([]string{"-c", "--connstr"}, "nil", "database connection string")
 	sqlDatabase     = goopt.String([]string{"-d", "--database"}, "nil", "Database to for connection")
 	sqlTable        = goopt.String([]string{"-t", "--table"}, "", "Table to build struct from")
@@ -108,7 +108,13 @@ func init() {
 		return "ORM and RESTful API generator for Mysql"
 	}
 	goopt.Version = "0.2"
-	goopt.Summary = `gen [-v] --connstr "user:password@/dbname" --package pkgName --database databaseName --table tableName [--json] [--gorm] [--guregu]`
+	goopt.Summary = `gen [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> --module=example.com/example [--json] [--gorm] [--guregu] [--generate-dao] [--generate-proj]
+
+           sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
+
+`
+
+
 
 	//Parse options
 	goopt.Parse(nil)

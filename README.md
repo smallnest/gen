@@ -90,7 +90,7 @@ Options:
   --makefile                                      Generate Makefile in output dir
   --server                                        Generate server app output dir
   --generate-dao                                  Generate dao functions
-  --generate-proj                                 Generate project readme an d gitignore
+  --generate-proj                                 Generate project README.md and .gitignore
   --host=localhost                                host for server
   --port=8080                                     port for server
   --rest                                          Enable generating RESTful api
