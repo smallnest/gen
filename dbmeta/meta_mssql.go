@@ -3,6 +3,7 @@ package dbmeta
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/jimsmart/schema"
 )
@@ -23,7 +24,7 @@ func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 
 	colInfo := make(map[string]*msSqlColumnInfo)
 
-	identitySql := fmt.Sprintf("SELECT name, is_identity, is_nullable FROM sys.columns WHERE  object_id = object_id('dbo.%s')", tableName)
+	identitySql := fmt.Sprintf("SELECT name, is_identity, is_nullable, max_length FROM sys.columns WHERE  object_id = object_id('dbo.%s')", tableName)
 
 	res, err := db.Query(identitySql)
 	if err != nil {
@@ -33,7 +34,8 @@ func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 	for res.Next() {
 		var name string
 		var is_identity, is_nullable bool
-		err = res.Scan(&name, &is_identity, &is_nullable)
+		var max_length int64
+		err = res.Scan(&name, &is_identity, &is_nullable, &max_length)
 		if err != nil {
 			return nil, fmt.Errorf("unable to load identity info from ms sql Scan: %v", err)
 		}
@@ -42,6 +44,7 @@ func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 			name:        name,
 			is_identity: is_identity,
 			is_nullable: is_nullable,
+			max_length:  max_length,
 		}
 
 	}
@@ -54,7 +57,7 @@ func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 	for res.Next() {
 
 		var columnName string
-		err = res.Scan( &columnName)
+		err = res.Scan(&columnName)
 		if err != nil {
 			return nil, fmt.Errorf("unable to load identity info from ms sql Scan: %v", err)
 		}
@@ -75,6 +78,7 @@ func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 		}
 		isAutoIncrement := false
 		isPrimaryKey := i == 0
+		var columnLen int64
 
 		colInfo, ok := colInfo[v.Name()]
 		if ok {
@@ -82,6 +86,10 @@ func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 			isPrimaryKey = colInfo.primary_key
 			nullable = colInfo.is_nullable
 			isAutoIncrement = colInfo.is_identity
+			dbType := strings.ToLower(v.DatabaseTypeName())
+			if strings.Contains(dbType, "char") || strings.Contains(dbType, "text") {
+				columnLen = colInfo.max_length
+			}
 		}
 
 		colDDL := v.DatabaseTypeName()
@@ -93,7 +101,9 @@ func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 			isPrimaryKey:    isPrimaryKey,
 			isAutoIncrement: isAutoIncrement,
 			colDDL:          colDDL,
+			columnLen:       columnLen,
 		}
+
 		m.columns[i] = colMeta
 	}
 	if err != nil {
@@ -108,4 +118,5 @@ type msSqlColumnInfo struct {
 	is_identity bool
 	is_nullable bool
 	primary_key bool
+	max_length  int64
 }
