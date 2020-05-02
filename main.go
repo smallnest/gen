@@ -56,7 +56,7 @@ var (
 	exec = goopt.String([]string{"--exec"}, "", "execute script for custom code generation")
 
 	jsonAnnotation      = goopt.Flag([]string{"--json"}, []string{"--no-json"}, "Add json annotations (default)", "Disable json annotations")
-	jsonNameFormat      = goopt.String([]string{"--json-fmt"}, "snake", "json name format [snake | camel | lower_camel | none")
+	jsonNameFormat      = goopt.String([]string{"--json-fmt"}, "snake", "json name format [snake | camel | lower_camel | none]")
 	gormAnnotation      = goopt.Flag([]string{"--gorm"}, []string{}, "Add gorm annotations (tags)", "")
 	protobufAnnotation  = goopt.Flag([]string{"--protobuf"}, []string{}, "Add protobuf annotations (tags)", "")
 	dbAnnotation        = goopt.Flag([]string{"--db"}, []string{}, "Add db annotations (tags)", "")

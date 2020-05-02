@@ -2,6 +2,7 @@ package dbmeta
 
 import (
 	"database/sql"
+	"fmt"
 
 	"github.com/jimsmart/schema"
 )
@@ -20,14 +21,76 @@ func NewPostgresMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTabl
 	m.ddl = BuildDefaultTableDDL(tableName, cols)
 	m.columns = make([]ColumnMeta, len(cols))
 
-	for i, v := range cols {
+	colInfo := make(map[string]*postgresColumnInfo)
 
+	identitySql := fmt.Sprintf(`
+SELECT table_name, table_schema, ordinal_position, column_name, data_type, character_maximum_length,
+column_default, is_nullable, is_identity, udt_name, numeric_precision
+FROM information_schema.columns
+WHERE table_name = '%s' and table_schema = 'public'
+ORDER BY table_name, ordinal_position;
+`, tableName)
+
+	res, err := db.Query(identitySql)
+	if err != nil {
+		return nil, fmt.Errorf("unable to load ddl from postgres: %v", err)
+	}
+
+	for res.Next() {
+		ci := &postgresColumnInfo{}
+		err = res.Scan(&ci.table_name, &ci.table_schema, &ci.ordinal_position, &ci.column_name, &ci.data_type, &ci.character_maximum_length,
+			&ci.column_default, &ci.is_nullable, &ci.is_identity, &ci.udt_name, &ci.numeric_precision)
+		if err != nil {
+			return nil, fmt.Errorf("unable to load identity info from postgres Scan: %v", err)
+		}
+
+		colInfo[ci.column_name] = ci
+	}
+
+
+	//, c.ordinal_position
+	primaryKeySql := fmt.Sprintf(`
+	SELECT c.column_name
+	FROM information_schema.key_column_usage AS c
+	LEFT JOIN information_schema.table_constraints AS t
+	ON t.constraint_name = c.constraint_name
+	WHERE t.table_name = '%s' AND t.constraint_type = 'PRIMARY KEY';
+`, tableName)
+	res, err = db.Query(primaryKeySql)
+	if err != nil {
+		return nil, fmt.Errorf("unable to load ddl from ms sql: %v", err)
+	}
+	for res.Next() {
+
+		var columnName string
+		err = res.Scan( &columnName)
+		if err != nil {
+			return nil, fmt.Errorf("unable to load identity info from ms sql Scan: %v", err)
+		}
+
+		//fmt.Printf("## PRIMARY KEY COLUMN_NAME: %s\n", columnName)
+		colInfo, ok := colInfo[columnName]
+		if ok {
+			colInfo.primary_key = true
+			//fmt.Printf("name: %s primary_key: %t\n", colInfo.name, colInfo.primary_key)
+		}
+	}
+
+	for i, v := range cols {
 		nullable, ok := v.Nullable()
 		if !ok {
 			nullable = false
 		}
 		isAutoIncrement := false
-		isPrimaryKey := i==0
+		isPrimaryKey := i == 0
+
+		colInfo, ok := colInfo[v.Name()]
+		if ok {
+			nullable = colInfo.is_nullable == "YES"
+			isAutoIncrement = colInfo.is_identity == "YES"
+			isPrimaryKey = colInfo.primary_key
+		}
+
 		colDDL := v.DatabaseTypeName()
 
 		colMeta := &columnMeta{
@@ -38,12 +101,28 @@ func NewPostgresMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTabl
 			isAutoIncrement: isAutoIncrement,
 			colDDL:          colDDL,
 		}
-
 		m.columns[i] = colMeta
+
+		// fmt.Printf("[%2d] name: %-20s nullable: %-6t isPrimaryKey: %-6t isAutoIncrement: %-6t\n", colMeta.index,colMeta.ct.Name(),  colMeta.nullable, colMeta.isPrimaryKey, colMeta.isAutoIncrement)
 	}
 	if err != nil {
 		return nil, err
 	}
 
 	return m, nil
+}
+
+type postgresColumnInfo struct {
+	table_name               string
+	table_schema             string
+	ordinal_position         int
+	column_name              string
+	data_type                string
+	character_maximum_length interface{}
+	column_default           interface{}
+	is_nullable              string
+	is_identity              string
+	udt_name                 string
+	numeric_precision        interface{}
+	primary_key bool
 }

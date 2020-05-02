@@ -234,20 +234,9 @@ The followinmg info is available within use of the exec template.
    "tableInfos"           [map[string]*dbmeta.ModelInfo] map[string]*dbmeta.ModelInfo{"albums":(*dbmeta.ModelInfo)(0xc00031fa40), "artists":(*dbmeta.ModelInfo)(0xc00031fb90), "customers":(*dbmeta.ModelInfo)(0xc00031fce0), "employees":(*dbmeta.ModelInfo)(0xc00031fd50), "genres":(*dbmeta.ModelInfo)(0xc00031fdc0), "invoice_items":(*dbmeta.ModelInfo)(0xc00031fea0), "invoices":(*dbmeta.ModelInfo)(0xc00031fe30), "media_types":(*dbmeta.ModelInfo)(0xc00031ff10), "playlist_track":(*dbmeta.ModelInfo)(0xc0001121c0), "playlists":(*dbmeta.ModelInfo)(0xc00031ff80), "tracks":(*dbmeta.ModelInfo)(0xc000112230)}
    "tables"               [[]string] []string{"albums", "artists", "customers", "employees", "genres", "invoices", "invoice_items", "media_types", "playlists", "playlist_track", "tracks"}
 ```
- 
-   
-
-
-## Issues
-
-- Postgres driver support for sql.ColumnType.Nullable() ([#3](https://github.com/smallnest/gen/issues/3))
-- Cannot distinguish primary key of tables. Only set the first field as primary key. So you need to change it in some cases.
 
 ## Notes
-- MySql, Mssql and Sqlite have a database metadata fetcher that will query the db, amd update the auto increment, primary key and nullable info for the gorm annotation.
+- MySql, Mssql, Postgres and Sqlite have a database metadata fetcher that will query the db, amd update the auto increment, primary key and nullable info for the gorm annotation.
 
-
-## Todo
-- Update Postgres db meta to fetch ddl from db, and update information.
 
  
