@@ -4,8 +4,6 @@ import (
 	"bytes"
 	"database/sql"
 	"fmt"
-	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/iancoleman/strcase"
@@ -43,11 +41,6 @@ func (ci *columnMeta) IsAutoIncrement() bool {
 	return ci.isAutoIncrement
 }
 
-func (ci *columnMeta) ColumnLength() int64 {
-	l, _ := ci.ct.Length()
-	return l
-}
-
 type columnMeta struct {
 	index           int
 	ct              *sql.ColumnType
@@ -55,9 +48,14 @@ type columnMeta struct {
 	isPrimaryKey    bool
 	isAutoIncrement bool
 	colDDL          string
+	columnLen       int64
 }
 
 // Name returns the name or alias of the column.
+func (ci *columnMeta) ColumnLength() int64 {
+	return ci.columnLen
+}
+
 func (ci *columnMeta) Name() string {
 	return ci.ct.Name()
 }
@@ -67,7 +65,7 @@ func (ci *columnMeta) Index() int {
 }
 
 func (ci *columnMeta) String() string {
-	return ci.colDDL
+	return fmt.Sprintf("[%2d] %-20s nullable: %-6t isPrimaryKey: %-6t isAutoIncrement: %-6t ColumnLength: %d", ci.index, ci.ct.Name(), ci.nullable, ci.isPrimaryKey, ci.isAutoIncrement, ci.columnLen)
 }
 
 // Nullable reports whether the column may be null.
@@ -232,8 +230,14 @@ func GenerateStruct(sqlType string,
 		return nil, err
 	}
 
-	fields := generateFieldsTypes(dbMeta, addJsonAnnotation, addGormAnnotation, addDBAnnotation, addProtobufAnnotation,gureguTypes, jsonNameFormat, verbose)
+	fields := generateFieldsTypes(dbMeta, addJsonAnnotation, addGormAnnotation, addDBAnnotation, addProtobufAnnotation, gureguTypes, jsonNameFormat, verbose)
 
+	if verbose {
+		fmt.Printf("tableName: %s\n", tableName)
+		for _, c := range dbMeta.Columns() {
+			fmt.Printf("    %s DatabaseTypeName: %s\n", c.String(), c.DatabaseTypeName())
+		}
+	}
 	var modelInfo = &ModelInfo{
 		PackageName:     pkgName,
 		StructName:      structName,
@@ -286,17 +290,15 @@ func generateFieldsTypes(dbMeta DbTableMeta,
 		}
 
 		if addDBAnnotation == true {
-			annotations = append(annotations, createDBAnnotation( c))
+			annotations = append(annotations, createDBAnnotation(c))
 		}
 
 		if addProtobufAnnotation == true {
-			annnotation, err := createProtobufAnnotation( c)
+			annnotation, err := createProtobufAnnotation(c)
 			if err == nil {
 				annotations = append(annotations, annnotation)
 			}
 		}
-
-
 
 		if len(annotations) > 0 {
 			field = fmt.Sprintf("%s %s `%s`",
@@ -337,21 +339,6 @@ func createGormAnnotation(c ColumnMeta) string {
 	buf := bytes.Buffer{}
 
 	key := c.Name()
-
-	dbType := strings.ToLower(c.DatabaseTypeName())
-
-	charLen := -1
-	if strings.Contains(dbType, "varchar") {
-
-		re := regexp.MustCompile(`[-]?\d[\d,]*[\.]?[\d{2}]*`)
-		submatchall := re.FindAllString(dbType, -1)
-		if len(submatchall) > 0 {
-			i, err := strconv.Atoi(submatchall[0])
-			if err == nil {
-				charLen = i
-			}
-		}
-	}
 	buf.WriteString("gorm:\"")
 
 	if c.IsAutoIncrement() {
@@ -366,8 +353,8 @@ func createGormAnnotation(c ColumnMeta) string {
 	buf.WriteString(c.DatabaseTypeName())
 	buf.WriteString(";")
 
-	if charLen != -1 {
-		buf.WriteString(fmt.Sprintf("size:%d;", charLen))
+	if c.ColumnLength() > 0 {
+		buf.WriteString(fmt.Sprintf("size:%d;", c.ColumnLength()))
 	}
 
 	if c.IsPrimaryKey() {
@@ -481,14 +468,12 @@ func createDBAnnotation(c ColumnMeta) string {
 }
 
 func createProtobufAnnotation(c ColumnMeta) (string, error) {
-	protoBufType, err:=sqlTypeToProtobufType(c)
+	protoBufType, err := sqlTypeToProtobufType(c)
 	if err != nil {
 		return "", err
 	}
 	return fmt.Sprintf("protobuf:\"%s,%d,opt,name=%s\"", protoBufType, c.Index(), c.Name()), nil
 }
-
-
 
 func sqlTypeToProtobufType(c ColumnMeta) (string, error) {
 	sqlType := strings.Trim(c.DatabaseTypeName(), " \t")

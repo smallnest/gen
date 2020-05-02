@@ -36,6 +36,8 @@ $ gen --sqltype=sqlite3 \
    	--server \
    	--makefile \
    	--json-fmt=snake \
+    --generate-dao \    
+    --generate-proj \
    	--overwrite
 
 ## build example code (build process will install packr2 if not installed)
@@ -79,7 +81,7 @@ Options:
   --exec=                                         execute script for custom code generation
   --json                                          Add json annotations (default)
   --no-json                                       Disable json annotations
-  --json-fmt=snake                                json name format [snake | camel | lower_camel | none
+  --json-fmt=snake                                json name format [snake | camel | lower_camel | none]
   --gorm                                          Add gorm annotations (tags)
   --protobuf                                      Add protobuf annotations (tags)
   --db                                            Add db annotations (tags)
@@ -87,6 +89,8 @@ Options:
   --mod                                           Generate go.mod in output dir
   --makefile                                      Generate Makefile in output dir
   --server                                        Generate server app output dir
+  --generate-dao                                  Generate dao functions
+  --generate-proj                                 Generate project readme an d gitignore
   --host=localhost                                host for server
   --port=8080                                     port for server
   --rest                                          Enable generating RESTful api

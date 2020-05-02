@@ -2,6 +2,9 @@ package dbmeta
 
 import (
 	"database/sql"
+	"regexp"
+	"strconv"
+	"strings"
 
 	"github.com/jimsmart/schema"
 )
@@ -37,6 +40,19 @@ func NewUnknownMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTable
 			isAutoIncrement: isAutoIncrement,
 			colDDL:          colDDL,
 		}
+
+		dbType := strings.ToLower(colMeta.DatabaseTypeName())
+		if strings.Contains(dbType, "varchar") {
+			re := regexp.MustCompile(`[-]?\d[\d,]*[\.]?[\d{2}]*`)
+			submatchall := re.FindAllString(dbType, -1)
+			if len(submatchall) > 0 {
+				i, err := strconv.Atoi(submatchall[0])
+				if err == nil {
+					colMeta.columnLen = int64(i)
+				}
+			}
+		}
+
 		m.columns[i] = colMeta
 	}
 	if err != nil {

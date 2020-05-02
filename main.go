@@ -55,15 +55,18 @@ var (
 
 	exec = goopt.String([]string{"--exec"}, "", "execute script for custom code generation")
 
-	jsonAnnotation      = goopt.Flag([]string{"--json"}, []string{"--no-json"}, "Add json annotations (default)", "Disable json annotations")
-	jsonNameFormat      = goopt.String([]string{"--json-fmt"}, "snake", "json name format [snake | camel | lower_camel | none]")
-	gormAnnotation      = goopt.Flag([]string{"--gorm"}, []string{}, "Add gorm annotations (tags)", "")
-	protobufAnnotation  = goopt.Flag([]string{"--protobuf"}, []string{}, "Add protobuf annotations (tags)", "")
-	dbAnnotation        = goopt.Flag([]string{"--db"}, []string{}, "Add db annotations (tags)", "")
-	gureguTypes         = goopt.Flag([]string{"--guregu"}, []string{}, "Add guregu null types", "")
-	modGenerate         = goopt.Flag([]string{"--mod"}, []string{}, "Generate go.mod in output dir", "")
-	makefileGenerate    = goopt.Flag([]string{"--makefile"}, []string{}, "Generate Makefile in output dir", "")
-	serverGenerate      = goopt.Flag([]string{"--server"}, []string{}, "Generate server app output dir", "")
+	jsonAnnotation     = goopt.Flag([]string{"--json"}, []string{"--no-json"}, "Add json annotations (default)", "Disable json annotations")
+	jsonNameFormat     = goopt.String([]string{"--json-fmt"}, "snake", "json name format [snake | camel | lower_camel | none]")
+	gormAnnotation     = goopt.Flag([]string{"--gorm"}, []string{}, "Add gorm annotations (tags)", "")
+	protobufAnnotation = goopt.Flag([]string{"--protobuf"}, []string{}, "Add protobuf annotations (tags)", "")
+	dbAnnotation       = goopt.Flag([]string{"--db"}, []string{}, "Add db annotations (tags)", "")
+	gureguTypes        = goopt.Flag([]string{"--guregu"}, []string{}, "Add guregu null types", "")
+	modGenerate        = goopt.Flag([]string{"--mod"}, []string{}, "Generate go.mod in output dir", "")
+	makefileGenerate   = goopt.Flag([]string{"--makefile"}, []string{}, "Generate Makefile in output dir", "")
+	serverGenerate     = goopt.Flag([]string{"--server"}, []string{}, "Generate server app output dir", "")
+	daoGenerate        = goopt.Flag([]string{"--generate-dao"}, []string{}, "Generate dao functions", "")
+	projectGenerate    = goopt.Flag([]string{"--generate-proj"}, []string{}, "Generate project readme an d gitignore", "")
+
 	serverHost          = goopt.String([]string{"--host"}, "localhost", "host for server")
 	serverPort          = goopt.Int([]string{"--port"}, 8080, "port for server")
 	rest                = goopt.Flag([]string{"--rest"}, []string{}, "Enable generating RESTful api", "")
@@ -316,10 +319,12 @@ func generate() {
 		return
 	}
 
-	err = os.MkdirAll(daoDir, 0777)
-	if err != nil && !*overwrite {
-		fmt.Printf("unable to create daoDir: %s error: %v\n", daoDir, err)
-		return
+	if *daoGenerate {
+		err = os.MkdirAll(daoDir, 0777)
+		if err != nil && !*overwrite {
+			fmt.Printf("unable to create daoDir: %s error: %v\n", daoDir, err)
+			return
+		}
 	}
 
 	if *rest {
@@ -425,9 +430,11 @@ func generate() {
 			writeTemplate("rest", ControllerTmpl, modelInfo, restFile, *overwrite, true)
 		}
 
-		//write dao
-		outputFile := filepath.Join(daoDir, inflection.Singular(tableName)+".go")
-		writeTemplate("dao", DaoTmpl, modelInfo, outputFile, *overwrite, true)
+		if *daoGenerate {
+			//write dao
+			outputFile := filepath.Join(daoDir, inflection.Singular(tableName)+".go")
+			writeTemplate("dao", DaoTmpl, modelInfo, outputFile, *overwrite, true)
+		}
 	}
 
 	data := map[string]interface{}{}
@@ -437,7 +444,10 @@ func generate() {
 		writeTemplate("example server", HttpUtilsTmpl, data, filepath.Join(apiDir, "http_utils.go"), *overwrite, true)
 	}
 
-	writeTemplate("daoBase", DaoInitTmpl, data, filepath.Join(daoDir, "dao_base.go"), *overwrite, true)
+	if *daoGenerate {
+		writeTemplate("daoBase", DaoInitTmpl, data, filepath.Join(daoDir, "dao_base.go"), *overwrite, true)
+	}
+
 	writeTemplate("modelBase", ModelBaseTmpl, data, filepath.Join(modelDir, "model_base.go"), *overwrite, true)
 
 	if *modGenerate {
@@ -521,8 +531,10 @@ func generate() {
 		"CommandLine": cmdLine,
 	}
 
-	writeTemplate("gitignore", GitIgnoreTmpl, data, filepath.Join(*outDir, ".gitignore"), *overwrite, false)
-	writeTemplate("readme", ReadMeTmpl, data, filepath.Join(*outDir, "README.md"), *overwrite, false)
+	if *projectGenerate {
+		writeTemplate("gitignore", GitIgnoreTmpl, data, filepath.Join(*outDir, ".gitignore"), *overwrite, false)
+		writeTemplate("readme", ReadMeTmpl, data, filepath.Join(*outDir, "README.md"), *overwrite, false)
+	}
 
 	if *serverGenerate {
 		data := map[string]interface{}{}

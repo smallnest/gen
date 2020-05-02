@@ -28,7 +28,7 @@ func NewMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 
 	var ddl1 string
 	var ddl2 string
-	if res.Next(){
+	if res.Next() {
 		err = res.Scan(&ddl1, &ddl2)
 		if err != nil {
 			return nil, fmt.Errorf("unable to load ddl from mysql Scan: %v", err)
@@ -40,20 +40,20 @@ func NewMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 	/*
 
 
-	CREATE TABLE `designer_work` (
-	  `id` int(11) NOT NULL AUTO_INCREMENT,
-	  `taskId` int(11) DEFAULT NULL,
-	  `userId` int(11) DEFAULT NULL,
-	  `image` text,
-	  `stickerName` text,
-	  `status` int(11) DEFAULT '1' COMMENT '0->reject,1->request sent,2-approved,3-In process',
-	  `rejectStatus` int(11) DEFAULT '0' COMMENT '0->not rejected,1-rejected',
-	  `rejectedDate` datetime DEFAULT NULL,
-	  `reason` text,
-	  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
-	  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-	  PRIMARY KEY (`id`)
-	) ENGINE=InnoDB AUTO_INCREMENT=1622 DEFAULT CHARSET=latin1
+		CREATE TABLE `designer_work` (
+		  `id` int(11) NOT NULL AUTO_INCREMENT,
+		  `taskId` int(11) DEFAULT NULL,
+		  `userId` int(11) DEFAULT NULL,
+		  `image` text,
+		  `stickerName` text,
+		  `status` int(11) DEFAULT '1' COMMENT '0->reject,1->request sent,2-approved,3-In process',
+		  `rejectStatus` int(11) DEFAULT '0' COMMENT '0->not rejected,1-rejected',
+		  `rejectedDate` datetime DEFAULT NULL,
+		  `reason` text,
+		  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
+		  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
+		  PRIMARY KEY (`id`)
+		) ENGINE=InnoDB AUTO_INCREMENT=1622 DEFAULT CHARSET=latin1
 
 	*/
 
@@ -67,20 +67,18 @@ func NewMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 		}
 
 		if line[0] == '`' {
-			idx := indexAt( line, "`", 1)
+			idx := indexAt(line, "`", 1)
 			if idx > 0 {
 				name := line[1:idx]
-				colDDL := line[idx+1:len(line)-1]
+				colDDL := line[idx+1 : len(line)-1]
 				colsDDL[name] = colDDL
 			}
-		} else if strings.HasPrefix(line, "PRIMARY KEY"){
+		} else if strings.HasPrefix(line, "PRIMARY KEY") {
 			idx := strings.Index(line, "`")
-			idx1 := indexAt( line, "`", idx+1)
-			primaryKey = line[idx+1:idx1]
+			idx1 := indexAt(line, "`", idx+1)
+			primaryKey = line[idx+1 : idx1]
 		}
 	}
-
-
 
 	m.columns = make([]ColumnMeta, len(cols))
 
@@ -98,7 +96,6 @@ func NewMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 		// isPrimaryKey := i == 0
 		// colDDL := v.DatabaseTypeName()
 
-
 		colMeta := &columnMeta{
 			index:           i,
 			ct:              v,
@@ -106,6 +103,18 @@ func NewMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 			isPrimaryKey:    isPrimaryKey,
 			isAutoIncrement: isAutoIncrement,
 			colDDL:          colDDL,
+		}
+		dbType := strings.ToLower(colMeta.DatabaseTypeName())
+		fmt.Printf("dbType: %s\n", dbType)
+
+		if strings.Contains(dbType, "char") || strings.Contains(dbType, "text") {
+			columnLen, err := getFieldLen(db, tableName, v.Name())
+			if err == nil {
+				colMeta.columnLen = columnLen
+				fmt.Printf("getFieldLen %s %s : columnLen %v\n",tableName,v.Name(), columnLen)
+			} else {
+				fmt.Printf("getFieldLen %s %s : error: %v\n",tableName,v.Name(), err)
+			}
 		}
 
 		m.columns[i] = colMeta
@@ -122,4 +131,31 @@ func indexAt(s, sep string, n int) int {
 		idx += n
 	}
 	return idx
+}
+
+func getFieldLen(db *sql.DB, tableName, columnName string) (int64, error) {
+	sql := fmt.Sprintf(`
+select CHARACTER_MAXIMUM_LENGTH 
+from information_schema.columns
+where table_schema = DATABASE() AND   -- name of your database
+      table_name = '%s' AND        -- name of your table
+      COLUMN_NAME = '%s'     -- name of the column
+`, tableName, columnName)
+
+	res, err := db.Query(sql)
+	if err != nil {
+		return -1, fmt.Errorf("unable to load col len from mysql: %v", err)
+	}
+
+	var colLen int64
+
+	if res.Next() {
+		err = res.Scan(&colLen)
+		if err != nil {
+			return -1, fmt.Errorf("unable to load ddl from mysql Scan: %v", err)
+		}
+	}
+
+	return colLen, nil
+
 }

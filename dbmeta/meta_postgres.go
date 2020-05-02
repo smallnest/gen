@@ -47,7 +47,6 @@ ORDER BY table_name, ordinal_position;
 		colInfo[ci.column_name] = ci
 	}
 
-
 	//, c.ordinal_position
 	primaryKeySql := fmt.Sprintf(`
 	SELECT c.column_name
@@ -63,7 +62,7 @@ ORDER BY table_name, ordinal_position;
 	for res.Next() {
 
 		var columnName string
-		err = res.Scan( &columnName)
+		err = res.Scan(&columnName)
 		if err != nil {
 			return nil, fmt.Errorf("unable to load identity info from ms sql Scan: %v", err)
 		}
@@ -83,12 +82,20 @@ ORDER BY table_name, ordinal_position;
 		}
 		isAutoIncrement := false
 		isPrimaryKey := i == 0
+		var maxLen int64
 
+		maxLen = -1
 		colInfo, ok := colInfo[v.Name()]
 		if ok {
 			nullable = colInfo.is_nullable == "YES"
 			isAutoIncrement = colInfo.is_identity == "YES"
 			isPrimaryKey = colInfo.primary_key
+
+			ml, ok := colInfo.character_maximum_length.(int64)
+			if ok {
+				// fmt.Printf("@@ Name: %v maxLen: %v\n", v.Name(), ml)
+				maxLen = ml
+			}
 		}
 
 		colDDL := v.DatabaseTypeName()
@@ -100,10 +107,13 @@ ORDER BY table_name, ordinal_position;
 			isPrimaryKey:    isPrimaryKey,
 			isAutoIncrement: isAutoIncrement,
 			colDDL:          colDDL,
+			columnLen:       maxLen,
 		}
+
 		m.columns[i] = colMeta
 
-		// fmt.Printf("[%2d] name: %-20s nullable: %-6t isPrimaryKey: %-6t isAutoIncrement: %-6t\n", colMeta.index,colMeta.ct.Name(),  colMeta.nullable, colMeta.isPrimaryKey, colMeta.isAutoIncrement)
+		// fmt.Printf("@@ Name: %v columnLen: %v\n", colMeta.Name(), colMeta.columnLen)
+
 	}
 	if err != nil {
 		return nil, err
@@ -114,9 +124,9 @@ ORDER BY table_name, ordinal_position;
 
 type postgresColumnInfo struct {
 	table_name               string
-	table_schema             string
-	ordinal_position         int
 	column_name              string
+	ordinal_position         int
+	table_schema             string
 	data_type                string
 	character_maximum_length interface{}
 	column_default           interface{}
@@ -124,5 +134,9 @@ type postgresColumnInfo struct {
 	is_identity              string
 	udt_name                 string
 	numeric_precision        interface{}
-	primary_key bool
+	primary_key              bool
+}
+
+func (ci *postgresColumnInfo) String() string {
+	return fmt.Sprintf("[%2d] %-20s %-20s data_type: %v character_maximum_length: %v is_nullable: %v is_identity: %v", ci.ordinal_position, ci.table_name, ci.column_name, ci.data_type, ci.character_maximum_length, ci.is_nullable, ci.is_identity)
 }
