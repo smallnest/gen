@@ -20,7 +20,7 @@ endif
 	$(warning "found packr2")
 
 
-install: ## go install binary info $GOPATH/binn
+install: ## go install binary info $GOPATH/bin
 	packr2 install github.com/smallnest/gen
 
 vet: ## run go vet on the project
