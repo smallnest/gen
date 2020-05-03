@@ -3,7 +3,10 @@ package dbmeta
 import (
 	"bytes"
 	"database/sql"
+	"encoding/json"
 	"fmt"
+	"io/ioutil"
+	"os"
 	"strings"
 
 	"github.com/iancoleman/strcase"
@@ -13,12 +16,27 @@ type metaDataLoader func(db *sql.DB, sqlType, sqlDatabase, tableName string) (Db
 
 var metaDataFuncs = make(map[string]metaDataLoader)
 
+var sqlMappings = make(map[string]*SqlMapping)
+var UseSqlTypeMappings bool
+
 func init() {
 	metaDataFuncs["sqlite3"] = NewSqliteMeta
 	metaDataFuncs["sqlite"] = NewSqliteMeta
 	metaDataFuncs["mssql"] = NewMsSqlMeta
 	metaDataFuncs["postgres"] = NewPostgresMeta
 	metaDataFuncs["mysql"] = NewMysqlMeta
+}
+
+type SqlMappings struct {
+	SqlMappings []*SqlMapping `json:"mappings"`
+}
+
+type SqlMapping struct {
+	SqlType        string `json:"sql_type"`
+	GoType         string `json:"go_type"`
+	ProtobufType   string `json:"protobuf_type"`
+	GureguType     string `json:"guregu_type"`
+	GoNullableType string `json:"go_nullable_type"`
 }
 
 type ColumnMeta interface {
@@ -365,7 +383,7 @@ func createGormAnnotation(c ColumnMeta) string {
 	return buf.String()
 }
 
-func sqlTypeToGoType(sqlType string, nullable bool, gureguTypes bool) (string, error) {
+func sqlTypeToGoTypeDefault(sqlType string, nullable bool, gureguTypes bool) (string, error) {
 	sqlType = strings.Trim(sqlType, " \t")
 	sqlType = strings.ToLower(sqlType)
 
@@ -475,7 +493,7 @@ func createProtobufAnnotation(c ColumnMeta) (string, error) {
 	return fmt.Sprintf("protobuf:\"%s,%d,opt,name=%s\"", protoBufType, c.Index(), c.Name()), nil
 }
 
-func sqlTypeToProtobufType(c ColumnMeta) (string, error) {
+func sqlTypeToProtobufTypeDefault(c ColumnMeta) (string, error) {
 	sqlType := strings.Trim(c.DatabaseTypeName(), " \t")
 	sqlType = strings.ToLower(sqlType)
 
@@ -517,4 +535,71 @@ func sqlTypeToProtobufType(c ColumnMeta) (string, error) {
 	}
 
 	return "", fmt.Errorf("unknown sql type: %s", sqlType)
+}
+
+func ProcessMappings(mappingJsonstring []byte) error {
+	var mappings = &SqlMappings{}
+	err := json.Unmarshal(mappingJsonstring, mappings)
+	if err != nil {
+		fmt.Printf("Error unmarshalling json error: %v\n", err)
+		return err
+	}
+
+	fmt.Printf("Loaded %d mappings\n", len(mappings.SqlMappings))
+	for i, value := range mappings.SqlMappings {
+		fmt.Printf("    Mapping:[%2d] -> %s\n", i, value.SqlType)
+		sqlMappings[value.SqlType] = value
+	}
+	return nil
+}
+
+func LoadMappings(mappingFileName string) error {
+	mappingFile, err := os.Open(mappingFileName)
+	defer mappingFile.Close()
+	byteValue, err := ioutil.ReadAll(mappingFile)
+	if err != nil {
+		fmt.Printf("Error loading mapping file %s error: %v\n", mappingFileName, err)
+		return err
+	}
+	return ProcessMappings(byteValue)
+}
+
+func sqlTypeToGoType(sqlType string, nullable bool, gureguTypes bool) (string, error) {
+	sqlType = strings.Trim(sqlType, " \t")
+	sqlType = strings.ToLower(sqlType)
+
+	if UseSqlTypeMappings {
+		mapping, ok := sqlMappings[sqlType]
+		if !ok {
+			return "", fmt.Errorf("unknown sql type: %s", sqlType)
+		}
+
+		if nullable && gureguTypes {
+			return mapping.GureguType, nil
+		} else if nullable {
+			return mapping.GoNullableType, nil
+		} else {
+			return mapping.GoType, nil
+		}
+
+	} else {
+		return sqlTypeToGoTypeDefault(sqlType, nullable, gureguTypes)
+	}
+}
+
+func sqlTypeToProtobufType(c ColumnMeta) (string, error) {
+	sqlType := strings.ToLower(c.DatabaseTypeName())
+	sqlType = strings.Trim(sqlType, " \t")
+	sqlType = strings.ToLower(sqlType)
+
+	if UseSqlTypeMappings {
+		mapping, ok := sqlMappings[sqlType]
+		if !ok {
+			return "", fmt.Errorf("unknown sql type: %s", sqlType)
+		}
+		return mapping.ProtobufType, nil
+
+	} else {
+		return sqlTypeToProtobufTypeDefault(c)
+	}
 }

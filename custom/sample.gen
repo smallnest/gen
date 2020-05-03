@@ -20,8 +20,8 @@
    "tables"               [[]string] []string{"albums", "artists", "customers", "employees", "genres", "invoices", "invoice_items", "media_types", "playlists", "playlist_track", "tracks"}
 
 
-GenerateTableFile(tableName, templateFilename, outputDirectory, outputFileName string)
-GenerateFile(templateFilename, outputDirectory, outputFileName string) string
+GenerateTableFile(tableName, templateFilename, outputDirectory, outputFileName string, formatOutput bool)
+GenerateFile(templateFilename, outputDirectory, outputFileName string, formatOutput bool) string
 
 		"FmtFieldName":      dbmeta.FmtFieldName,
 		"singular":          inflection.Singular,
@@ -53,6 +53,6 @@ GenerateFile(templateFilename, outputDirectory, outputFileName string) string
 
 {{ range $i, $table := .tables }}
    {{$name := toUpper $table -}}
-   {{$filename  := printf "My%s" $name -}}
+   {{$filename  := printf "My%s.go" $name -}}
    {{ printf "[%-2d] %-20s %-20s" $i $table $filename}}
-   {{ GenerateTableFile $table  "custom.go.tmpl" "test" $filename }}{{- end }}
+   {{ GenerateTableFile $table  "custom.go.tmpl" "test" $filename true}}{{- end }}

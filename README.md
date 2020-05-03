@@ -91,6 +91,8 @@ Options:
   --server                                        Generate server app output dir
   --generate-dao                                  Generate dao functions
   --generate-proj                                 Generate project README.md and .gitignore
+  --context=                                      context file (json) to populate context with
+  --mapping=                                      mapping file (json) to map sql types to golang/protobuf etc
   --host=localhost                                host for server
   --port=8080                                     port for server
   --rest                                          Enable generating RESTful api
@@ -158,9 +160,9 @@ Currently Supported,
 Planned Support
 - Oracle
 
-#### Supported Datatypes
+#### Supported Data Types
 
-Currently only a limited number of datatypes are supported. Initial support includes:
+Currently only a limited number of data types are supported. Initial support includes:
 -  tinyint (sql.NullInt64 or null.Int)
 -  int      (sql.NullInt64 or null.Int)
 -  smallint      (sql.NullInt64 or null.Int)
@@ -194,6 +196,22 @@ via the command `gen --save ./mytemplates`. This will save the embedded template
 * Passing `--exec=../sample.gen` on the command line will load the `sample.gen` script and execute it. The script has access to the table information and other info passed to `gen`. This allows developers to customize the generation of code. You could loop through the list of tables and invoke  
 `GenerateTableFile` or  `GenerateFile`. 
 
+You can also populate the context used by templates with extra data by passing the `--contect=<json file>` option. The json file will be used to populate the context used when parsing templates.  
+
+You can also overwrite the sql type mappings used. An example mapping.json file is stored within the templates dir. Use `gen --save=./templates` to save the contents of the templates to `./templates`. 
+Below is a a portion of the mapping file, showing the mapping for `varchar`. This feature is experimental. It is only used if the
+`--mapping=mappings.json` option is passed to `gen`. 
+   
+```json
+    {
+      "sql_type": "varchar",
+      "go_type": "string",
+      "protobuf_type": "bytes",
+      "guregu_type": "null.String",
+      "go_nullable_type": "sql.NullString"
+    }
+```
+
 
 ```gotemplate
 // Loop through tables and print out table name and various forms of the table name
@@ -211,13 +229,13 @@ via the command `gen --save ./mytemplates`. This will save the embedded template
    {{$name := toUpper $table -}}
    {{$filename  := printf "My%s" $name -}}
    {{ printf "[%-2d] %-20s %-20s" $i $table $filename}}
-   {{ GenerateTableFile $table  "custom.go.tmpl" "test" $filename }}
+   {{ GenerateTableFile $table  "custom.go.tmpl" "test" $filename true}}
 {{- end }}
 
-// GenerateTableFile(tableName, templateFilename, outputDirectory, outputFileName string)
-// GenerateFile(templateFilename, outputDirectory, outputFileName string) string
+// GenerateTableFile(tableName, templateFilename, outputDirectory, outputFileName string, formatOutput bool)
+// GenerateFile(templateFilename, outputDirectory, outputFileName string, formatOutput bool) string
 
-The followinmg info is available within use of the exec template.
+The following info is available within use of the exec template.
 
    "CommandLine"          [string] "/tmp/go-build728666148/b001/exe/gen --sqltype=sqlite3 --connstr ./sample.db --database main --module github.com/alexj212/generated --verbose --overwrite --out ./ --exec=../sample.gen"
    "DatabaseName"         [string] "main"
@@ -238,6 +256,10 @@ The followinmg info is available within use of the exec template.
    "tableInfos"           [map[string]*dbmeta.ModelInfo] map[string]*dbmeta.ModelInfo{"albums":(*dbmeta.ModelInfo)(0xc00031fa40), "artists":(*dbmeta.ModelInfo)(0xc00031fb90), "customers":(*dbmeta.ModelInfo)(0xc00031fce0), "employees":(*dbmeta.ModelInfo)(0xc00031fd50), "genres":(*dbmeta.ModelInfo)(0xc00031fdc0), "invoice_items":(*dbmeta.ModelInfo)(0xc00031fea0), "invoices":(*dbmeta.ModelInfo)(0xc00031fe30), "media_types":(*dbmeta.ModelInfo)(0xc00031ff10), "playlist_track":(*dbmeta.ModelInfo)(0xc0001121c0), "playlists":(*dbmeta.ModelInfo)(0xc00031ff80), "tracks":(*dbmeta.ModelInfo)(0xc000112230)}
    "tables"               [[]string] []string{"albums", "artists", "customers", "employees", "genres", "invoices", "invoice_items", "media_types", "playlists", "playlist_track", "tracks"}
 ```
+
+
+
+
 
 ## Notes
 - MySql, Mssql, Postgres and Sqlite have a database metadata fetcher that will query the db, amd update the auto increment, primary key and nullable info for the gorm annotation.

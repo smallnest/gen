@@ -101,6 +101,7 @@ test_exec: clean_example ## test example using sqlite db in ./examples
 		--connstr "../example/sample.db" \
 		--database main \
 		--module github.com/alexj212/generated \
+		--context=./custom.json \
 		--verbose \
 		--overwrite \
 		--out ./ \
