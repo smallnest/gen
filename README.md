@@ -36,8 +36,8 @@ $ gen --sqltype=sqlite3 \
    	--server \
    	--makefile \
    	--json-fmt=snake \
-    --generate-dao \    
-    --generate-proj \
+   	--generate-dao \    
+   	--generate-proj \
    	--overwrite
 
 ## build example code (build process will install packr2 if not installed)
