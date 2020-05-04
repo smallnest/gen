@@ -43,7 +43,6 @@ type ColumnMeta interface {
 	Nullable() bool
 	DatabaseTypeName() string
 	DatabaseTypePretty() string
-	GetGoType(gureguTypes bool) (string, error)
 	Index() int
 	IsPrimaryKey() bool
 	IsAutoIncrement() bool
@@ -82,7 +81,7 @@ func (ci *columnMeta) Index() int {
 }
 
 func (ci *columnMeta) String() string {
-	return fmt.Sprintf("[%2d] %-45s  %-20s null: %-6t primary: %-6t auto: %-6t", ci.index, ci.ct.Name(), ci.DatabaseTypePretty(), ci.nullable, ci.isPrimaryKey, ci.isAutoIncrement )
+	return fmt.Sprintf("[%2d] %-45s  %-20s null: %-6t primary: %-6t auto: %-6t", ci.index, ci.ct.Name(), ci.DatabaseTypePretty(), ci.nullable, ci.isPrimaryKey, ci.isAutoIncrement)
 }
 
 // Nullable reports whether the column may be null.
@@ -104,21 +103,11 @@ func (ci *columnMeta) DatabaseTypeName() string {
 }
 
 func (ci *columnMeta) DatabaseTypePretty() string {
-	if ci.columnLen >0 {
+	if ci.columnLen > 0 {
 		return fmt.Sprintf("%s[%d]", ci.ct.DatabaseTypeName(), ci.columnLen)
 	} else {
 		return ci.ct.DatabaseTypeName()
 	}
-}
-
-
-func (ci *columnMeta) GetGoType(gureguTypes bool) (string, error) {
-	valueType, err := SqlTypeToGoType(strings.ToLower(ci.DatabaseTypeName()), ci.nullable, gureguTypes)
-	if err != nil {
-		return "", err
-	}
-
-	return valueType, nil
 }
 
 type DbTableMeta interface {
@@ -160,8 +149,6 @@ type ModelInfo struct {
 	Fields          []string
 	DBMeta          DbTableMeta
 }
-
-
 
 // GenerateStruct generates a struct for the given table.
 func GenerateStruct(sqlType string,
@@ -223,18 +210,17 @@ func generateFieldsTypes(dbMeta DbTableMeta,
 	var fields []string
 	var field = ""
 	for _, c := range dbMeta.Columns() {
-		key := c.Name()
+		name := c.Name()
 		if verbose {
 			//fmt.Printf("   [%s]   [%d] field: %s type: %s\n", dbMeta.TableName(), i, key, c.DatabaseTypeName())
 		}
 
-		valueType, err := c.GetGoType(gureguTypes)
-
+		valueType, err := SqlTypeToGoType(strings.ToLower(c.DatabaseTypeName()), c.Nullable(), gureguTypes)
 		if err != nil { // unknown type
-			fmt.Printf("table: %s unable to generate struct field: %s type: %s error: %v\n", dbMeta.TableName(), key, c.DatabaseTypeName(), err)
+			fmt.Printf("table: %s unable to generate struct field: %s type: %s error: %v\n", dbMeta.TableName(), name, c.DatabaseTypeName(), err)
 			continue
 		}
-		fieldName := FmtFieldName(stringifyFirstChar(key))
+		fieldName := FmtFieldName(stringifyFirstChar(name))
 
 		var annotations []string
 		if addGormAnnotation == true {
@@ -262,9 +248,7 @@ func generateFieldsTypes(dbMeta DbTableMeta,
 				valueType,
 				strings.Join(annotations, " "))
 		} else {
-			field = fmt.Sprintf("%s %s",
-				fieldName,
-				valueType)
+			field = fmt.Sprintf("%s %s", fieldName, valueType)
 		}
 
 		field = fmt.Sprintf("%s //%s", field, c.String())
@@ -305,16 +289,18 @@ func createGormAnnotation(c ColumnMeta) string {
 	buf.WriteString(key)
 	buf.WriteString(";")
 
-	buf.WriteString("type:")
-	buf.WriteString(c.DatabaseTypeName())
-	buf.WriteString(";")
+	if c.DatabaseTypeName() != "" {
+		buf.WriteString("type:")
+		buf.WriteString(c.DatabaseTypeName())
+		buf.WriteString(";")
 
-	if c.ColumnLength() > 0 {
-		buf.WriteString(fmt.Sprintf("size:%d;", c.ColumnLength()))
-	}
+		if c.ColumnLength() > 0 {
+			buf.WriteString(fmt.Sprintf("size:%d;", c.ColumnLength()))
+		}
 
-	if c.IsPrimaryKey() {
-		buf.WriteString("primary_key")
+		if c.IsPrimaryKey() {
+			buf.WriteString("primary_key")
+		}
 	}
 
 	buf.WriteString("\"")
@@ -340,7 +326,12 @@ func createProtobufAnnotation(c ColumnMeta) (string, error) {
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("protobuf:\"%s,%d,opt,name=%s\"", protoBufType, c.Index(), c.Name()), nil
+
+	if protoBufType != "" {
+		return fmt.Sprintf("protobuf:\"%s,%d,opt,name=%s\"", protoBufType, c.Index(), c.Name()), nil
+	} else {
+		return "", fmt.Errorf("unknown sql name: %s", c.Name())
+	}
 }
 
 func ProcessMappings(mappingJsonstring []byte) error {
@@ -403,7 +394,6 @@ func SqlTypeToMapping(sqlType string) (*SqlMapping, error) {
 	return mapping, nil
 }
 
-
 func cleanupSqlType(sqlType string) string {
 	sqlType = strings.ToLower(sqlType)
 	sqlType = strings.Trim(sqlType, " \t")
@@ -418,4 +408,3 @@ func cleanupSqlType(sqlType string) string {
 func GetMappings() map[string]*SqlMapping {
 	return sqlMappings
 }
-

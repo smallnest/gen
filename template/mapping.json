@@ -300,6 +300,13 @@
       "protobuf_type": "string",
       "guregu_type": "null.String",
       "go_nullable_type": "sql.NullString"
+    },
+    {
+      "sql_type": "",
+      "go_type": "interface{}",
+      "protobuf_type": "",
+      "guregu_type": "interface{}",
+      "go_nullable_type": "interface{}"
     }
   ]
 }
