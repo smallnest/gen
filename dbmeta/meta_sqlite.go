@@ -11,6 +11,11 @@ import (
 )
 
 func NewSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error) {
+
+	if tableName == "sqlite_sequence" || tableName == "sqlite_stat1" {
+		return nil, fmt.Errorf("unsupported table: %s", tableName)
+	}
+
 	m := &dbTableMeta{
 		sqlType:     sqlType,
 		sqlDatabase: sqlDatabase,
