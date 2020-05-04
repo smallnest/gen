@@ -3,6 +3,7 @@ package main
 import (
 	"bytes"
 	"database/sql"
+	"encoding/json"
 	"fmt"
 	"go/format"
 	"io"
@@ -52,8 +53,9 @@ var (
 	outDir           = goopt.String([]string{"--out"}, ".", "output dir")
 	module           = goopt.String([]string{"--module"}, "example.com/example", "module path")
 	overwrite        = goopt.Flag([]string{"--overwrite"}, []string{"--no-overwrite"}, "Overwrite existing files (default)", "disable overwriting files")
-
-	exec = goopt.String([]string{"--exec"}, "", "execute script for custom code generation")
+	contextFileName  = goopt.String([]string{"--context"}, "", "context file (json) to populate context with")
+	mappingFileName  = goopt.String([]string{"--mapping"}, "", "mapping file (json) to map sql types to golang/protobuf etc")
+	exec             = goopt.String([]string{"--exec"}, "", "execute script for custom code generation")
 
 	jsonAnnotation     = goopt.Flag([]string{"--json"}, []string{"--no-json"}, "Add json annotations (default)", "Disable json annotations")
 	jsonNameFormat     = goopt.String([]string{"--json-fmt"}, "snake", "json name format [snake | camel | lower_camel | none]")
@@ -61,16 +63,17 @@ var (
 	protobufAnnotation = goopt.Flag([]string{"--protobuf"}, []string{}, "Add protobuf annotations (tags)", "")
 	dbAnnotation       = goopt.Flag([]string{"--db"}, []string{}, "Add db annotations (tags)", "")
 	gureguTypes        = goopt.Flag([]string{"--guregu"}, []string{}, "Add guregu null types", "")
-	modGenerate        = goopt.Flag([]string{"--mod"}, []string{}, "Generate go.mod in output dir", "")
-	makefileGenerate   = goopt.Flag([]string{"--makefile"}, []string{}, "Generate Makefile in output dir", "")
-	serverGenerate     = goopt.Flag([]string{"--server"}, []string{}, "Generate server app output dir", "")
-	daoGenerate        = goopt.Flag([]string{"--generate-dao"}, []string{}, "Generate dao functions", "")
-	projectGenerate    = goopt.Flag([]string{"--generate-proj"}, []string{}, "Generate project readme an d gitignore", "")
+
+	copyTemplates    = goopt.Flag([]string{"--copy-templates"}, []string{}, "Copy regeneration templates to project directory", "")
+	modGenerate      = goopt.Flag([]string{"--mod"}, []string{}, "Generate go.mod in output dir", "")
+	makefileGenerate = goopt.Flag([]string{"--makefile"}, []string{}, "Generate Makefile in output dir", "")
+	serverGenerate   = goopt.Flag([]string{"--server"}, []string{}, "Generate server app output dir", "")
+	daoGenerate      = goopt.Flag([]string{"--generate-dao"}, []string{}, "Generate dao functions", "")
+	projectGenerate  = goopt.Flag([]string{"--generate-proj"}, []string{}, "Generate project readme an d gitignore", "")
+	restApiGenerate  = goopt.Flag([]string{"--rest"}, []string{}, "Enable generating RESTful api", "")
 
 	serverHost          = goopt.String([]string{"--host"}, "localhost", "host for server")
 	serverPort          = goopt.Int([]string{"--port"}, 8080, "port for server")
-	rest                = goopt.Flag([]string{"--rest"}, []string{}, "Enable generating RESTful api", "")
-	copyTemplates       = goopt.Flag([]string{"--copy-templates"}, []string{}, "Copy regeneration templates to project directory", "")
 	swaggerVersion      = goopt.String([]string{"--swagger_version"}, "1.0", "swagger version")
 	swaggerBasePath     = goopt.String([]string{"--swagger_path"}, "/", "swagger base path")
 	swaggerTos          = goopt.String([]string{"--swagger_tos"}, "", "swagger tos url")
@@ -89,6 +92,7 @@ var (
 	structNames []string
 	tableInfos  = make(map[string]*dbmeta.ModelInfo)
 	tables      []string
+	contextMap  map[string]interface{}
 
 	SwaggerInfo = &swaggerInfo{
 		Version:      "1.0",
@@ -105,16 +109,14 @@ var (
 func init() {
 	// Setup goopts
 	goopt.Description = func() string {
-		return "ORM and RESTful API generator for Mysql"
+		return "ORM and RESTful API generator for SQl databases"
 	}
-	goopt.Version = "0.2"
+	goopt.Version = "0.5"
 	goopt.Summary = `gen [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> --module=example.com/example [--json] [--gorm] [--guregu] [--generate-dao] [--generate-proj]
 
            sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
 
 `
-
-
 
 	//Parse options
 	goopt.Parse(nil)
@@ -144,6 +146,49 @@ func main() {
 		return
 	}
 
+	if *contextFileName != "" {
+		contextFile, err := os.Open(*contextFileName)
+		defer contextFile.Close()
+		if err != nil {
+			fmt.Printf("Error loading context file %s error: %v\n", *contextFileName, err)
+			return
+		}
+		jsonParser := json.NewDecoder(contextFile)
+		err = jsonParser.Decode(&contextMap)
+		if err != nil {
+			fmt.Printf("Error loading context file %s error: %v\n", *contextFileName, err)
+			return
+		}
+
+		fmt.Printf("Loaded Context from %s with %d defaults\n", *contextFileName, len(contextMap))
+		for key, value := range contextMap {
+			fmt.Printf("    Context:%s -> %s\n", key, value)
+		}
+	}
+
+	var err error
+	var content []byte
+	content, err = baseTemplates.Find("mapping.json")
+	if err != nil {
+		fmt.Printf("Error getting default map[mapping file error: %v\n", err)
+		return
+	}
+
+	err = dbmeta.ProcessMappings(content)
+	if err != nil {
+		fmt.Printf("Error processing default mapping file error: %v\n", err)
+		return
+	}
+
+	if *mappingFileName != "" {
+		err := dbmeta.LoadMappings(*mappingFileName)
+		if err != nil {
+			fmt.Printf("Error loading mappings file %s error: %v\n", *mappingFileName, err)
+			return
+		}
+		dbmeta.UseSqlTypeMappings = true
+	}
+
 	// Username is required
 	if sqlConnStr == nil || *sqlConnStr == "" || *sqlConnStr == "nil" {
 		fmt.Printf("sql connection string is required! Add it with --connstr=s\n\n")
@@ -157,7 +202,8 @@ func main() {
 		return
 	}
 
-	var db, err = sql.Open(*sqlType, *sqlConnStr)
+	var db *sql.DB
+	db, err = sql.Open(*sqlType, *sqlConnStr)
 	if err != nil {
 		fmt.Printf("Error in open database: %v\n\n", err.Error())
 		return
@@ -333,7 +379,7 @@ func generate() {
 		}
 	}
 
-	if *rest {
+	if *restApiGenerate {
 		err = os.MkdirAll(apiDir, 0777)
 		if err != nil && !*overwrite {
 			fmt.Printf("unable to create apiDir: %s error: %v\n", apiDir, err)
@@ -431,7 +477,7 @@ func generate() {
 		modelFile := filepath.Join(modelDir, inflection.Singular(tableName)+".go")
 		writeTemplate("model", ModelTmpl, modelInfo, modelFile, *overwrite, true)
 
-		if *rest {
+		if *restApiGenerate {
 			restFile := filepath.Join(apiDir, inflection.Singular(tableName)+".go")
 			writeTemplate("rest", ControllerTmpl, modelInfo, restFile, *overwrite, true)
 		}
@@ -445,7 +491,7 @@ func generate() {
 
 	data := map[string]interface{}{}
 
-	if *rest {
+	if *restApiGenerate {
 		writeTemplate("router", RouterTmpl, data, filepath.Join(apiDir, "router.go"), *overwrite, true)
 		writeTemplate("example server", HttpUtilsTmpl, data, filepath.Join(apiDir, "http_utils.go"), *overwrite, true)
 	}
@@ -506,9 +552,14 @@ func generate() {
 		if *overwrite {
 			buf.WriteString(fmt.Sprintf(" --overwrite"))
 		}
+
+		if *contextFileName != "" {
+			buf.WriteString(fmt.Sprintf(" --context=%s", *contextFileName))
+		}
+
 		buf.WriteString(fmt.Sprintf(" --host=%s", *serverHost))
 		buf.WriteString(fmt.Sprintf(" --port=%d", *serverPort))
-		if *rest {
+		if *restApiGenerate {
 			buf.WriteString(fmt.Sprintf(" --rest"))
 		}
 		if *verbose {
@@ -570,10 +621,10 @@ func generate() {
 	}
 }
 
-func GenerateTableFile(tableName, templateFilename, outputDirectory, outputFileName string) string {
+func GenerateTableFile(tableName, templateFilename, outputDirectory, outputFileName string, formatOutput bool) string {
 	buf := bytes.Buffer{}
 
-	buf.WriteString(fmt.Sprintf("GenerateTableFile( %s, %s, %s, %s)\n", tableName, templateFilename, outputDirectory, outputFileName))
+	buf.WriteString(fmt.Sprintf("GenerateTableFile( %s, %s, %s, %s, %t)\n", tableName, templateFilename, outputDirectory, outputFileName, formatOutput))
 
 	tableInfo, ok := tableInfos[tableName]
 	if !ok {
@@ -608,11 +659,11 @@ func GenerateTableFile(tableName, templateFilename, outputDirectory, outputFileN
 
 	outputFile := filepath.Join(fileOutDir, outputFileName)
 	buf.WriteString(fmt.Sprintf("Writing %s -> %s\n", templateFilename, outputFile))
-	writeTemplate(templateFilename, tpl, data, outputFile, *overwrite, false)
+	writeTemplate(templateFilename, tpl, data, outputFile, *overwrite, formatOutput)
 	return buf.String()
 }
 
-func GenerateFile(templateFilename, outputDirectory, outputFileName string) string {
+func GenerateFile(templateFilename, outputDirectory, outputFileName string, formatOutput bool) string {
 	buf := bytes.Buffer{}
 	buf.WriteString(fmt.Sprintf("GenerateFile( %s, %s, %s)\n", templateFilename, outputDirectory, outputFileName))
 	fileOutDir := filepath.Join(*outDir, outputDirectory)
@@ -632,7 +683,7 @@ func GenerateFile(templateFilename, outputDirectory, outputFileName string) stri
 
 	outputFile := filepath.Join(fileOutDir, outputFileName)
 	buf.WriteString(fmt.Sprintf("Writing %s -> %s\n", templateFilename, outputFile))
-	writeTemplate(templateFilename, tpl, data, outputFile, *overwrite, false)
+	writeTemplate(templateFilename, tpl, data, outputFile, *overwrite, formatOutput)
 	return buf.String()
 }
 
@@ -640,6 +691,10 @@ func writeTemplate(name, templateStr string, data map[string]interface{}, output
 	if !overwrite && Exists(outputFile) {
 		fmt.Printf("not overwriting %s\n", outputFile)
 		return
+	}
+
+	for key, value := range contextMap {
+		data[key] = value
 	}
 
 	data["DatabaseName"] = *sqlDatabase
