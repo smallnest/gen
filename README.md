@@ -162,31 +162,21 @@ Planned Support
 
 #### Supported Data Types
 
-Currently only a limited number of data types are supported. Initial support includes:
--  tinyint (sql.NullInt64 or null.Int)
--  int      (sql.NullInt64 or null.Int)
--  smallint      (sql.NullInt64 or null.Int)
--  mediumint      (sql.NullInt64 or null.Int)
--  bigint (sql.NullInt64 or null.Int)
--  decimal (sql.NullFloat64 or null.Float)
--  float (sql.NullFloat64 or null.Float)
--  double (sql.NullFloat64 or null.Float)
--  datetime (null.Time)
--  time  (null.Time)
--  date (null.Time)
--  timestamp (null.Time)
--  var (sql.String or null.String)
--  enum (sql.String or null.String)
--  varchar (sql.String or null.String)
--  longtext (sql.String or null.String)
--  mediumtext (sql.String or null.String)
--  text (sql.String or null.String)
--  tinytext (sql.String or null.String)
--  binary
--  blob
--  longblob
--  mediumblob
--  varbinary
+Most datatypes are supported, for Mysql, Postgres, SQLite and MS SQL. `gen` uses a mapping json file that can be used to add mapping types. By default the internal mapping file is loaded and processed. If can be overwritten or additional types added by using the `--mapping=extra.json` command line option.
+
+The default `mapping.json` file is located within the templates dir. Use `gen --save=./templates` to save the contents of the templates to `./templates`. 
+Below is a portion of the mapping file, showing the mapping for `varchar`. 
+   
+```json
+    {
+      "sql_type": "varchar",
+      "go_type": "string",
+      "protobuf_type": "bytes",
+      "guregu_type": "null.String",
+      "go_nullable_type": "sql.NullString"
+    }
+```
+ 
 
 ### Advanced
 The `gen` tool provides functionality to layout your own project format. Users have 2 options.
@@ -198,19 +188,6 @@ via the command `gen --save ./mytemplates`. This will save the embedded template
 
 You can also populate the context used by templates with extra data by passing the `--contect=<json file>` option. The json file will be used to populate the context used when parsing templates.  
 
-You can also overwrite the sql type mappings used. An example mapping.json file is stored within the templates dir. Use `gen --save=./templates` to save the contents of the templates to `./templates`. 
-Below is a a portion of the mapping file, showing the mapping for `varchar`. This feature is experimental. It is only used if the
-`--mapping=mappings.json` option is passed to `gen`. 
-   
-```json
-    {
-      "sql_type": "varchar",
-      "go_type": "string",
-      "protobuf_type": "bytes",
-      "guregu_type": "null.String",
-      "go_nullable_type": "sql.NullString"
-    }
-```
 
 
 ```gotemplate
