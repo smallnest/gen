@@ -42,6 +42,7 @@ type ColumnMeta interface {
 	String() string
 	Nullable() bool
 	DatabaseTypeName() string
+	DatabaseTypePretty() string
 	GetGoType(gureguTypes bool) (string, error)
 	Index() int
 	IsPrimaryKey() bool
@@ -81,7 +82,7 @@ func (ci *columnMeta) Index() int {
 }
 
 func (ci *columnMeta) String() string {
-	return fmt.Sprintf("[%2d] %-20s nullable: %-6t isPrimaryKey: %-6t isAutoIncrement: %-6t ColumnLength: %d", ci.index, ci.ct.Name(), ci.nullable, ci.isPrimaryKey, ci.isAutoIncrement, ci.columnLen)
+	return fmt.Sprintf("[%2d] %-45s  %-20s null: %-6t primary: %-6t auto: %-6t", ci.index, ci.ct.Name(), ci.DatabaseTypePretty(), ci.nullable, ci.isPrimaryKey, ci.isAutoIncrement )
 }
 
 // Nullable reports whether the column may be null.
@@ -101,6 +102,15 @@ func (ci *columnMeta) ColDDL() string {
 func (ci *columnMeta) DatabaseTypeName() string {
 	return ci.ct.DatabaseTypeName()
 }
+
+func (ci *columnMeta) DatabaseTypePretty() string {
+	if ci.columnLen >0 {
+		return fmt.Sprintf("%s[%d]", ci.ct.DatabaseTypeName(), ci.columnLen)
+	} else {
+		return ci.ct.DatabaseTypeName()
+	}
+}
+
 
 func (ci *columnMeta) GetGoType(gureguTypes bool) (string, error) {
 	valueType, err := SqlTypeToGoType(strings.ToLower(ci.DatabaseTypeName()), ci.nullable, gureguTypes)
@@ -183,7 +193,7 @@ func GenerateStruct(sqlType string,
 	if verbose {
 		fmt.Printf("tableName: %s\n", tableName)
 		for _, c := range dbMeta.Columns() {
-			fmt.Printf("    %s DatabaseTypeName: %s\n", c.String(), c.DatabaseTypeName())
+			fmt.Printf("    %s\n", c.String())
 		}
 	}
 	var modelInfo = &ModelInfo{
