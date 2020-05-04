@@ -239,7 +239,7 @@ The following info is available within use of the exec template.
 
 
 ## Notes
-- MySql, Mssql, Postgres and Sqlite have a database metadata fetcher that will query the db, amd update the auto increment, primary key and nullable info for the gorm annotation.
+- MySql, Mssql, Postgres and Sqlite have a database metadata fetcher that will query the db, and update the auto increment, primary key and nullable info for the gorm annotation.
 
 
  
