@@ -105,15 +105,15 @@ func NewMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 			colDDL:          colDDL,
 		}
 		dbType := strings.ToLower(colMeta.DatabaseTypeName())
-		fmt.Printf("dbType: %s\n", dbType)
+		// fmt.Printf("dbType: %s\n", dbType)
 
 		if strings.Contains(dbType, "char") || strings.Contains(dbType, "text") {
 			columnLen, err := getFieldLen(db, tableName, v.Name())
 			if err == nil {
 				colMeta.columnLen = columnLen
-				fmt.Printf("getFieldLen %s %s : columnLen %v\n",tableName,v.Name(), columnLen)
+				//fmt.Printf("getFieldLen %s %s : columnLen %v\n",tableName,v.Name(), columnLen)
 			} else {
-				fmt.Printf("getFieldLen %s %s : error: %v\n",tableName,v.Name(), err)
+				//fmt.Printf("getFieldLen %s %s : error: %v\n",tableName,v.Name(), err)
 			}
 		}
 

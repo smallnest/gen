@@ -186,7 +186,6 @@ func main() {
 			fmt.Printf("Error loading mappings file %s error: %v\n", *mappingFileName, err)
 			return
 		}
-		dbmeta.UseSqlTypeMappings = true
 	}
 
 	// Username is required

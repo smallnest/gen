@@ -24,168 +24,175 @@
     {
       "sql_type": "int",
       "go_type": "int",
-      "protobuf_type": "uint8",
+      "protobuf_type": "int32",
       "guregu_type": "null.Int",
       "go_nullable_type": "sql.NullInt64"
     },
     {
       "sql_type": "smallint",
       "go_type": "int",
-      "protobuf_type": "uint8",
+      "protobuf_type": "int16",
       "guregu_type": "null.Int",
       "go_nullable_type": "sql.NullInt64"
     },
     {
       "sql_type": "mediumint",
       "go_type": "int",
-      "protobuf_type": "uint8",
+      "protobuf_type": "int32",
       "guregu_type": "null.Int",
       "go_nullable_type": "sql.NullInt64"
     },
     {
       "sql_type": "int4",
       "go_type": "int",
-      "protobuf_type": "uint8",
+      "protobuf_type": "int32",
       "guregu_type": "null.Int",
       "go_nullable_type": "sql.NullInt64"
     },
     {
       "sql_type": "int2",
       "go_type": "int",
-      "protobuf_type": "uint8",
+      "protobuf_type": "int32",
       "guregu_type": "null.Int",
       "go_nullable_type": "sql.NullInt64"
     },
     {
       "sql_type": "integer",
       "go_type": "int",
-      "protobuf_type": "uint8",
+      "protobuf_type": "int32",
       "guregu_type": "null.Int",
       "go_nullable_type": "sql.NullInt64"
     },
     {
       "sql_type": "bigint",
       "go_type": "int64",
-      "protobuf_type": "uint8",
+      "protobuf_type": "int64",
       "guregu_type": "null.Int",
       "go_nullable_type": "sql.NullInt64"
     },
     {
       "sql_type": "int8",
       "go_type": "int64",
-      "protobuf_type": "uint8",
+      "protobuf_type": "int8",
       "guregu_type": "null.Int",
       "go_nullable_type": "sql.NullInt64"
     },
     {
       "sql_type": "char",
       "go_type": "string",
-      "protobuf_type": "bytes",
+      "protobuf_type": "string",
       "guregu_type": "null.String",
       "go_nullable_type": "sql.NullString"
     },
     {
       "sql_type": "enum",
       "go_type": "string",
-      "protobuf_type": "bytes",
+      "protobuf_type": "string",
       "guregu_type": "null.String",
       "go_nullable_type": "sql.NullString"
     },
     {
       "sql_type": "varchar",
       "go_type": "string",
-      "protobuf_type": "bytes",
+      "protobuf_type": "string",
+      "guregu_type": "null.String",
+      "go_nullable_type": "sql.NullString"
+    },
+    {
+      "sql_type": "nvarchar",
+      "go_type": "string",
+      "protobuf_type": "string",
       "guregu_type": "null.String",
       "go_nullable_type": "sql.NullString"
     },
     {
       "sql_type": "longtext",
       "go_type": "string",
-      "protobuf_type": "bytes",
+      "protobuf_type": "string",
       "guregu_type": "null.String",
       "go_nullable_type": "sql.NullString"
     },
     {
       "sql_type": "mediumtext",
       "go_type": "string",
-      "protobuf_type": "bytes",
+      "protobuf_type": "string",
       "guregu_type": "null.String",
       "go_nullable_type": "sql.NullString"
     },
     {
       "sql_type": "text",
       "go_type": "string",
-      "protobuf_type": "bytes",
+      "protobuf_type": "string",
       "guregu_type": "null.String",
       "go_nullable_type": "sql.NullString"
     },
     {
       "sql_type": "tinytext",
       "go_type": "string",
-      "protobuf_type": "bytes",
+      "protobuf_type": "string",
       "guregu_type": "null.String",
       "go_nullable_type": "sql.NullString"
     },
     {
       "sql_type": "varchar2",
       "go_type": "string",
-      "protobuf_type": "bytes",
+      "protobuf_type": "string",
       "guregu_type": "null.String",
       "go_nullable_type": "sql.NullString"
     },
     {
       "sql_type": "json",
       "go_type": "string",
-      "protobuf_type": "bytes",
+      "protobuf_type": "string",
       "guregu_type": "null.String",
       "go_nullable_type": "sql.NullString"
     },
     {
       "sql_type": "jsonb",
       "go_type": "string",
-      "protobuf_type": "bytes",
+      "protobuf_type": "string",
       "guregu_type": "null.String",
       "go_nullable_type": "sql.NullString"
     },
     {
       "sql_type": "nchar",
       "go_type": "string",
-      "protobuf_type": "bytes",
+      "protobuf_type": "string",
       "guregu_type": "null.String",
       "go_nullable_type": "sql.NullString"
     },
     {
       "sql_type": "date",
       "go_type": "time.Time",
-      "protobuf_type": "bytes",
+      "protobuf_type": "uint64",
       "guregu_type": "null.Time",
       "go_nullable_type": "time.Time"
     },
     {
       "sql_type": "datetime",
       "go_type": "time.Time",
-      "protobuf_type": "bytes",
+      "protobuf_type": "uint64",
       "guregu_type": "null.Time",
       "go_nullable_type": "time.Time"
     },
     {
       "sql_type": "time",
       "go_type": "time.Time",
-      "protobuf_type": "bytes",
+      "protobuf_type": "uint64",
       "guregu_type": "null.Time",
       "go_nullable_type": "time.Time"
     },
     {
       "sql_type": "timestamp",
       "go_type": "time.Time",
-      "protobuf_type": "bytes",
+      "protobuf_type": "uint64",
       "guregu_type": "null.Time",
       "go_nullable_type": "time.Time"
     },
     {
       "sql_type": "smalldatetime",
       "go_type": "time.Time",
-      "protobuf_type": "bytes",
+      "protobuf_type": "uint64",
       "guregu_type": "null.Time",
       "go_nullable_type": "time.Time"
     },
@@ -262,9 +269,44 @@
     {
       "sql_type": "numeric",
       "go_type": "float64",
-      "protobuf_type": "float64",
+      "protobuf_type": "float",
       "guregu_type": "null.Float",
       "go_nullable_type": "sql.NullFloat64"
+    },
+    {
+      "sql_type": "bpchar",
+      "go_type": "string",
+      "protobuf_type": "string",
+      "guregu_type": "null.String",
+      "go_nullable_type": "sql.NullString"
+    },
+    {
+      "sql_type": "tsvector",
+      "go_type": "string",
+      "protobuf_type": "string",
+      "guregu_type": "null.String",
+      "go_nullable_type": "sql.NullString"
+    },
+    {
+      "sql_type": "_text",
+      "go_type": "string",
+      "protobuf_type": "string",
+      "guregu_type": "null.String",
+      "go_nullable_type": "sql.NullString"
+    },
+    {
+      "sql_type": "bytea",
+      "go_type": "string",
+      "protobuf_type": "string",
+      "guregu_type": "null.String",
+      "go_nullable_type": "sql.NullString"
+    },
+    {
+      "sql_type": "",
+      "go_type": "interface{}",
+      "protobuf_type": "",
+      "guregu_type": "interface{}",
+      "go_nullable_type": "interface{}"
     }
   ]
 }

@@ -15,9 +15,7 @@ import (
 type metaDataLoader func(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error)
 
 var metaDataFuncs = make(map[string]metaDataLoader)
-
 var sqlMappings = make(map[string]*SqlMapping)
-var UseSqlTypeMappings bool
 
 func init() {
 	metaDataFuncs["sqlite3"] = NewSqliteMeta
@@ -44,7 +42,7 @@ type ColumnMeta interface {
 	String() string
 	Nullable() bool
 	DatabaseTypeName() string
-	GetGoType(gureguTypes bool) (string, error)
+	DatabaseTypePretty() string
 	Index() int
 	IsPrimaryKey() bool
 	IsAutoIncrement() bool
@@ -83,7 +81,7 @@ func (ci *columnMeta) Index() int {
 }
 
 func (ci *columnMeta) String() string {
-	return fmt.Sprintf("[%2d] %-20s nullable: %-6t isPrimaryKey: %-6t isAutoIncrement: %-6t ColumnLength: %d", ci.index, ci.ct.Name(), ci.nullable, ci.isPrimaryKey, ci.isAutoIncrement, ci.columnLen)
+	return fmt.Sprintf("[%2d] %-45s  %-20s null: %-6t primary: %-6t auto: %-6t", ci.index, ci.ct.Name(), ci.DatabaseTypePretty(), ci.nullable, ci.isPrimaryKey, ci.isAutoIncrement)
 }
 
 // Nullable reports whether the column may be null.
@@ -104,13 +102,12 @@ func (ci *columnMeta) DatabaseTypeName() string {
 	return ci.ct.DatabaseTypeName()
 }
 
-func (ci *columnMeta) GetGoType(gureguTypes bool) (string, error) {
-	valueType, err := sqlTypeToGoType(strings.ToLower(ci.DatabaseTypeName()), ci.nullable, gureguTypes)
-	if err != nil {
-		return "", err
+func (ci *columnMeta) DatabaseTypePretty() string {
+	if ci.columnLen > 0 {
+		return fmt.Sprintf("%s[%d]", ci.ct.DatabaseTypeName(), ci.columnLen)
+	} else {
+		return ci.ct.DatabaseTypeName()
 	}
-
-	return valueType, nil
 }
 
 type DbTableMeta interface {
@@ -153,76 +150,6 @@ type ModelInfo struct {
 	DBMeta          DbTableMeta
 }
 
-// commonInitialisms is a set of common initialisms.
-// Only add entries that are highly unlikely to be non-initialisms.
-// For instance, "ID" is fine (Freudian code is rare), but "AND" is not.
-var commonInitialisms = map[string]bool{
-	"API":   true,
-	"ASCII": true,
-	"CPU":   true,
-	"CSS":   true,
-	"DNS":   true,
-	"EOF":   true,
-	"GUID":  true,
-	"HTML":  true,
-	"HTTP":  true,
-	"HTTPS": true,
-	"ID":    true,
-	"IP":    true,
-	"JSON":  true,
-	"LHS":   true,
-	"QPS":   true,
-	"RAM":   true,
-	"RHS":   true,
-	"RPC":   true,
-	"SLA":   true,
-	"SMTP":  true,
-	"SSH":   true,
-	"TLS":   true,
-	"TTL":   true,
-	"UI":    true,
-	"UID":   true,
-	"UUID":  true,
-	"URI":   true,
-	"URL":   true,
-	"UTF8":  true,
-	"VM":    true,
-	"XML":   true,
-}
-
-var intToWordMap = []string{
-	"zero",
-	"one",
-	"two",
-	"three",
-	"four",
-	"five",
-	"six",
-	"seven",
-	"eight",
-	"nine",
-}
-
-// Constants for return types of golang
-const (
-	golangByteArray  = "[]byte"
-	gureguNullInt    = "null.Int"
-	sqlNullInt       = "sql.NullInt64"
-	sqlNullBool      = "sql.NullBool"
-	golangInt        = "int"
-	golangInt64      = "int64"
-	gureguNullFloat  = "null.Float"
-	sqlNullFloat     = "sql.NullFloat64"
-	golangFloat      = "float"
-	golangFloat32    = "float32"
-	golangFloat64    = "float64"
-	gureguNullString = "null.String"
-	sqlNullString    = "sql.NullString"
-	gureguNullTime   = "null.Time"
-	golangTime       = "time.Time"
-	golangBool       = "bool"
-)
-
 // GenerateStruct generates a struct for the given table.
 func GenerateStruct(sqlType string,
 	db *sql.DB,
@@ -253,7 +180,7 @@ func GenerateStruct(sqlType string,
 	if verbose {
 		fmt.Printf("tableName: %s\n", tableName)
 		for _, c := range dbMeta.Columns() {
-			fmt.Printf("    %s DatabaseTypeName: %s\n", c.String(), c.DatabaseTypeName())
+			fmt.Printf("    %s\n", c.String())
 		}
 	}
 	var modelInfo = &ModelInfo{
@@ -283,20 +210,17 @@ func generateFieldsTypes(dbMeta DbTableMeta,
 	var fields []string
 	var field = ""
 	for _, c := range dbMeta.Columns() {
-		key := c.Name()
+		name := c.Name()
 		if verbose {
 			//fmt.Printf("   [%s]   [%d] field: %s type: %s\n", dbMeta.TableName(), i, key, c.DatabaseTypeName())
 		}
 
-		valueType, err := c.GetGoType(gureguTypes)
-
+		valueType, err := SqlTypeToGoType(strings.ToLower(c.DatabaseTypeName()), c.Nullable(), gureguTypes)
 		if err != nil { // unknown type
-			if verbose {
-				fmt.Printf("table: %s unable to generate struct field: %s type: %s\n", dbMeta.TableName(), key, c.DatabaseTypeName())
-			}
+			fmt.Printf("table: %s unable to generate struct field: %s type: %s error: %v\n", dbMeta.TableName(), name, c.DatabaseTypeName(), err)
 			continue
 		}
-		fieldName := FmtFieldName(stringifyFirstChar(key))
+		fieldName := FmtFieldName(stringifyFirstChar(name))
 
 		var annotations []string
 		if addGormAnnotation == true {
@@ -324,9 +248,7 @@ func generateFieldsTypes(dbMeta DbTableMeta,
 				valueType,
 				strings.Join(annotations, " "))
 		} else {
-			field = fmt.Sprintf("%s %s",
-				fieldName,
-				valueType)
+			field = fmt.Sprintf("%s %s", fieldName, valueType)
 		}
 
 		field = fmt.Sprintf("%s //%s", field, c.String())
@@ -367,108 +289,22 @@ func createGormAnnotation(c ColumnMeta) string {
 	buf.WriteString(key)
 	buf.WriteString(";")
 
-	buf.WriteString("type:")
-	buf.WriteString(c.DatabaseTypeName())
-	buf.WriteString(";")
+	if c.DatabaseTypeName() != "" {
+		buf.WriteString("type:")
+		buf.WriteString(c.DatabaseTypeName())
+		buf.WriteString(";")
 
-	if c.ColumnLength() > 0 {
-		buf.WriteString(fmt.Sprintf("size:%d;", c.ColumnLength()))
-	}
+		if c.ColumnLength() > 0 {
+			buf.WriteString(fmt.Sprintf("size:%d;", c.ColumnLength()))
+		}
 
-	if c.IsPrimaryKey() {
-		buf.WriteString("primary_key")
+		if c.IsPrimaryKey() {
+			buf.WriteString("primary_key")
+		}
 	}
 
 	buf.WriteString("\"")
 	return buf.String()
-}
-
-func sqlTypeToGoTypeDefault(sqlType string, nullable bool, gureguTypes bool) (string, error) {
-	sqlType = strings.Trim(sqlType, " \t")
-	sqlType = strings.ToLower(sqlType)
-
-	switch sqlType {
-	case "bit":
-		if nullable {
-			if gureguTypes {
-				return gureguNullInt, nil
-			}
-			return sqlNullBool, nil
-		}
-		return golangBool, nil
-
-	case "tinyint", "int", "smallint", "mediumint", "int4", "int2", "integer":
-		if nullable {
-			if gureguTypes {
-				return gureguNullInt, nil
-			}
-			return sqlNullInt, nil
-		}
-		return golangInt, nil
-	case "bigint", "int8":
-		if nullable {
-			if gureguTypes {
-				return gureguNullInt, nil
-			}
-			return sqlNullInt, nil
-		}
-		return golangInt64, nil
-	case "char", "enum", "varchar", "longtext", "mediumtext", "text", "tinytext", "varchar2", "json", "jsonb", "nvarchar", "nchar":
-		if nullable {
-			if gureguTypes {
-				return gureguNullString, nil
-			}
-			return sqlNullString, nil
-		}
-		return "string", nil
-	case "date", "datetime", "time", "timestamp", "smalldatetime":
-		if nullable && gureguTypes {
-			return gureguNullTime, nil
-		}
-		return golangTime, nil
-	case "decimal", "double", "money", "real":
-		if nullable {
-			if gureguTypes {
-				return gureguNullFloat, nil
-			}
-			return sqlNullFloat, nil
-		}
-		return golangFloat64, nil
-	case "float":
-		if nullable {
-			if gureguTypes {
-				return gureguNullFloat, nil
-			}
-			return sqlNullFloat, nil
-		}
-		return golangFloat32, nil
-	case "binary", "blob", "longblob", "mediumblob", "varbinary":
-		return golangByteArray, nil
-	case "bool":
-		return golangBool, nil
-	}
-
-	if strings.HasPrefix(sqlType, "nvarchar") || strings.HasPrefix(sqlType, "varchar") {
-		if nullable {
-			if gureguTypes {
-				return gureguNullString, nil
-			}
-			return sqlNullString, nil
-		}
-		return "string", nil
-	}
-
-	if strings.HasPrefix(sqlType, "numeric") {
-		if nullable {
-			if gureguTypes {
-				return gureguNullFloat, nil
-			}
-			return sqlNullFloat, nil
-		}
-		return golangFloat64, nil
-	}
-
-	return "", fmt.Errorf("unknown sql type: %s", sqlType)
 }
 
 func BuildDefaultTableDDL(tableName string, cols []*sql.ColumnType) string {
@@ -486,55 +322,16 @@ func createDBAnnotation(c ColumnMeta) string {
 }
 
 func createProtobufAnnotation(c ColumnMeta) (string, error) {
-	protoBufType, err := sqlTypeToProtobufType(c)
+	protoBufType, err := SqlTypeToProtobufType(c.DatabaseTypeName())
 	if err != nil {
 		return "", err
 	}
-	return fmt.Sprintf("protobuf:\"%s,%d,opt,name=%s\"", protoBufType, c.Index(), c.Name()), nil
-}
 
-func sqlTypeToProtobufTypeDefault(c ColumnMeta) (string, error) {
-	sqlType := strings.Trim(c.DatabaseTypeName(), " \t")
-	sqlType = strings.ToLower(sqlType)
-
-	switch sqlType {
-	case "bit":
-		return "bool", nil
-	case "tinyint":
-		return "uint8", nil
-	case "smallint":
-		return "int16", nil
-	case "int":
-		return "int32", nil
-	case "bigint":
-		return "int64", nil
-	case "mediumint", "int4", "int2", "integer":
-		return "int32", nil
-	case "int8":
-		return "int8", nil
-	case "char", "enum", "varchar", "longtext", "mediumtext", "text", "tinytext", "varchar2", "json", "jsonb", "nvarchar", "nchar":
-		return "string", nil
-	case "date", "datetime", "time", "timestamp", "smalldatetime":
-		return "uint64", nil
-	case "decimal", "double", "money", "real":
-		return "float", nil
-	case "float":
-		return "float", nil
-	case "binary", "blob", "longblob", "mediumblob", "varbinary":
-		return "bytes", nil
-	case "bool":
-		return "bool", nil
+	if protoBufType != "" {
+		return fmt.Sprintf("protobuf:\"%s,%d,opt,name=%s\"", protoBufType, c.Index(), c.Name()), nil
+	} else {
+		return "", fmt.Errorf("unknown sql name: %s", c.Name())
 	}
-
-	if strings.HasPrefix(sqlType, "nvarchar") || strings.HasPrefix(sqlType, "varchar") {
-		return "string", nil
-	}
-
-	if strings.HasPrefix(sqlType, "numeric") {
-		return "float", nil
-	}
-
-	return "", fmt.Errorf("unknown sql type: %s", sqlType)
 }
 
 func ProcessMappings(mappingJsonstring []byte) error {
@@ -564,42 +361,50 @@ func LoadMappings(mappingFileName string) error {
 	return ProcessMappings(byteValue)
 }
 
-func sqlTypeToGoType(sqlType string, nullable bool, gureguTypes bool) (string, error) {
-	sqlType = strings.Trim(sqlType, " \t")
-	sqlType = strings.ToLower(sqlType)
+func SqlTypeToGoType(sqlType string, nullable bool, gureguTypes bool) (string, error) {
+	mapping, err := SqlTypeToMapping(sqlType)
+	if err != nil {
+		return "", err
+	}
 
-	if UseSqlTypeMappings {
-		mapping, ok := sqlMappings[sqlType]
-		if !ok {
-			return "", fmt.Errorf("unknown sql type: %s", sqlType)
-		}
-
-		if nullable && gureguTypes {
-			return mapping.GureguType, nil
-		} else if nullable {
-			return mapping.GoNullableType, nil
-		} else {
-			return mapping.GoType, nil
-		}
-
+	if nullable && gureguTypes {
+		return mapping.GureguType, nil
+	} else if nullable {
+		return mapping.GoNullableType, nil
 	} else {
-		return sqlTypeToGoTypeDefault(sqlType, nullable, gureguTypes)
+		return mapping.GoType, nil
 	}
 }
 
-func sqlTypeToProtobufType(c ColumnMeta) (string, error) {
-	sqlType := strings.ToLower(c.DatabaseTypeName())
+func SqlTypeToProtobufType(sqlType string) (string, error) {
+	mapping, err := SqlTypeToMapping(sqlType)
+	if err != nil {
+		return "", err
+	}
+	return mapping.ProtobufType, nil
+}
+
+func SqlTypeToMapping(sqlType string) (*SqlMapping, error) {
+	sqlType = cleanupSqlType(sqlType)
+
+	mapping, ok := sqlMappings[sqlType]
+	if !ok {
+		return nil, fmt.Errorf("unknown sql type: %s", sqlType)
+	}
+	return mapping, nil
+}
+
+func cleanupSqlType(sqlType string) string {
+	sqlType = strings.ToLower(sqlType)
 	sqlType = strings.Trim(sqlType, " \t")
 	sqlType = strings.ToLower(sqlType)
-
-	if UseSqlTypeMappings {
-		mapping, ok := sqlMappings[sqlType]
-		if !ok {
-			return "", fmt.Errorf("unknown sql type: %s", sqlType)
-		}
-		return mapping.ProtobufType, nil
-
-	} else {
-		return sqlTypeToProtobufTypeDefault(c)
+	idx := strings.Index(sqlType, "(")
+	if idx > -1 {
+		sqlType = sqlType[0:idx]
 	}
+	return sqlType
+}
+
+func GetMappings() map[string]*SqlMapping {
+	return sqlMappings
 }
