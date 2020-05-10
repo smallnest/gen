@@ -243,3 +243,9 @@ The following info is available within use of the exec template.
 
 
  
+## Contributors
+
+
+- [alexj212](https://github.com/alexj212) -  a big thanks to alexj212 for his hrad works
+
+See more contributors: [contributors](https://github.com/smallnest/gen/graphs/contributors)
