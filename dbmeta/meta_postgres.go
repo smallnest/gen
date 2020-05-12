@@ -126,9 +126,6 @@ ORDER BY table_name, ordinal_position;
 		// fmt.Printf("@@ Name: %v columnLen: %v\n", colMeta.Name(), colMeta.columnLen)
 
 	}
-	if err != nil {
-		return nil, err
-	}
 	m.ddl = BuildDefaultTableDDL(tableName, m.columns)
 	return m, nil
 }

@@ -21,13 +21,13 @@ func NewSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 		tableName:   tableName,
 	}
 
-	sql := fmt.Sprintf("SELECT sql FROM sqlite_master WHERE type='table' and name = '%s';", m.tableName)
-	_, err := db.Query(sql)
+	ddlSQL := fmt.Sprintf("SELECT sql FROM sqlite_master WHERE type='table' and name = '%s';", m.tableName)
+	_, err := db.Query(ddlSQL)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load ddl from sqlite_master: %v", err)
 	}
 
-	row := db.QueryRow(sql, 0)
+	row := db.QueryRow(ddlSQL, 0)
 	err = row.Scan(&m.ddl)
 	if err != nil {
 		return nil, err
@@ -66,8 +66,8 @@ func NewSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 
 	colsInfos := make(map[string]*sqliteColumnInfo)
 
-	sql = fmt.Sprintf("PRAGMA table_info('%s');", m.tableName)
-	res, err := db.Query(sql)
+	pragmaSQL := fmt.Sprintf("PRAGMA table_info('%s');", m.tableName)
+	res, err := db.Query(pragmaSQL)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load PRAGMA table_info %s: %v", m.tableName, err)
 	}
