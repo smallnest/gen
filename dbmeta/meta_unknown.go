@@ -20,7 +20,7 @@ func NewUnknownMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTable
 	if err != nil {
 		return nil, err
 	}
-	m.ddl = BuildDefaultTableDDL(tableName, cols)
+
 	m.columns = make([]ColumnMeta, len(cols))
 
 	for i, v := range cols {
@@ -59,5 +59,6 @@ func NewUnknownMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTable
 		return nil, err
 	}
 
+	m.ddl = BuildDefaultTableDDL(tableName, m.columns)
 	return m, nil
 }

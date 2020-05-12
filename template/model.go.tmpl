@@ -15,10 +15,15 @@ var (
 
 /*
 DB Table Details
+-------------------------------------
 {{ $ddl := .TableInfo.DBMeta.DDL }}
 {{if $ddl }}
 {{$ddl}}
-{{end}}
+{{- end}}
+
+JSON Sample
+-------------------------------------
+{{ToJson .TableInfo.Instance 4}}
 */
 
 

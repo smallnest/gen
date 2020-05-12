@@ -19,7 +19,7 @@ func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 	if err != nil {
 		return nil, err
 	}
-	m.ddl = BuildDefaultTableDDL(tableName, cols)
+
 	m.columns = make([]ColumnMeta, len(cols))
 
 	colInfo := make(map[string]*msSqlColumnInfo)
@@ -49,7 +49,16 @@ func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 
 	}
 
-	primaryKeySql := fmt.Sprintf("SELECT Col.Column_Name from \n    INFORMATION_SCHEMA.TABLE_CONSTRAINTS Tab, \n    INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE Col \nWHERE \n    Col.Constraint_Name = Tab.Constraint_Name\n    AND Col.Table_Name = Tab.Table_Name\n    AND Constraint_Type = 'PRIMARY KEY'\n    AND Col.Table_Name = '%s'", tableName)
+	primaryKeySql := fmt.Sprintf(`
+SELECT Col.Column_Name from 
+    INFORMATION_SCHEMA.TABLE_CONSTRAINTS Tab, 
+    INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE Col 
+WHERE 
+    Col.Constraint_Name = Tab.Constraint_Name
+    AND Col.Table_Name = Tab.Table_Name
+    AND Constraint_Type = 'PRIMARY KEY'
+    AND Col.Table_Name = '%s'
+`, tableName)
 	res, err = db.Query(primaryKeySql)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load ddl from ms sql: %v", err)
@@ -70,6 +79,11 @@ func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 		}
 	}
 
+	infoSchema, err := LoadTableInfoFromMSSqlInformationSchema(db, tableName)
+	if err != nil {
+		fmt.Printf("error calling LoadTableInfoFromMSSqlInformationSchema table: %s error: %v\n", tableName, err)
+	}
+
 	for i, v := range cols {
 
 		nullable, ok := v.Nullable()
@@ -78,11 +92,11 @@ func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 		}
 		isAutoIncrement := false
 		isPrimaryKey := i == 0
-		var columnLen int64
+		var columnLen int64 = -1
 
 		colInfo, ok := colInfo[v.Name()]
 		if ok {
-			//fmt.Printf("name: %s primary_key: %t is_identity: %t is_nullable: %t\n", colInfo.name, colInfo.primary_key, colInfo.is_identity, colInfo.is_nullable)
+			// fmt.Printf("name: %s DatabaseTypeName: %s primary_key: %t is_identity: %t is_nullable: %t max_length: %d\n", colInfo.name, v.DatabaseTypeName(), colInfo.primary_key, colInfo.is_identity, colInfo.is_nullable, colInfo.max_length)
 			isPrimaryKey = colInfo.primary_key
 			nullable = colInfo.is_nullable
 			isAutoIncrement = colInfo.is_identity
@@ -90,9 +104,23 @@ func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 			if strings.Contains(dbType, "char") || strings.Contains(dbType, "text") {
 				columnLen = colInfo.max_length
 			}
+		} else {
+			fmt.Printf("name: %s DatabaseTypeName: %s NOT FOUND in colInfo\n", v.Name(), v.DatabaseTypeName())
 		}
 
+		defaultVal := ""
+		columnType := v.DatabaseTypeName()
 		colDDL := v.DatabaseTypeName()
+
+		if infoSchema != nil {
+			infoSchemaColInfo, ok := infoSchema[v.Name()]
+			if ok {
+				if infoSchemaColInfo.column_default != nil {
+					defaultVal = fmt.Sprintf("%v", infoSchemaColInfo.column_default)
+					defaultVal = cleanupDefault(defaultVal)
+				}
+			}
+		}
 
 		colMeta := &columnMeta{
 			index:           i,
@@ -101,6 +129,8 @@ func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 			isPrimaryKey:    isPrimaryKey,
 			isAutoIncrement: isAutoIncrement,
 			colDDL:          colDDL,
+			defaultVal:      defaultVal,
+			columnType:      columnType,
 			columnLen:       columnLen,
 		}
 
@@ -109,6 +139,7 @@ func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 	if err != nil {
 		return nil, err
 	}
+	m.ddl = BuildDefaultTableDDL(tableName, m.columns)
 
 	return m, nil
 }
@@ -120,3 +151,16 @@ type msSqlColumnInfo struct {
 	primary_key bool
 	max_length  int64
 }
+
+/*
+https://www.mssqltips.com/sqlservertip/1512/finding-and-listing-all-columns-in-a-sql-server-database-with-default-values/
+
+
+SELECT SO.NAME AS "Table Name", SC.NAME AS "Column Name", SM.TEXT AS "Default Value"
+FROM dbo.sysobjects SO INNER JOIN dbo.syscolumns SC ON SO.id = SC.id
+LEFT JOIN dbo.syscomments SM ON SC.cdefault = SM.id
+WHERE SO.xtype = 'U'
+ORDER BY SO.[name], SC.colid
+
+
+*/

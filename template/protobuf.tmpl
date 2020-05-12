@@ -1,0 +1,21 @@
+syntax = "proto3";
+
+package {{.DatabaseName}};
+
+message packet {
+    enum packet_type_t { {{ range $tableName, $tableInfo := .tableInfos }}
+        Pkt{{ $tableInfo.StructName }} = {{$tableInfo.Index}};{{- end}}
+    }
+
+    packet_type_t id = 2;
+    bytes data = 3;
+}
+
+
+{{ range $tableName, $tableInfo := .tableInfos }}
+message {{ $tableInfo.StructName }} { {{ range $i, $field := $tableInfo.CodeFields }}
+    {{  $field.ProtobufType}} {{  $field.ProtobufFieldName}} = {{  $field.ProtobufPos}};{{- end}}
+}
+
+{{ end}}
+

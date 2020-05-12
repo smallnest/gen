@@ -241,5 +241,11 @@ The following info is available within use of the exec template.
 ## Notes
 - MySql, Mssql, Postgres and Sqlite have a database metadata fetcher that will query the db, and update the auto increment, primary key and nullable info for the gorm annotation.
 
+### DB Meta Data Loading    
+| DB   | Type  | Nullable  | Primary Key  | Auto Increment  | Column Len | default Value| create ddl
+|---|---|---|---|---|---|---|---|
+|sqlite   |y   | y  | y  | y  | y | y| y
+|postgres   |y   | y  | y  | y  | y | y| n
+|mysql   |y   | y  | y  | y  | y | y| y
+|ms sql   |y   | y  | y  | y  | y | y| n
 
- 

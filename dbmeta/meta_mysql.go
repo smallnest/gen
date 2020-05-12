@@ -80,6 +80,13 @@ func NewMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 		}
 	}
 
+	infoSchema, err := LoadTableInfoFromMSSqlInformationSchema(db, tableName)
+	if err != nil {
+		fmt.Printf("error calling LoadTableInfoFromMSSqlInformationSchema table: %s error: %v\n", tableName, err)
+	}
+
+
+
 	m.columns = make([]ColumnMeta, len(cols))
 
 	for i, v := range cols {
@@ -95,6 +102,20 @@ func NewMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 		isPrimaryKey := v.Name() == primaryKey
 		// isPrimaryKey := i == 0
 		// colDDL := v.DatabaseTypeName()
+		defaultVal := ""
+		columnType, columnLen := ParseSqlType(v.DatabaseTypeName())
+
+		if infoSchema != nil {
+			infoSchemaColInfo, ok := infoSchema[v.Name()]
+			if ok {
+				if infoSchemaColInfo.column_default != nil {
+					defaultVal = BytesToString(  infoSchemaColInfo.column_default.([]uint8))
+					defaultVal = cleanupDefault(defaultVal)
+				}
+			}
+		}
+
+
 
 		colMeta := &columnMeta{
 			index:           i,
@@ -103,12 +124,16 @@ func NewMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 			isPrimaryKey:    isPrimaryKey,
 			isAutoIncrement: isAutoIncrement,
 			colDDL:          colDDL,
+			defaultVal:      defaultVal,
+			columnType:      columnType,
+			columnLen:       columnLen,
 		}
+
 		dbType := strings.ToLower(colMeta.DatabaseTypeName())
 		// fmt.Printf("dbType: %s\n", dbType)
 
 		if strings.Contains(dbType, "char") || strings.Contains(dbType, "text") {
-			columnLen, err := getFieldLen(db, tableName, v.Name())
+			columnLen, err := GetFieldLenFromInformationSchema(db, "DATABASE()", tableName, v.Name())
 			if err == nil {
 				colMeta.columnLen = columnLen
 				//fmt.Printf("getFieldLen %s %s : columnLen %v\n",tableName,v.Name(), columnLen)
@@ -133,29 +158,19 @@ func indexAt(s, sep string, n int) int {
 	return idx
 }
 
-func getFieldLen(db *sql.DB, tableName, columnName string) (int64, error) {
-	sql := fmt.Sprintf(`
-select CHARACTER_MAXIMUM_LENGTH 
+/*
+https://dataedo.com/kb/query/mysql/list-table-default-constraints
+
+select table_schema as database_name,
+       table_name,
+       column_name,
+       column_default
 from information_schema.columns
-where table_schema = DATABASE() AND   -- name of your database
-      table_name = '%s' AND        -- name of your table
-      COLUMN_NAME = '%s'     -- name of the column
-`, tableName, columnName)
-
-	res, err := db.Query(sql)
-	if err != nil {
-		return -1, fmt.Errorf("unable to load col len from mysql: %v", err)
-	}
-
-	var colLen int64
-
-	if res.Next() {
-		err = res.Scan(&colLen)
-		if err != nil {
-			return -1, fmt.Errorf("unable to load ddl from mysql Scan: %v", err)
-		}
-	}
-
-	return colLen, nil
-
-}
+where  column_default is not null
+      and table_schema not in ('information_schema', 'sys',
+                               'performance_schema','mysql')
+--    and table_schema = 'your database name'
+order by table_schema,
+         table_name,
+         ordinal_position;
+*/

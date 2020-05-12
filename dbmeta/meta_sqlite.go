@@ -3,8 +3,6 @@ package dbmeta
 import (
 	"database/sql"
 	"fmt"
-	"regexp"
-	"strconv"
 	"strings"
 
 	"github.com/jimsmart/schema"
@@ -21,6 +19,7 @@ func NewSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 		sqlDatabase: sqlDatabase,
 		tableName:   tableName,
 	}
+
 	sql := fmt.Sprintf("SELECT sql FROM sqlite_master WHERE type='table' and name = '%s';", m.tableName)
 	_, err := db.Query(sql)
 	if err != nil {
@@ -57,35 +56,86 @@ func NewSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 		)
 	*/
 
+	/*
+	   cid    name        type            notnull		dflt_value		pk
+	     0	AlbumId		INTEGER			1			null			1
+	     1	Title		NVARCHAR(160)	1							0
+	     2	ArtistId	INTEGER			1							0
+	*/
+
+	colsInfos := make(map[string]*sqliteColumnInfo)
+
+	sql = fmt.Sprintf("PRAGMA table_info('%s');", m.tableName)
+	res, err := db.Query(sql)
+	if err != nil {
+		return nil, fmt.Errorf("unable to load PRAGMA table_info %s: %v", m.tableName, err)
+	}
+
+	for res.Next() {
+		ci := &sqliteColumnInfo{}
+		err = res.Scan(&ci.cid, &ci.name, &ci.data_type, &ci.notnull, &ci.dflt_value, &ci.primary_key)
+		if err != nil {
+			return nil, fmt.Errorf("unable to load identity info from postgres Scan: %v", err)
+		}
+		colsInfos[ci.name] = ci
+
+		//fmt.Printf("cid: |%2d| name: |%-20s| data_type: |%-20s| notnull: |%d| dflt_value: |%-10T| dflt_value: |%-10v| primary_key: |%d|\n",
+		//	ci.cid, ci.name, ci.data_type, ci.notnull, ci.dflt_value, ci.dflt_value, ci.primary_key)
+	}
+
+	ddl := m.ddl
+
+	idx1 := strings.Index(ddl, "(")
+	idx2 := strings.LastIndex(ddl, ")")
+
+	if idx1 > -1 && idx2 > -1 {
+		ddl = ddl[idx1+1 : idx2]
+	}
+
+	ddl = strings.Replace(ddl, "\r", "", -1)
+	ddl = strings.Replace(ddl, "\n", " ", -1)
+	ddl = strings.TrimPrefix(ddl, "\n")
+	ddl = strings.TrimSuffix(ddl, "\n")
+
 	colsDDL := make(map[string]string)
-	lines := strings.Split(m.ddl, "\n")
-	for _, line := range lines {
-		if strings.HasPrefix(line, "CREATE TABLE") || strings.HasPrefix(line, "(") || strings.HasPrefix(line, ")") {
+
+	lines := strings.Split(ddl, ",")
+	for i, line := range lines {
+		line = strings.Replace(line, "\n", " ", -1)
+
+		line := strings.TrimSpace(line)
+
+		line = TrimSpaceNewlineInString(line)
+		line = strings.TrimPrefix(line, "\n")
+		line = strings.TrimSuffix(line, "\n")
+		line = strings.TrimSuffix(line, ",")
+		line = strings.Trim(line, " ")
+		line = strings.Trim(line, ",")
+
+		if len(line) == 0 {
 			continue
 		}
-		line = strings.Trim(line, " \t")
 
-		if line[0] == '[' {
-			idx := strings.Index(line, "]")
-			if idx > 0 {
-				name := line[1:idx]
-				colDDL := line[idx+1:]
-
-				name = strings.Trim(name, " \t")
-				colDDL = strings.Trim(colDDL, " \t")
-				colDDL = colDDL[0 : len(colDDL)-1]
-
-				sz := len(colDDL)
-
-				if sz > 0 && colDDL[sz-1] == ',' {
-					colDDL = colDDL[0 : sz-1]
-				}
-
-				//fmt.Printf("name: [%s]\n", name)
-				//fmt.Printf("colDDL: [%s]\n", colDDL)
-				colsDDL[name] = colDDL
-			}
+		if strings.HasPrefix(line, "FOREIGN KEY") || strings.HasPrefix(line, "CONSTRAINT") {
+			continue
 		}
+
+
+		fmt.Printf("[%2d] %s\n", i, line)
+
+		parts := strings.Split(line, " ")
+		name := parts[0]
+		colDDL := strings.Join(parts[1:], " ")
+
+		name = strings.Trim(name, " \t[]\"")
+		colDDL = strings.Trim(colDDL, " \t,")
+
+		if len(colDDL) == 0 {
+			continue
+		}
+
+		colsDDL[name] = colDDL
+
 	}
 
 	cols, err := schema.Table(db, m.tableName)
@@ -97,10 +147,29 @@ func NewSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 
 	for i, v := range cols {
 		colDDL := colsDDL[v.Name()]
-		notNull := strings.Index(colDDL, "NOT NULL") > -1
-		isPrimaryKey := strings.Index(colDDL, "PRIMARY KEY") > -1
-		isAutoIncrement := strings.Index(colDDL, "AUTOINCREMENT") > -1
 
+		colDDLLower := strings.ToLower(colDDL)
+		notNull := strings.Index(colDDLLower, "not null") > -1
+		isPrimaryKey := strings.Index(colDDLLower, "primary key") > -1
+		isAutoIncrement := strings.Index(colDDLLower, "autoincrement") > -1
+		defaultVal := ""
+		columnLen := int64(-1)
+		columnType := v.DatabaseTypeName()
+
+		details, ok := colsInfos[v.Name()]
+		if ok {
+			isPrimaryKey = details.primary_key == 1
+			if details.dflt_value != nil {
+				defaultVal = details.dflt_value.(string)
+			}
+
+			notNull = details.notnull == 1
+			columnType, columnLen = ParseSqlType(details.data_type)
+		}
+
+		if isPrimaryKey {
+			notNull = true
+		}
 		// fmt.Printf("%s: notNull: %v isPrimaryKey: %v isAutoIncrement: %v\n",colDDL, notNull, isPrimaryKey, isAutoIncrement)
 
 		colMeta := &columnMeta{
@@ -110,22 +179,22 @@ func NewSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 			isPrimaryKey:    isPrimaryKey,
 			isAutoIncrement: isAutoIncrement,
 			colDDL:          colDDL,
-		}
-
-		dbType := strings.ToLower(colMeta.DatabaseTypeName())
-		if strings.Contains(dbType, "varchar") {
-			re := regexp.MustCompile(`[-]?\d[\d,]*[\.]?[\d{2}]*`)
-			submatchall := re.FindAllString(dbType, -1)
-			if len(submatchall) > 0 {
-				i, err := strconv.Atoi(submatchall[0])
-				if err == nil {
-					colMeta.columnLen = int64(i)
-				}
-			}
+			defaultVal:      defaultVal,
+			columnType:      columnType,
+			columnLen:       columnLen,
 		}
 
 		m.columns[i] = colMeta
 	}
 
 	return m, nil
+}
+
+type sqliteColumnInfo struct {
+	cid         int
+	name        string
+	data_type   string
+	notnull     int
+	dflt_value  interface{}
+	primary_key int
 }

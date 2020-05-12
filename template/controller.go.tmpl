@@ -39,6 +39,7 @@ func configGin{{pluralize .StructName}}Router(router gin.IRoutes) {
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
 // @Failure 404 {object} {{.apiPackageName}}.HTTPError
 // @Router /{{pluralize .StructName | toLower}} [get]
+// http http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize .StructName | toLower}}?page=0&pagesize=20
 func GetAll{{pluralize .StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     page, err := readInt(r, "page", 0)
 	if err != nil || page < 0 {
@@ -77,8 +78,14 @@ func GetAll{{pluralize .StructName}}(w http.ResponseWriter, r *http.Request, ps 
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
 // @Failure 404 {object} {{.apiPackageName}}.HTTPError "NotFound, db record for id not found - returns NotFound HTTP 404 not found error"
 // @Router /{{pluralize .StructName | toLower}}/{id} [get]
+// http http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize .StructName | toLower}}/1
 func Get{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	id := ps.ByName("id")
+
+	id, err := {{.TableInfo.PrimaryKeyFieldParser}}(ps, "id")
+	if err != nil {
+		returnError(w, r, err)
+		return
+	}
 
 	record, err := {{.daoPackageName}}.Get{{.StructName}}(r.Context(), id)
 	if err != nil {
@@ -102,6 +109,7 @@ func Get{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
 // @Failure 404 {object} {{.apiPackageName}}.HTTPError
 // @Router /{{pluralize .StructName | toLower}} [post]
+// echo '{{ToJson .TableInfo.Instance 0}}' | http POST http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize .StructName | toLower}}
 func Add{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	{{.StructName | toLower}} := &{{.modelPackageName}}.{{.StructName}}{}
 
@@ -145,8 +153,14 @@ func Add{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
 // @Failure 404 {object} {{.apiPackageName}}.HTTPError
 // @Router /{{pluralize .StructName | toLower}}/{id} [patch]
+// echo '{{ToJson .TableInfo.Instance 0}}' | http PATCH http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize .StructName | toLower}}/1
 func Update{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	id := ps.ByName("id")
+	id, err := {{.TableInfo.PrimaryKeyFieldParser}}(ps, "id")
+	if err != nil {
+		returnError(w, r, err)
+		return
+	}
+
 
 	{{.StructName | toLower}} := &{{.modelPackageName}}.{{.StructName}}{}
 	if err := readJSON(r, {{.StructName | toLower}}); err != nil {
@@ -165,7 +179,7 @@ func Update{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter
       return
    }
 
-	{{.StructName | toLower}}, _, err := {{.daoPackageName}}.Update{{.StructName}}(r.Context(), id, {{.StructName | toLower}})
+	{{.StructName | toLower}}, _, err = {{.daoPackageName}}.Update{{.StructName}}(r.Context(), id, {{.StructName | toLower}})
 	if err != nil {
 	    returnError(w, r, err)
    	    return
@@ -187,8 +201,13 @@ func Update{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
 // @Failure 500 {object} {{.apiPackageName}}.HTTPError
 // @Router /{{pluralize .StructName | toLower}}/{id} [delete]
+// http DELETE http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize .StructName | toLower}}/1
 func Delete{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	id := ps.ByName("id")
+	id, err := {{.TableInfo.PrimaryKeyFieldParser}}(ps, "id")
+	if err != nil {
+		returnError(w, r, err)
+		return
+	}
 
 	rowsAffected, err := {{.daoPackageName}}.Delete{{.StructName}}(r.Context(), id)
 	if err != nil {
@@ -199,3 +218,10 @@ func Delete{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter
 	writeRowsAffected(w, rowsAffected )
 }
 
+
+
+/*
+{{ range $key, $value := . }}
+   {{ printf "%#-20v" $key }}   {{ printf "[%T] %+v" $value $value }}{{ end }}
+
+*/

@@ -8,8 +8,11 @@ import (
 	"io/ioutil"
 	"os"
 	"strings"
+	"time"
 
+	"github.com/bxcodec/faker/v3"
 	"github.com/iancoleman/strcase"
+	"github.com/ompluscator/dynamic-struct"
 )
 
 type metaDataLoader func(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error)
@@ -32,6 +35,7 @@ type SqlMappings struct {
 type SqlMapping struct {
 	SqlType        string `json:"sql_type"`
 	GoType         string `json:"go_type"`
+	JsonType       string `json:"json_type"`
 	ProtobufType   string `json:"protobuf_type"`
 	GureguType     string `json:"guregu_type"`
 	GoNullableType string `json:"go_nullable_type"`
@@ -46,7 +50,9 @@ type ColumnMeta interface {
 	Index() int
 	IsPrimaryKey() bool
 	IsAutoIncrement() bool
+	ColumnType() string
 	ColumnLength() int64
+	DefaultValue() string
 }
 
 func (ci *columnMeta) IsPrimaryKey() bool {
@@ -64,13 +70,23 @@ type columnMeta struct {
 	isPrimaryKey    bool
 	isAutoIncrement bool
 	colDDL          string
+	columnType      string
 	columnLen       int64
+	defaultVal      string
 }
 
-// Name returns the name or alias of the column.
+func (ci *columnMeta) ColumnType() string {
+	return ci.columnType
+}
+
 func (ci *columnMeta) ColumnLength() int64 {
 	return ci.columnLen
 }
+func (ci *columnMeta) DefaultValue() string {
+	return ci.defaultVal
+}
+
+
 
 func (ci *columnMeta) Name() string {
 	return ci.ct.Name()
@@ -81,7 +97,10 @@ func (ci *columnMeta) Index() int {
 }
 
 func (ci *columnMeta) String() string {
-	return fmt.Sprintf("[%2d] %-45s  %-20s null: %-6t primary: %-6t auto: %-6t", ci.index, ci.ct.Name(), ci.DatabaseTypePretty(), ci.nullable, ci.isPrimaryKey, ci.isAutoIncrement)
+	return fmt.Sprintf("[%2d] %-45s  %-20s null: %-6t primary: %-6t auto: %-6t col: %-15s len: %-7d default: [%s]",
+		ci.index, ci.ct.Name(), ci.DatabaseTypePretty(),
+		ci.nullable, ci.isPrimaryKey,
+		ci.isAutoIncrement, ci.columnType, ci.columnLen, ci.defaultVal)
 }
 
 // Nullable reports whether the column may be null.
@@ -104,9 +123,9 @@ func (ci *columnMeta) DatabaseTypeName() string {
 
 func (ci *columnMeta) DatabaseTypePretty() string {
 	if ci.columnLen > 0 {
-		return fmt.Sprintf("%s[%d]", ci.ct.DatabaseTypeName(), ci.columnLen)
+		return fmt.Sprintf("%s(%d)", ci.columnType, ci.columnLen)
 	} else {
-		return ci.ct.DatabaseTypeName()
+		return ci.columnType
 	}
 }
 
@@ -142,12 +161,45 @@ func (m *dbTableMeta) DDL() string {
 }
 
 type ModelInfo struct {
-	PackageName     string
-	StructName      string
-	ShortStructName string
-	TableName       string
-	Fields          []string
-	DBMeta          DbTableMeta
+	Index                 int
+	IndexPlus1            int
+	PackageName           string
+	StructName            string
+	ShortStructName       string
+	TableName             string
+	Fields                []string
+	DBMeta                DbTableMeta
+	Instance              interface{}
+	CodeFields            []*FieldInfo
+	PrimaryKeyField       int
+	PrimaryKeyGoType      string
+	PrimaryKeyFieldParser string
+}
+
+type FieldInfo struct {
+	Index             int
+	GoFieldName       string
+	GoFieldType       string
+	GoAnnotations     []string
+	JsonFieldName     string
+	ProtobufFieldName string
+	ProtobufType      string
+	ProtobufPos       int
+	Comment           string
+	Code              string
+	FakeData          interface{}
+	ColumnMeta        ColumnMeta
+}
+
+// GenerateStruct generates a struct for the given table.
+func LoadMeta(sqlType string, db *sql.DB, sqlDatabase, tableName string, ) (DbTableMeta, error) {
+	dbMetaFunc, haveMeta := metaDataFuncs[sqlType]
+	if !haveMeta {
+		dbMetaFunc = NewUnknownMeta
+	}
+
+	dbMeta, err := dbMetaFunc(db, sqlType, sqlDatabase, tableName)
+	return dbMeta, err
 }
 
 // GenerateStruct generates a struct for the given table.
@@ -163,19 +215,17 @@ func GenerateStruct(sqlType string,
 	addProtobufAnnotation bool,
 	gureguTypes bool,
 	jsonNameFormat string,
+	protobufNameFormat string,
 	verbose bool) (*ModelInfo, error) {
 
-	dbMetaFunc, haveMeta := metaDataFuncs[sqlType]
-	if !haveMeta {
-		dbMetaFunc = NewUnknownMeta
-	}
+	jsonNameFormat = strings.ToLower(jsonNameFormat)
 
-	dbMeta, err := dbMetaFunc(db, sqlType, sqlDatabase, tableName)
+	dbMeta, err := LoadMeta(sqlType, db, sqlDatabase, tableName)
 	if err != nil {
 		return nil, err
 	}
 
-	fields := generateFieldsTypes(dbMeta, addJsonAnnotation, addGormAnnotation, addDBAnnotation, addProtobufAnnotation, gureguTypes, jsonNameFormat, verbose)
+	fields := generateFieldsTypes(dbMeta, addJsonAnnotation, addGormAnnotation, addDBAnnotation, addProtobufAnnotation, gureguTypes, jsonNameFormat, protobufNameFormat, verbose)
 
 	if verbose {
 		fmt.Printf("tableName: %s\n", tableName)
@@ -183,13 +233,65 @@ func GenerateStruct(sqlType string,
 			fmt.Printf("    %s\n", c.String())
 		}
 	}
+
+	generator := dynamicstruct.NewStruct()
+	keyField := -1
+	for i, c := range fields {
+		meta := dbMeta.Columns()[i]
+		jsonName := formatFieldName(jsonNameFormat, meta)
+		tag := fmt.Sprintf(`json:"%s"`, jsonName)
+		fakeData := c.FakeData
+		generator = generator.AddField(c.GoFieldName, fakeData, tag)
+		if keyField == -1 && meta.IsPrimaryKey() {
+			keyField = i
+		}
+	}
+
+	instance := generator.Build().New()
+
+	err = faker.FakeData(&instance)
+	if err != nil {
+		fmt.Println(err)
+	}
+	// fmt.Printf("%+v", instance)
+
+	var code []string
+	for _, f := range fields {
+		code = append(code, f.Code)
+	}
+
+	primaryKeyFieldType := "interface{}"
+	if keyField != -1 {
+		primaryKeyFieldType = fields[keyField].GoFieldType
+	}
+	primaryKeyFieldParser := "parseString"
+	switch primaryKeyFieldType {
+	case "interface{}":
+		primaryKeyFieldParser = "parseInterface"
+	case "string":
+		primaryKeyFieldParser = "parseString"
+	case "int":
+		primaryKeyFieldParser = "parseInt"
+
+	case "int32":
+		primaryKeyFieldParser = "parseInt32"
+	case "int64":
+		primaryKeyFieldParser = "parseInt64"
+
+	}
+
 	var modelInfo = &ModelInfo{
-		PackageName:     pkgName,
-		StructName:      structName,
-		TableName:       tableName,
-		ShortStructName: strings.ToLower(string(structName[0])),
-		Fields:          fields,
-		DBMeta:          dbMeta,
+		PackageName:           pkgName,
+		StructName:            structName,
+		TableName:             tableName,
+		ShortStructName:       strings.ToLower(string(structName[0])),
+		Fields:                code,
+		CodeFields:            fields,
+		DBMeta:                dbMeta,
+		Instance:              instance,
+		PrimaryKeyField:       keyField,
+		PrimaryKeyGoType:      primaryKeyFieldType,
+		PrimaryKeyFieldParser: primaryKeyFieldParser,
 	}
 
 	return modelInfo, nil
@@ -203,13 +305,12 @@ func generateFieldsTypes(dbMeta DbTableMeta,
 	addProtobufAnnotation bool,
 	gureguTypes bool,
 	jsonNameFormat string,
-	verbose bool) []string {
+	protobufNameFormat string,
+	verbose bool) []*FieldInfo {
 
-	jsonNameFormat = strings.ToLower(jsonNameFormat)
-
-	var fields []string
+	var fields []*FieldInfo
 	var field = ""
-	for _, c := range dbMeta.Columns() {
+	for i, c := range dbMeta.Columns() {
 		name := c.Name()
 		if verbose {
 			//fmt.Printf("   [%s]   [%d] field: %s type: %s\n", dbMeta.TableName(), i, key, c.DatabaseTypeName())
@@ -236,7 +337,7 @@ func generateFieldsTypes(dbMeta DbTableMeta,
 		}
 
 		if addProtobufAnnotation == true {
-			annnotation, err := createProtobufAnnotation(c)
+			annnotation, err := createProtobufAnnotation(protobufNameFormat, c)
 			if err == nil {
 				annotations = append(annotations, annnotation)
 			}
@@ -252,15 +353,35 @@ func generateFieldsTypes(dbMeta DbTableMeta,
 		}
 
 		field = fmt.Sprintf("%s //%s", field, c.String())
-		fields = append(fields, field)
+
+		goType, _ := SqlTypeToGoType(strings.ToLower(c.DatabaseTypeName()), false, false)
+		protobufType, _ := SqlTypeToProtobufType(c.DatabaseTypeName())
+		fakeData := createFakeData(goType, fieldName)
+
+		fi := &FieldInfo{
+			Index:             i,
+			Code:              field,
+			GoFieldName:       fieldName,
+			GoFieldType:       valueType,
+			GoAnnotations:     annotations,
+			FakeData:          fakeData,
+			Comment:           c.String(),
+			JsonFieldName:     formatFieldName(jsonNameFormat, c),
+			ProtobufFieldName: formatFieldName(protobufNameFormat, c),
+			ProtobufType:      protobufType,
+			ProtobufPos:       i + 1,
+			ColumnMeta:        c,
+		}
+
+		fields = append(fields, fi)
 	}
 	return fields
 }
 
-func createJsonAnnotation(jsonNameFormat string, c ColumnMeta) string {
+func formatFieldName(nameFormat string, c ColumnMeta) string {
 
 	var jsonName string
-	switch jsonNameFormat {
+	switch nameFormat {
 	case "snake":
 		jsonName = strcase.ToSnake(c.Name())
 	case "camel":
@@ -272,7 +393,31 @@ func createJsonAnnotation(jsonNameFormat string, c ColumnMeta) string {
 	default:
 		jsonName = c.Name()
 	}
-	return fmt.Sprintf("json:\"%s\"", jsonName)
+	return jsonName
+}
+
+func createJsonAnnotation(nameFormat string, c ColumnMeta) string {
+
+	name := formatFieldName(nameFormat, c)
+	return fmt.Sprintf("json:\"%s\"", name)
+}
+
+func createDBAnnotation(c ColumnMeta) string {
+	return fmt.Sprintf("db:\"%s\"", c.Name())
+}
+
+func createProtobufAnnotation(nameFormat string, c ColumnMeta) (string, error) {
+	protoBufType, err := SqlTypeToProtobufType(c.DatabaseTypeName())
+	if err != nil {
+		return "", err
+	}
+
+	if protoBufType != "" {
+		name := formatFieldName(nameFormat, c)
+		return fmt.Sprintf("protobuf:\"%s,%d,opt,name=%s\"", protoBufType, c.Index(), name), nil
+	} else {
+		return "", fmt.Errorf("unknown sql name: %s", c.Name())
+	}
 }
 
 func createGormAnnotation(c ColumnMeta) string {
@@ -298,6 +443,20 @@ func createGormAnnotation(c ColumnMeta) string {
 			buf.WriteString(fmt.Sprintf("size:%d;", c.ColumnLength()))
 		}
 
+		if c.DefaultValue() != "" {
+			value := c.DefaultValue()
+			value = strings.Replace(value, "\"", "'", -1)
+
+			if value == "NULL" ||value == "null" {
+				value = ""
+			}
+
+			if value != "" && strings.Index(value, "()") ==  -1 {
+				buf.WriteString(fmt.Sprintf("default:%s;", value ))
+			}
+		}
+
+
 		if c.IsPrimaryKey() {
 			buf.WriteString("primary_key")
 		}
@@ -307,31 +466,14 @@ func createGormAnnotation(c ColumnMeta) string {
 	return buf.String()
 }
 
-func BuildDefaultTableDDL(tableName string, cols []*sql.ColumnType) string {
+func BuildDefaultTableDDL(tableName string, cols []ColumnMeta) string {
 	buf := bytes.Buffer{}
 	buf.WriteString(fmt.Sprintf("Table: %s\n", tableName))
 
-	for i, ct := range cols {
-		buf.WriteString(fmt.Sprintf("[%d] %-20s %s\n", i, ct.Name(), ct.DatabaseTypeName()))
+	for _, ct := range cols {
+		buf.WriteString(fmt.Sprintf("%s\n", ct.String()))
 	}
 	return buf.String()
-}
-
-func createDBAnnotation(c ColumnMeta) string {
-	return fmt.Sprintf("db:\"%s\"", c.Name())
-}
-
-func createProtobufAnnotation(c ColumnMeta) (string, error) {
-	protoBufType, err := SqlTypeToProtobufType(c.DatabaseTypeName())
-	if err != nil {
-		return "", err
-	}
-
-	if protoBufType != "" {
-		return fmt.Sprintf("protobuf:\"%s,%d,opt,name=%s\"", protoBufType, c.Index(), c.Name()), nil
-	} else {
-		return "", fmt.Errorf("unknown sql name: %s", c.Name())
-	}
 }
 
 func ProcessMappings(mappingJsonstring []byte) error {
@@ -407,4 +549,31 @@ func cleanupSqlType(sqlType string) string {
 
 func GetMappings() map[string]*SqlMapping {
 	return sqlMappings
+}
+
+func createFakeData(valueType string, name string) interface{} {
+
+	switch valueType {
+	case "[]byte":
+		return []byte("hello world")
+	case "bool":
+		return true
+	case "float32":
+		return float32(1.0)
+	case "float64":
+		return float64(1.0)
+	case "int":
+		return int(1)
+	case "int64":
+		return int64(1)
+	case "string":
+		return "hello world"
+	case "time.Time":
+		return time.Now()
+	case "interface{}":
+		return 1
+	default:
+		return 1
+	}
+
 }

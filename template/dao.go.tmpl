@@ -42,7 +42,7 @@ func GetAll{{pluralize .StructName}}(ctx context.Context, page, pagesize int64, 
 
 // Get{{.StructName}} is a function to get a single record to {{.TableName}} table in the {{.DatabaseName}} database
 // error - NotFound, db Find error
-func Get{{.StructName}}(ctx context.Context, id interface{}) (record {{.modelPackageName}}.{{.StructName}}, err error) {
+func Get{{.StructName}}(ctx context.Context, id {{.TableInfo.PrimaryKeyGoType}}) (record {{.modelPackageName}}.{{.StructName}}, err error) {
 	if err = DB.First(&record, id).Error; err != nil {
 	    err = NotFound
 		return record, err
@@ -65,7 +65,7 @@ func Add{{.StructName}}(ctx context.Context, {{.StructName | toLower}} *{{.model
 // Update{{.StructName}} is a function to update a single record from {{.TableName}} table in the {{.DatabaseName}} database
 // error - NotFound, db record for id not found
 // error - UpdateFailedError, db meta data copy failed or db.Save call failed
-func Update{{.StructName}}(ctx context.Context, id interface{}, updated *{{.modelPackageName}}.{{.StructName}}) (result *{{.modelPackageName}}.{{.StructName}}, RowsAffected int64, err error) {
+func Update{{.StructName}}(ctx context.Context, id {{.TableInfo.PrimaryKeyGoType}}, updated *{{.modelPackageName}}.{{.StructName}}) (result *{{.modelPackageName}}.{{.StructName}}, RowsAffected int64, err error) {
 
 	result = &{{.modelPackageName}}.{{.StructName}}{}
    db := DB.First(result, id)
@@ -88,7 +88,7 @@ func Update{{.StructName}}(ctx context.Context, id interface{}, updated *{{.mode
 // Delete{{.StructName}} is a function to delete a single record from {{.TableName}} table in the {{.DatabaseName}} database
 // error - NotFound, db Find error
 // error - DeleteFailedError, db Delete failed error
-func Delete{{.StructName}}(ctx context.Context, id interface{}) (rowsAffected int64, err error) {
+func Delete{{.StructName}}(ctx context.Context, id {{.TableInfo.PrimaryKeyGoType}}) (rowsAffected int64, err error) {
 
     {{.StructName | toLower}} := &{{.modelPackageName}}.{{.StructName}}{}
     db := DB.First({{.StructName | toLower}}, id)
@@ -104,3 +104,13 @@ func Delete{{.StructName}}(ctx context.Context, id interface{}) (rowsAffected in
    return db.RowsAffected, nil
 }
 
+
+/*
+{{ range $key, $value := . }}
+   {{ printf "%#-20v" $key }}   {{ printf "[%T] %#v" $value $value }}{{ end }}
+
+table {{.DatabaseName}}.{{.TableName}} {
+{{ range $i, $value := .DBColumns }}
+{{ printf "    [%-02d]  %-20s %-20s" $i $value.Name $value.DatabaseTypeName }}{{ end }}
+}
+*/

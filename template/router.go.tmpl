@@ -137,3 +137,43 @@ func NewError(ctx *gin.Context, status int, err error) {
 	}
 	ctx.JSON(status, er)
 }
+
+
+
+
+func parseInt(ps httprouter.Params, key string) (int, error) {
+	idStr := ps.ByName(key)
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return -1, err
+	}
+	return int(id), err
+}
+
+func parseInt32(ps httprouter.Params, key string) (int32, error) {
+	idStr := ps.ByName(key)
+	id, err := strconv.ParseInt(idStr, 10, 32)
+	if err != nil {
+		return -1, err
+	}
+	return int32(id), err
+}
+
+func parseInt64(ps httprouter.Params, key string) (int64, error) {
+	idStr := ps.ByName(key)
+	id, err := strconv.ParseInt(idStr, 10, 54)
+	if err != nil {
+		return -1, err
+	}
+	return int64(id), err
+}
+
+func parseInterface(ps httprouter.Params, key string) (interface{}, error) {
+	idStr := ps.ByName(key)
+	return idStr, nil
+}
+
+func parseString(ps httprouter.Params, key string) (string, error) {
+	idStr := ps.ByName(key)
+	return idStr, nil
+}
