@@ -13,7 +13,7 @@ import (
 // params - page     - page requested (defaults to 0)
 // params - pagesize - number of records in a page  (defaults to 20)
 // params - order    - db sort order column
-// error - NotFound, db Find error
+// error - ErrNotFound, db Find error
 func GetAll{{pluralize .StructName}}(ctx context.Context, page, pagesize int64, order string) ({{pluralize .StructName | toLower}} []*{{.modelPackageName}}.{{.StructName}}, totalRows int, err error) {
 
 	{{pluralize .StructName | toLower}} = []*{{.modelPackageName}}.{{.StructName}}{}
@@ -33,7 +33,7 @@ func GetAll{{pluralize .StructName}}(ctx context.Context, page, pagesize int64, 
 	}
 
 	if err = {{pluralize .StructName | toLower}}Orm.Find(&{{pluralize .StructName | toLower}}).Error; err != nil {
-	    err = NotFound
+	    err = ErrNotFound
 		return nil, -1, err
 	}
 
@@ -41,10 +41,10 @@ func GetAll{{pluralize .StructName}}(ctx context.Context, page, pagesize int64, 
 }
 
 // Get{{.StructName}} is a function to get a single record to {{.TableName}} table in the {{.DatabaseName}} database
-// error - NotFound, db Find error
+// error - ErrNotFound, db Find error
 func Get{{.StructName}}(ctx context.Context, id interface{}) (record *{{.modelPackageName}}.{{.StructName}}, err error) {
 	if err = DB.First(record, id).Error; err != nil {
-	    err = NotFound
+	    err = ErrNotFound
 		return nil, err
 	}
 
@@ -52,54 +52,54 @@ func Get{{.StructName}}(ctx context.Context, id interface{}) (record *{{.modelPa
 }
 
 // Add{{.StructName}} is a function to add a single record to {{.TableName}} table in the {{.DatabaseName}} database
-// error - InsertFailedError, db save call failed
+// error - ErrInsertFailed, db save call failed
 func Add{{.StructName}}(ctx context.Context, {{.StructName | toLower}} *{{.modelPackageName}}.{{.StructName}}) (result *{{.modelPackageName}}.{{.StructName}}, RowsAffected int64, err error) {
     db := DB.Save({{.StructName | toLower}})
 	if err = db.Error; err != nil {
-	    return nil, -1, InsertFailedError
+	    return nil, -1, ErrInsertFailed
 	}
 
 	return {{.StructName | toLower}}, db.RowsAffected, nil
 }
 
 // Update{{.StructName}} is a function to update a single record from {{.TableName}} table in the {{.DatabaseName}} database
-// error - NotFound, db record for id not found
-// error - UpdateFailedError, db meta data copy failed or db.Save call failed
+// error - ErrNotFound, db record for id not found
+// error - ErrUpdateFailed, db meta data copy failed or db.Save call failed
 func Update{{.StructName}}(ctx context.Context, id interface{}, updated *{{.modelPackageName}}.{{.StructName}}) (result *{{.modelPackageName}}.{{.StructName}}, RowsAffected int64, err error) {
 
 	result = &{{.modelPackageName}}.{{.StructName}}{}
    db := DB.First(result, id)
    if err = db.Error; err != nil {
-      return nil, -1, NotFound
+      return nil, -1, ErrNotFound
    }
 
    if err = dbmeta.Copy(result, updated); err != nil {
-      return nil, -1, UpdateFailedError
+      return nil, -1, ErrUpdateFailed
       return
    }
 
    db = db.Save(result)
    if err = db.Error; err != nil  {
-      return nil, -1, UpdateFailedError
+      return nil, -1, ErrUpdateFailed
    }
 
    return result, db.RowsAffected, nil
 }
 
 // Delete{{.StructName}} is a function to delete a single record from {{.TableName}} table in the {{.DatabaseName}} database
-// error - NotFound, db Find error
-// error - DeleteFailedError, db Delete failed error
+// error - ErrNotFound, db Find error
+// error - ErrDeleteFailed, db Delete failed error
 func Delete{{.StructName}}(ctx context.Context, id interface{}) (rowsAffected int64, err error) {
 
     {{.StructName | toLower}} := &{{.modelPackageName}}.{{.StructName}}{}
     db := DB.First({{.StructName | toLower}}, id)
     if db.Error != nil {
-        return -1, NotFound
+        return -1, ErrNotFound
     }
 
     db = db.Delete({{.StructName | toLower}})
     if err = db.Error; err != nil {
-        return -1, DeleteFailedError
+        return -1, ErrDeleteFailed
     }
 
    return db.RowsAffected, nil

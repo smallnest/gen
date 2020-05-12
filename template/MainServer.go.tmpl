@@ -24,16 +24,29 @@ import (
 )
 
 var (
+    // BuildDate date string of when build was performed filled in by -X compile flag
 	BuildDate    string
+
+	// LatestCommit date string of when build was performed filled in by -X compile flag
 	LatestCommit string
+
+	// BuildNumber date string of when build was performed filled in by -X compile flag
 	BuildNumber  string
-	BuiltOnIp    string
+
+	// BuiltOnIP date string of when build was performed filled in by -X compile flag
+	BuiltOnIP    string
+
+	// BuiltOnOs date string of when build was performed filled in by -X compile flag
 	BuiltOnOs    string
+
+	// RuntimeVer date string of when build was performed filled in by -X compile flag
 	RuntimeVer   string
+
+	// OsSignal signal used to shutdown
 	OsSignal     chan os.Signal
 )
 
-// gin
+// GinServer launch gin server
 func GinServer() {
 	url := ginSwagger.URL("http://{{.serverHost}}:{{.serverPort}}/swagger/doc.json") // The url pointing to API definition
 
@@ -52,7 +65,7 @@ func GinServer() {
 // @termsOfService {{.SwaggerInfo.TOS}}
 
 // @contact.name {{.SwaggerInfo.ContactName}}
-// @contact.url {{.SwaggerInfo.ContactUrl}}
+// @contact.url {{.SwaggerInfo.ContactURL}}
 // @contact.email {{.SwaggerInfo.ContactEmail}}
 
 // @license.name Apache 2.0
@@ -81,7 +94,7 @@ func main() {
     LoopForever()
 }
 
-// Loop on signal processing
+// LoopForever on signal processing
 func LoopForever() {
 	fmt.Printf("Entering infinite loop\n")
 

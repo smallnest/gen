@@ -26,7 +26,7 @@ func configGin{{pluralize .StructName}}Router(router gin.IRoutes) {
 	router.DELETE("/{{pluralize .StructName | toLower}}/:id", ConverHttprouterToGin(Delete{{.StructName}}))
 }
 
-// GetAll{{.StructName}} is a function to get a slice of record(s) from {{.TableName}} table in the {{.DatabaseName}} database
+// GetAll{{pluralize .StructName}} is a function to get a slice of record(s) from {{.TableName}} table in the {{.DatabaseName}} database
 // @Summary Get list of {{.StructName}}
 // @Tags {{.StructName}}
 // @Description GetAll{{.StructName}} is a handler to get a slice of record(s) from {{.TableName}} table in the {{.DatabaseName}} database
@@ -43,13 +43,13 @@ func configGin{{pluralize .StructName}}Router(router gin.IRoutes) {
 func GetAll{{pluralize .StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     page, err := readInt(r, "page", 0)
 	if err != nil || page < 0 {
-		returnError(w, r, {{.daoPackageName}}.BadParamsError)
+		returnError(w, r, {{.daoPackageName}}.ErrBadParams)
 		return
 	}
 
 	pagesize, err := readInt(r, "pagesize", 20)
 	if err != nil || pagesize <= 0 {
-		returnError(w, r, {{.daoPackageName}}.BadParamsError)
+		returnError(w, r, {{.daoPackageName}}.ErrBadParams)
 		return
 	}
 
@@ -76,7 +76,7 @@ func GetAll{{pluralize .StructName}}(w http.ResponseWriter, r *http.Request, ps 
 // @Param  id path int true "record id"
 // @Success 200 {object} {{.modelPackageName}}.{{.StructName}}
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
-// @Failure 404 {object} {{.apiPackageName}}.HTTPError "NotFound, db record for id not found - returns NotFound HTTP 404 not found error"
+// @Failure 404 {object} {{.apiPackageName}}.HTTPError "ErrNotFound, db record for id not found - returns NotFound HTTP 404 not found error"
 // @Router /{{pluralize .StructName | toLower}}/{id} [get]
 // http http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize .StructName | toLower}}/1
 func Get{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -109,24 +109,24 @@ func Get{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
 // @Failure 404 {object} {{.apiPackageName}}.HTTPError
 // @Router /{{pluralize .StructName | toLower}} [post]
-// echo '{{ToJson .TableInfo.Instance 0}}' | http POST http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize .StructName | toLower}}
+// echo '{{ToJSON .TableInfo.Instance 0}}' | http POST http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize .StructName | toLower}}
 func Add{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	{{.StructName | toLower}} := &{{.modelPackageName}}.{{.StructName}}{}
 
 	if err := readJSON(r, {{.StructName | toLower}}); err != nil {
-		returnError(w, r, {{.daoPackageName}}.BadParamsError)
+		returnError(w, r, {{.daoPackageName}}.ErrBadParams)
 		return
 	}
 
 
    if err := {{.StructName | toLower}}.BeforeSave(); err != nil {
-      returnError(w, r, dao.BadParamsError)
+      returnError(w, r, dao.ErrBadParams)
    }
 
    {{.StructName | toLower}}.Prepare()
 
    if err := {{.StructName | toLower}}.Validate(model.Create); err != nil {
-      returnError(w, r, dao.BadParamsError)
+      returnError(w, r, dao.ErrBadParams)
       return
    }
 
@@ -153,7 +153,7 @@ func Add{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
 // @Failure 404 {object} {{.apiPackageName}}.HTTPError
 // @Router /{{pluralize .StructName | toLower}}/{id} [patch]
-// echo '{{ToJson .TableInfo.Instance 0}}' | http PATCH http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize .StructName | toLower}}/1
+// echo '{{ToJSON .TableInfo.Instance 0}}' | http PATCH http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize .StructName | toLower}}/1
 func Update{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	id, err := {{.TableInfo.PrimaryKeyFieldParser}}(ps, "id")
 	if err != nil {
@@ -164,18 +164,18 @@ func Update{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter
 
 	{{.StructName | toLower}} := &{{.modelPackageName}}.{{.StructName}}{}
 	if err := readJSON(r, {{.StructName | toLower}}); err != nil {
-		returnError(w, r, {{.daoPackageName}}.BadParamsError)
+		returnError(w, r, {{.daoPackageName}}.ErrBadParams)
 		return
 	}
 
    if err := {{.StructName | toLower}}.BeforeSave(); err != nil {
-      returnError(w, r, dao.BadParamsError)
+      returnError(w, r, dao.ErrBadParams)
    }
 
    {{.StructName | toLower}}.Prepare()
 
    if err := {{.StructName | toLower}}.Validate(model.Update); err != nil {
-      returnError(w, r, dao.BadParamsError)
+      returnError(w, r, dao.ErrBadParams)
       return
    }
 

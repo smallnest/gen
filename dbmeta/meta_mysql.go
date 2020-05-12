@@ -8,6 +8,7 @@ import (
 	"github.com/jimsmart/schema"
 )
 
+// NewMysqlMeta fetch db meta data for MySQL database
 func NewMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error) {
 	m := &dbTableMeta{
 		sqlType:     sqlType,
@@ -20,8 +21,8 @@ func NewMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 		return nil, err
 	}
 
-	ddlSql := fmt.Sprintf("SHOW CREATE TABLE %s;", tableName)
-	res, err := db.Query(ddlSql)
+	ddlSQL := fmt.Sprintf("SHOW CREATE TABLE %s;", tableName)
+	res, err := db.Query(ddlSQL)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load ddl from mysql: %v", err)
 	}
@@ -103,13 +104,13 @@ func NewMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 		// isPrimaryKey := i == 0
 		// colDDL := v.DatabaseTypeName()
 		defaultVal := ""
-		columnType, columnLen := ParseSqlType(v.DatabaseTypeName())
+		columnType, columnLen := ParseSQLType(v.DatabaseTypeName())
 
 		if infoSchema != nil {
 			infoSchemaColInfo, ok := infoSchema[v.Name()]
 			if ok {
-				if infoSchemaColInfo.column_default != nil {
-					defaultVal = BytesToString(  infoSchemaColInfo.column_default.([]uint8))
+				if infoSchemaColInfo.ColumnDefault != nil {
+					defaultVal = BytesToString(  infoSchemaColInfo.ColumnDefault.([]uint8))
 					defaultVal = cleanupDefault(defaultVal)
 				}
 			}

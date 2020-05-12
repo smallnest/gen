@@ -8,21 +8,21 @@ import (
 	"strings"
 )
 
-// HttpNocacheContent will set the headers for content type along with no caching.
-func HttpNocacheContent(w http.ResponseWriter, content string) {
+// HTTPNocacheContent will set the headers for content type along with no caching.
+func HTTPNocacheContent(w http.ResponseWriter, content string) {
 	w.Header().Set("Content-Type", content)
 	w.Header().Set("Cache-Control", "no-cache, no-store")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
 }
 
-// HttpNocacheJson will set the headers on an http Response for a text/json content type along with no cache.
-func HttpNocacheJson(w http.ResponseWriter) {
-	HttpNocacheContent(w, "text/json")
+// HTTPNocacheJSON will set the headers on an http Response for a text/json content type along with no cache.
+func HTTPNocacheJSON(w http.ResponseWriter) {
+	HTTPNocacheContent(w, "text/json")
 }
 
-// SendJson will return take a value and serialize it to json and return the http response.
-func SendJson(w http.ResponseWriter, r *http.Request, code int, val interface{}) {
+// SendJSON will return take a value and serialize it to json and return the http response.
+func SendJSON(w http.ResponseWriter, r *http.Request, code int, val interface{}) {
 	w.Header().Set("Cache-Control", "no-cache, no-store")
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
@@ -104,7 +104,7 @@ var privateRanges = []ipRange{
 	},
 }
 
-// isPrivateSubnet - check to see if this ip is in a private subnet
+// IsPrivateSubnet - check to see if this ip is in a private subnet
 func IsPrivateSubnet(ipAddress net.IP) bool {
 	// my use case is only concerned with ipv4 atm
 	if ipCheck := ipAddress.To4(); ipCheck != nil {
@@ -119,7 +119,7 @@ func IsPrivateSubnet(ipAddress net.IP) bool {
 	return false
 }
 
-// GetIpAddress will take a http request and check headers if it has been proxied to extract what the server believes to be the client ip address.
+// GetIPAddress will take a http request and check headers if it has been proxied to extract what the server believes to be the client ip address.
 func GetIPAddress(r *http.Request) string {
 	var ip = ""
 	for _, h := range []string{"X-Forwarded-For", "X-Real-Ip"} {

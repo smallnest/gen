@@ -27,7 +27,7 @@ import (
 	"github.com/smallnest/gen/dbmeta"
 )
 
-type swaggerInfo struct {
+type swaggerInfoDetails struct {
 	Version      string
 	Host         string
 	BasePath     string
@@ -35,7 +35,7 @@ type swaggerInfo struct {
 	Description  string
 	TOS          string
 	ContactName  string
-	ContactUrl   string
+	ContactURL   string
 	ContactEmail string
 }
 
@@ -71,7 +71,7 @@ var (
 	serverGenerate   = goopt.Flag([]string{"--server"}, []string{}, "Generate server app output dir", "")
 	daoGenerate      = goopt.Flag([]string{"--generate-dao"}, []string{}, "Generate dao functions", "")
 	projectGenerate  = goopt.Flag([]string{"--generate-proj"}, []string{}, "Generate project readme an d gitignore", "")
-	restApiGenerate  = goopt.Flag([]string{"--rest"}, []string{}, "Enable generating RESTful api", "")
+	restAPIGenerate  = goopt.Flag([]string{"--rest"}, []string{}, "Enable generating RESTful api", "")
 
 	serverHost          = goopt.String([]string{"--host"}, "localhost", "host for server")
 	serverPort          = goopt.Int([]string{"--port"}, 8080, "port for server")
@@ -79,7 +79,7 @@ var (
 	swaggerBasePath     = goopt.String([]string{"--swagger_path"}, "/", "swagger base path")
 	swaggerTos          = goopt.String([]string{"--swagger_tos"}, "", "swagger tos url")
 	swaggerContactName  = goopt.String([]string{"--swagger_contact_name"}, "Me", "swagger contact name")
-	swaggerContactUrl   = goopt.String([]string{"--swagger_contact_url"}, "http://me.com/terms.html", "swagger contact url")
+	swaggerContactURL   = goopt.String([]string{"--swagger_contact_url"}, "http://me.com/terms.html", "swagger contact url")
 	swaggerContactEmail = goopt.String([]string{"--swagger_contact_email"}, "me@me.com", "swagger contact email")
 
 	verbose = goopt.Flag([]string{"-v", "--verbose"}, []string{}, "Enable verbose output", "")
@@ -95,14 +95,15 @@ var (
 	tables      []string
 	contextMap  map[string]interface{}
 
-	SwaggerInfo = &swaggerInfo{
+
+	swaggerInfo = &swaggerInfoDetails{
 		Version:      "1.0",
 		BasePath:     "/",
 		Title:        "Swagger Example API",
 		Description:  "This is a sample server Petstore server.",
 		TOS:          "",
 		ContactName:  "",
-		ContactUrl:   "",
+		ContactURL:   "",
 		ContactEmail: "",
 	}
 )
@@ -252,15 +253,15 @@ func main() {
 	daoFQPN = *module + "/" + *daoPackageName
 	apiFQPN = *module + "/" + *apiPackageName
 
-	SwaggerInfo.Version = *swaggerVersion
-	SwaggerInfo.BasePath = *swaggerBasePath
-	SwaggerInfo.Title = fmt.Sprintf("Sample CRUD api for %s db", *sqlDatabase)
-	SwaggerInfo.Description = fmt.Sprintf("Sample CRUD api for %s db", *sqlDatabase)
-	SwaggerInfo.TOS = *swaggerTos
-	SwaggerInfo.ContactName = *swaggerContactName
-	SwaggerInfo.ContactUrl = *swaggerContactUrl
-	SwaggerInfo.ContactEmail = *swaggerContactEmail
-	SwaggerInfo.Host = fmt.Sprintf("%s:%d", *serverHost, *serverPort)
+	swaggerInfo.Version = *swaggerVersion
+	swaggerInfo.BasePath = *swaggerBasePath
+	swaggerInfo.Title = fmt.Sprintf("Sample CRUD api for %s db", *sqlDatabase)
+	swaggerInfo.Description = fmt.Sprintf("Sample CRUD api for %s db", *sqlDatabase)
+	swaggerInfo.TOS = *swaggerTos
+	swaggerInfo.ContactName = *swaggerContactName
+	swaggerInfo.ContactURL = *swaggerContactURL
+	swaggerInfo.ContactEmail = *swaggerContactEmail
+	swaggerInfo.Host = fmt.Sprintf("%s:%d", *serverHost, *serverPort)
 
 	// generate go files for each table
 	var tableIdx = 0
@@ -341,7 +342,7 @@ func execTemplate(name, templateStr string, data map[string]interface{}) {
 	data["sqlConnStr"] = *sqlConnStr
 	data["serverPort"] = *serverPort
 	data["serverHost"] = *serverHost
-	data["SwaggerInfo"] = SwaggerInfo
+	data["SwaggerInfo"] = swaggerInfo
 	data["structs"] = structNames
 	data["tableInfos"] = tableInfos
 	data["tables"] = tables
@@ -391,7 +392,7 @@ func generate() {
 		}
 	}
 
-	if *restApiGenerate {
+	if *restAPIGenerate {
 		err = os.MkdirAll(apiDir, 0777)
 		if err != nil && !*overwrite {
 			fmt.Printf("unable to create apiDir: %s error: %v\n", apiDir, err)
@@ -406,7 +407,7 @@ func generate() {
 	var DaoInitTmpl string
 	var GoModuleTmpl string
 	var MainServerTmpl string
-	var HttpUtilsTmpl string
+	var HTTPUtilsTmpl string
 	var ReadMeTmpl string
 	var GitIgnoreTmpl string
 	var MakefileTmpl string
@@ -432,7 +433,7 @@ func generate() {
 		fmt.Printf("Error loading template %v\n", err)
 		return
 	}
-	if HttpUtilsTmpl, err = loadTemplate("http_utils.go.tmpl"); err != nil {
+	if HTTPUtilsTmpl, err = loadTemplate("http_utils.go.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
 		return
 	}
@@ -494,7 +495,7 @@ func generate() {
 		modelFile := filepath.Join(modelDir, inflection.Singular(tableName)+".go")
 		writeTemplate("model", ModelTmpl, modelInfo, modelFile, *overwrite, true)
 
-		if *restApiGenerate {
+		if *restAPIGenerate {
 			restFile := filepath.Join(apiDir, inflection.Singular(tableName)+".go")
 			writeTemplate("rest", ControllerTmpl, modelInfo, restFile, *overwrite, true)
 		}
@@ -508,9 +509,9 @@ func generate() {
 
 	data := map[string]interface{}{}
 
-	if *restApiGenerate {
+	if *restAPIGenerate {
 		writeTemplate("router", RouterTmpl, data, filepath.Join(apiDir, "router.go"), *overwrite, true)
-		writeTemplate("example server", HttpUtilsTmpl, data, filepath.Join(apiDir, "http_utils.go"), *overwrite, true)
+		writeTemplate("example server", HTTPUtilsTmpl, data, filepath.Join(apiDir, "http_utils.go"), *overwrite, true)
 	}
 
 	if *daoGenerate {
@@ -576,7 +577,7 @@ func generate() {
 
 		buf.WriteString(fmt.Sprintf(" --host=%s", *serverHost))
 		buf.WriteString(fmt.Sprintf(" --port=%d", *serverPort))
-		if *restApiGenerate {
+		if *restAPIGenerate {
 			buf.WriteString(fmt.Sprintf(" --rest"))
 		}
 
@@ -595,7 +596,7 @@ func generate() {
 		buf.WriteString(fmt.Sprintf(" --swagger_path=%s", *swaggerBasePath))
 		buf.WriteString(fmt.Sprintf(" --swagger_tos=%s", *swaggerTos))
 		buf.WriteString(fmt.Sprintf(" --swagger_contact_name=%s", *swaggerContactName))
-		buf.WriteString(fmt.Sprintf(" --swagger_contact_url=%s", *swaggerContactUrl))
+		buf.WriteString(fmt.Sprintf(" --swagger_contact_url=%s", *swaggerContactURL))
 		buf.WriteString(fmt.Sprintf(" --swagger_contact_email=%s", *swaggerContactEmail))
 
 		regenCmdLine := buf.String()
@@ -651,6 +652,8 @@ func generate() {
 	}
 }
 
+
+// GenerateTableFile generate file from template using specific table used within templates
 func GenerateTableFile(tableName, templateFilename, outputDirectory, outputFileName string, formatOutput bool) string {
 	buf := bytes.Buffer{}
 
@@ -693,6 +696,8 @@ func GenerateTableFile(tableName, templateFilename, outputDirectory, outputFileN
 	return buf.String()
 }
 
+
+// GenerateFile generate file from template, non table used within templates
 func GenerateFile(templateFilename, outputDirectory, outputFileName string, formatOutput bool) string {
 	buf := bytes.Buffer{}
 	buf.WriteString(fmt.Sprintf("GenerateFile( %s, %s, %s)\n", templateFilename, outputDirectory, outputFileName))
@@ -739,7 +744,7 @@ func writeTemplate(name, templateStr string, data map[string]interface{}, output
 	data["sqlConnStr"] = *sqlConnStr
 	data["serverPort"] = *serverPort
 	data["serverHost"] = *serverHost
-	data["SwaggerInfo"] = SwaggerInfo
+	data["SwaggerInfo"] = swaggerInfo
 	data["structs"] = structNames
 	data["tableInfos"] = tableInfos
 	data["tables"] = tables
@@ -803,7 +808,7 @@ func getTemplate(name, t string) (*template.Template, error) {
 		"wrapBash":          wrapBash,
 		"GenerateTableFile": GenerateTableFile,
 		"GenerateFile":      GenerateFile,
-		"ToJson":            ToJson,
+		"ToJSON":            ToJSON,
 	}
 
 	tmpl, err := template.New(name).Funcs(funcMap).Parse(t)
@@ -833,7 +838,7 @@ func wrapBash(content string) string {
 	return strings.Join(parts, " \\\n    ")
 }
 
-// SaveTemplates will save the prepacked templates for local editing. File structure will be recreated under the output dir.
+// SaveAssets will save the prepacked templates for local editing. File structure will be recreated under the output dir.
 func SaveAssets(outputDir string, box *packr.Box) error {
 	fmt.Printf("SaveAssets: %v\n", outputDir)
 	if outputDir == "" {
@@ -914,7 +919,9 @@ func loadTemplate(filename string) (content string, err error) {
 	return content, nil
 }
 
-func ToJson(val interface{}, indent int) string {
+
+// ToJSON func to return json string representation of struct
+func ToJSON(val interface{}, indent int) string {
 	pad := fmt.Sprintf("%*s", indent, "")
 	strB, _ := json.MarshalIndent(val, "", pad)
 

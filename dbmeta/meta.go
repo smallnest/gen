@@ -18,29 +18,45 @@ import (
 type metaDataLoader func(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error)
 
 var metaDataFuncs = make(map[string]metaDataLoader)
-var sqlMappings = make(map[string]*SqlMapping)
+var sqlMappings = make(map[string]*SQLMapping)
 
 func init() {
 	metaDataFuncs["sqlite3"] = NewSqliteMeta
 	metaDataFuncs["sqlite"] = NewSqliteMeta
-	metaDataFuncs["mssql"] = NewMsSqlMeta
+	metaDataFuncs["mssql"] = NewMsSQLMeta
 	metaDataFuncs["postgres"] = NewPostgresMeta
 	metaDataFuncs["mysql"] = NewMysqlMeta
 }
 
-type SqlMappings struct {
-	SqlMappings []*SqlMapping `json:"mappings"`
+// SQLMappings mappings for sql types to json, go etc
+type SQLMappings struct {
+	SQLMappings []*SQLMapping `json:"mappings"`
 }
 
-type SqlMapping struct {
-	SqlType        string `json:"sql_type"`
+// SQLMapping mapping
+type SQLMapping struct {
+
+	// SqlType sql type reported from db
+	SQLType        string `json:"sql_type"`
+
+	// GoType mapped go type
 	GoType         string `json:"go_type"`
-	JsonType       string `json:"json_type"`
+
+	// JSONType mapped json type
+	JSONType       string `json:"json_type"`
+
+	// ProtobufType mapped protobuf type
 	ProtobufType   string `json:"protobuf_type"`
+
+	// GureguType mapped go type using Guregu
 	GureguType     string `json:"guregu_type"`
+
+	// GoNullableType mapped go type using nullable
 	GoNullableType string `json:"go_nullable_type"`
 }
 
+
+// ColumnMeta meta data for a column
 type ColumnMeta interface {
 	Name() string
 	String() string
@@ -55,10 +71,12 @@ type ColumnMeta interface {
 	DefaultValue() string
 }
 
+// IsAutoIncrement return is column is a primary key column
 func (ci *columnMeta) IsPrimaryKey() bool {
 	return ci.isPrimaryKey
 }
 
+// IsAutoIncrement return is column is an auto increment column
 func (ci *columnMeta) IsAutoIncrement() bool {
 	return ci.isAutoIncrement
 }
@@ -75,27 +93,33 @@ type columnMeta struct {
 	defaultVal      string
 }
 
+
+// ColumnType column type
 func (ci *columnMeta) ColumnType() string {
 	return ci.columnType
 }
 
+// ColumnLength column length for text or varhar
 func (ci *columnMeta) ColumnLength() int64 {
 	return ci.columnLen
 }
+
+// DefaultValue default value of column
 func (ci *columnMeta) DefaultValue() string {
 	return ci.defaultVal
 }
 
-
-
+// Name name of column
 func (ci *columnMeta) Name() string {
 	return ci.ct.Name()
 }
 
+// Index index of column in db
 func (ci *columnMeta) Index() int {
 	return ci.index
 }
 
+// String friendly string for columnMeta
 func (ci *columnMeta) String() string {
 	return fmt.Sprintf("[%2d] %-45s  %-20s null: %-6t primary: %-6t auto: %-6t col: %-15s len: %-7d default: [%s]",
 		ci.index, ci.ct.Name(), ci.DatabaseTypePretty(),
@@ -108,6 +132,8 @@ func (ci *columnMeta) String() string {
 func (ci *columnMeta) Nullable() bool {
 	return ci.nullable
 }
+
+// ColDDL string of the ddl for the column
 func (ci *columnMeta) ColDDL() string {
 	return ci.colDDL
 }
@@ -121,18 +147,20 @@ func (ci *columnMeta) DatabaseTypeName() string {
 	return ci.ct.DatabaseTypeName()
 }
 
+// DatabaseTypePretty string of the db type
 func (ci *columnMeta) DatabaseTypePretty() string {
 	if ci.columnLen > 0 {
 		return fmt.Sprintf("%s(%d)", ci.columnType, ci.columnLen)
-	} else {
-		return ci.columnType
 	}
+
+	return ci.columnType
 }
 
+// DbTableMeta table meta data
 type DbTableMeta interface {
 	Columns() []ColumnMeta
-	SqlType() string
-	SqlDatabase() string
+	SQLType() string
+	SQLDatabase() string
 	TableName() string
 	DDL() string
 }
@@ -144,22 +172,32 @@ type dbTableMeta struct {
 	ddl         string
 }
 
-func (m *dbTableMeta) SqlType() string {
+// SQLType sql db type
+func (m *dbTableMeta) SQLType() string {
 	return m.sqlType
 }
-func (m *dbTableMeta) SqlDatabase() string {
+
+// SQLDatabase sql database name
+func (m *dbTableMeta) SQLDatabase() string {
 	return m.sqlDatabase
 }
+
+// TableName sql table name
 func (m *dbTableMeta) TableName() string {
 	return m.tableName
 }
+
+// Columns ColumnMeta for columns in a sql table
 func (m *dbTableMeta) Columns() []ColumnMeta {
 	return m.columns
 }
+
+// DDL string for a sql table
 func (m *dbTableMeta) DDL() string {
 	return m.ddl
 }
 
+// ModelInfo info for a sql table
 type ModelInfo struct {
 	Index                 int
 	IndexPlus1            int
@@ -176,12 +214,13 @@ type ModelInfo struct {
 	PrimaryKeyFieldParser string
 }
 
+// FieldInfo info for each field in sql table
 type FieldInfo struct {
 	Index             int
 	GoFieldName       string
 	GoFieldType       string
 	GoAnnotations     []string
-	JsonFieldName     string
+	JSONFieldName     string
 	ProtobufFieldName string
 	ProtobufType      string
 	ProtobufPos       int
@@ -191,7 +230,7 @@ type FieldInfo struct {
 	ColumnMeta        ColumnMeta
 }
 
-// GenerateStruct generates a struct for the given table.
+// LoadMeta loads the DbTableMeta data from the db connection for the table
 func LoadMeta(sqlType string, db *sql.DB, sqlDatabase, tableName string, ) (DbTableMeta, error) {
 	dbMetaFunc, haveMeta := metaDataFuncs[sqlType]
 	if !haveMeta {
@@ -209,7 +248,7 @@ func GenerateStruct(sqlType string,
 	tableName string,
 	structName string,
 	pkgName string,
-	addJsonAnnotation bool,
+	addJSONAnnotation bool,
 	addGormAnnotation bool,
 	addDBAnnotation bool,
 	addProtobufAnnotation bool,
@@ -225,7 +264,7 @@ func GenerateStruct(sqlType string,
 		return nil, err
 	}
 
-	fields := generateFieldsTypes(dbMeta, addJsonAnnotation, addGormAnnotation, addDBAnnotation, addProtobufAnnotation, gureguTypes, jsonNameFormat, protobufNameFormat, verbose)
+	fields := generateFieldsTypes(dbMeta, addJSONAnnotation, addGormAnnotation, addDBAnnotation, addProtobufAnnotation, gureguTypes, jsonNameFormat, protobufNameFormat, verbose)
 
 	if verbose {
 		fmt.Printf("tableName: %s\n", tableName)
@@ -299,7 +338,7 @@ func GenerateStruct(sqlType string,
 
 // Generate fields string
 func generateFieldsTypes(dbMeta DbTableMeta,
-	addJsonAnnotation bool,
+	addJSONAnnotation bool,
 	addGormAnnotation bool,
 	addDBAnnotation bool,
 	addProtobufAnnotation bool,
@@ -316,7 +355,7 @@ func generateFieldsTypes(dbMeta DbTableMeta,
 			//fmt.Printf("   [%s]   [%d] field: %s type: %s\n", dbMeta.TableName(), i, key, c.DatabaseTypeName())
 		}
 
-		valueType, err := SqlTypeToGoType(strings.ToLower(c.DatabaseTypeName()), c.Nullable(), gureguTypes)
+		valueType, err := SQLTypeToGoType(strings.ToLower(c.DatabaseTypeName()), c.Nullable(), gureguTypes)
 		if err != nil { // unknown type
 			fmt.Printf("table: %s unable to generate struct field: %s type: %s error: %v\n", dbMeta.TableName(), name, c.DatabaseTypeName(), err)
 			continue
@@ -328,8 +367,8 @@ func generateFieldsTypes(dbMeta DbTableMeta,
 			annotations = append(annotations, createGormAnnotation(c))
 		}
 
-		if addJsonAnnotation == true {
-			annotations = append(annotations, createJsonAnnotation(jsonNameFormat, c))
+		if addJSONAnnotation == true {
+			annotations = append(annotations, createJSONAnnotation(jsonNameFormat, c))
 		}
 
 		if addDBAnnotation == true {
@@ -354,8 +393,8 @@ func generateFieldsTypes(dbMeta DbTableMeta,
 
 		field = fmt.Sprintf("%s //%s", field, c.String())
 
-		goType, _ := SqlTypeToGoType(strings.ToLower(c.DatabaseTypeName()), false, false)
-		protobufType, _ := SqlTypeToProtobufType(c.DatabaseTypeName())
+		goType, _ := SQLTypeToGoType(strings.ToLower(c.DatabaseTypeName()), false, false)
+		protobufType, _ := SQLTypeToProtobufType(c.DatabaseTypeName())
 		fakeData := createFakeData(goType, fieldName)
 
 		fi := &FieldInfo{
@@ -366,7 +405,7 @@ func generateFieldsTypes(dbMeta DbTableMeta,
 			GoAnnotations:     annotations,
 			FakeData:          fakeData,
 			Comment:           c.String(),
-			JsonFieldName:     formatFieldName(jsonNameFormat, c),
+			JSONFieldName:     formatFieldName(jsonNameFormat, c),
 			ProtobufFieldName: formatFieldName(protobufNameFormat, c),
 			ProtobufType:      protobufType,
 			ProtobufPos:       i + 1,
@@ -396,7 +435,7 @@ func formatFieldName(nameFormat string, c ColumnMeta) string {
 	return jsonName
 }
 
-func createJsonAnnotation(nameFormat string, c ColumnMeta) string {
+func createJSONAnnotation(nameFormat string, c ColumnMeta) string {
 
 	name := formatFieldName(nameFormat, c)
 	return fmt.Sprintf("json:\"%s\"", name)
@@ -407,7 +446,7 @@ func createDBAnnotation(c ColumnMeta) string {
 }
 
 func createProtobufAnnotation(nameFormat string, c ColumnMeta) (string, error) {
-	protoBufType, err := SqlTypeToProtobufType(c.DatabaseTypeName())
+	protoBufType, err := SQLTypeToProtobufType(c.DatabaseTypeName())
 	if err != nil {
 		return "", err
 	}
@@ -415,9 +454,9 @@ func createProtobufAnnotation(nameFormat string, c ColumnMeta) (string, error) {
 	if protoBufType != "" {
 		name := formatFieldName(nameFormat, c)
 		return fmt.Sprintf("protobuf:\"%s,%d,opt,name=%s\"", protoBufType, c.Index(), name), nil
-	} else {
-		return "", fmt.Errorf("unknown sql name: %s", c.Name())
 	}
+
+	return "", fmt.Errorf("unknown sql name: %s", c.Name())
 }
 
 func createGormAnnotation(c ColumnMeta) string {
@@ -466,6 +505,7 @@ func createGormAnnotation(c ColumnMeta) string {
 	return buf.String()
 }
 
+// BuildDefaultTableDDL create a ddl mock using the ColumnMeta data
 func BuildDefaultTableDDL(tableName string, cols []ColumnMeta) string {
 	buf := bytes.Buffer{}
 	buf.WriteString(fmt.Sprintf("Table: %s\n", tableName))
@@ -476,22 +516,24 @@ func BuildDefaultTableDDL(tableName string, cols []ColumnMeta) string {
 	return buf.String()
 }
 
+// ProcessMappings process the json for mappings to load sql mappings
 func ProcessMappings(mappingJsonstring []byte) error {
-	var mappings = &SqlMappings{}
+	var mappings = &SQLMappings{}
 	err := json.Unmarshal(mappingJsonstring, mappings)
 	if err != nil {
 		fmt.Printf("Error unmarshalling json error: %v\n", err)
 		return err
 	}
 
-	fmt.Printf("Loaded %d mappings\n", len(mappings.SqlMappings))
-	for i, value := range mappings.SqlMappings {
-		fmt.Printf("    Mapping:[%2d] -> %s\n", i, value.SqlType)
-		sqlMappings[value.SqlType] = value
+	fmt.Printf("Loaded %d mappings\n", len(mappings.SQLMappings))
+	for i, value := range mappings.SQLMappings {
+		fmt.Printf("    Mapping:[%2d] -> %s\n", i, value.SQLType)
+		sqlMappings[value.SQLType] = value
 	}
 	return nil
 }
 
+// LoadMappings load sql mappings to load mapping json file
 func LoadMappings(mappingFileName string) error {
 	mappingFile, err := os.Open(mappingFileName)
 	defer mappingFile.Close()
@@ -503,8 +545,9 @@ func LoadMappings(mappingFileName string) error {
 	return ProcessMappings(byteValue)
 }
 
-func SqlTypeToGoType(sqlType string, nullable bool, gureguTypes bool) (string, error) {
-	mapping, err := SqlTypeToMapping(sqlType)
+// SQLTypeToGoType map a sql type to a go type
+func SQLTypeToGoType(sqlType string, nullable bool, gureguTypes bool) (string, error) {
+	mapping, err := SQLTypeToMapping(sqlType)
 	if err != nil {
 		return "", err
 	}
@@ -518,16 +561,18 @@ func SqlTypeToGoType(sqlType string, nullable bool, gureguTypes bool) (string, e
 	}
 }
 
-func SqlTypeToProtobufType(sqlType string) (string, error) {
-	mapping, err := SqlTypeToMapping(sqlType)
+// SQLTypeToProtobufType map a sql type to a protobuf type
+func SQLTypeToProtobufType(sqlType string) (string, error) {
+	mapping, err := SQLTypeToMapping(sqlType)
 	if err != nil {
 		return "", err
 	}
 	return mapping.ProtobufType, nil
 }
 
-func SqlTypeToMapping(sqlType string) (*SqlMapping, error) {
-	sqlType = cleanupSqlType(sqlType)
+// SQLTypeToMapping retrieve a SqlMapping based on a sql type
+func SQLTypeToMapping(sqlType string) (*SQLMapping, error) {
+	sqlType = cleanupSQLType(sqlType)
 
 	mapping, ok := sqlMappings[sqlType]
 	if !ok {
@@ -536,7 +581,7 @@ func SqlTypeToMapping(sqlType string) (*SqlMapping, error) {
 	return mapping, nil
 }
 
-func cleanupSqlType(sqlType string) string {
+func cleanupSQLType(sqlType string) string {
 	sqlType = strings.ToLower(sqlType)
 	sqlType = strings.Trim(sqlType, " \t")
 	sqlType = strings.ToLower(sqlType)
@@ -547,7 +592,8 @@ func cleanupSqlType(sqlType string) string {
 	return sqlType
 }
 
-func GetMappings() map[string]*SqlMapping {
+// GetMappings get all mappings
+func GetMappings() map[string]*SQLMapping {
 	return sqlMappings
 }
 

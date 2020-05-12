@@ -7,6 +7,7 @@ import (
 	"github.com/jimsmart/schema"
 )
 
+// NewPostgresMeta fetch db meta data for Postgres database
 func NewPostgresMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error) {
 	m := &dbTableMeta{
 		sqlType:     sqlType,
@@ -22,7 +23,7 @@ func NewPostgresMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTabl
 
 	colInfo := make(map[string]*postgresColumnInfo)
 
-	identitySql := fmt.Sprintf(`
+	identitySQL := fmt.Sprintf(`
 SELECT table_name, table_schema, ordinal_position, column_name, data_type, character_maximum_length,
 column_default, is_nullable, is_identity, udt_name, numeric_precision
 FROM information_schema.columns
@@ -30,30 +31,30 @@ WHERE table_name = '%s' and table_schema = 'public'
 ORDER BY table_name, ordinal_position;
 `, tableName)
 
-	res, err := db.Query(identitySql)
+	res, err := db.Query(identitySQL)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load ddl from postgres: %v", err)
 	}
 
 	for res.Next() {
 		ci := &postgresColumnInfo{}
-		err = res.Scan(&ci.table_name, &ci.table_schema, &ci.ordinal_position, &ci.column_name, &ci.data_type, &ci.character_maximum_length,
-			&ci.column_default, &ci.is_nullable, &ci.is_identity, &ci.udt_name, &ci.numeric_precision)
+		err = res.Scan(&ci.tableName, &ci.tableSchema, &ci.ordinalPosition, &ci.columnName, &ci.dataType, &ci.characterMaximumLength,
+			&ci.columnDefault, &ci.isNullable, &ci.isIdentity, &ci.udtName, &ci.numericPrecision)
 		if err != nil {
 			return nil, fmt.Errorf("unable to load identity info from postgres Scan: %v", err)
 		}
 
-		colInfo[ci.column_name] = ci
+		colInfo[ci.columnName] = ci
 	}
 
-	primaryKeySql := fmt.Sprintf(`
+	primaryKeySQL := fmt.Sprintf(`
 	SELECT c.column_name
 	FROM information_schema.key_column_usage AS c
 	LEFT JOIN information_schema.table_constraints AS t
 	ON t.constraint_name = c.constraint_name
 	WHERE t.table_name = '%s' AND t.constraint_type = 'PRIMARY KEY';
 `, tableName)
-	res, err = db.Query(primaryKeySql)
+	res, err = db.Query(primaryKeySQL)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load ddl from ms sql: %v", err)
 	}
@@ -68,7 +69,7 @@ ORDER BY table_name, ordinal_position;
 		//fmt.Printf("## PRIMARY KEY COLUMN_NAME: %s\n", columnName)
 		colInfo, ok := colInfo[columnName]
 		if ok {
-			colInfo.primary_key = true
+			colInfo.primaryKey = true
 			//fmt.Printf("name: %s primary_key: %t\n", colInfo.name, colInfo.primary_key)
 		}
 	}
@@ -86,14 +87,14 @@ ORDER BY table_name, ordinal_position;
 		maxLen = -1
 		colInfo, ok := colInfo[v.Name()]
 		if ok {
-			nullable = colInfo.is_nullable == "YES"
-			isAutoIncrement = colInfo.is_identity == "YES"
-			isPrimaryKey = colInfo.primary_key
-			if colInfo.column_default != nil {
-				defaultVal = cleanupDefault(fmt.Sprintf("%v", colInfo.column_default))
+			nullable = colInfo.isNullable == "YES"
+			isAutoIncrement = colInfo.isIdentity == "YES"
+			isPrimaryKey = colInfo.primaryKey
+			if colInfo.columnDefault != nil {
+				defaultVal = cleanupDefault(fmt.Sprintf("%v", colInfo.columnDefault))
 			}
 
-			ml, ok := colInfo.character_maximum_length.(int64)
+			ml, ok := colInfo.characterMaximumLength.(int64)
 			if ok {
 				// fmt.Printf("@@ Name: %v maxLen: %v\n", v.Name(), ml)
 				maxLen = ml
@@ -133,22 +134,22 @@ ORDER BY table_name, ordinal_position;
 }
 
 type postgresColumnInfo struct {
-	table_name               string
-	column_name              string
-	ordinal_position         int
-	table_schema             string
-	data_type                string
-	character_maximum_length interface{}
-	column_default           interface{}
-	is_nullable              string
-	is_identity              string
-	udt_name                 string
-	numeric_precision        interface{}
-	primary_key              bool
+	tableName              string
+	columnName             string
+	ordinalPosition        int
+	tableSchema            string
+	dataType               string
+	characterMaximumLength interface{}
+	columnDefault          interface{}
+	isNullable             string
+	isIdentity             string
+	udtName                string
+	numericPrecision       interface{}
+	primaryKey             bool
 }
 
 func (ci *postgresColumnInfo) String() string {
-	return fmt.Sprintf("[%2d] %-20s %-20s data_type: %v character_maximum_length: %v is_nullable: %v is_identity: %v", ci.ordinal_position, ci.table_name, ci.column_name, ci.data_type, ci.character_maximum_length, ci.is_nullable, ci.is_identity)
+	return fmt.Sprintf("[%2d] %-20s %-20s data_type: %v character_maximum_length: %v is_nullable: %v is_identity: %v", ci.ordinalPosition, ci.tableName, ci.columnName, ci.dataType, ci.characterMaximumLength, ci.isNullable, ci.isIdentity)
 }
 
 /*

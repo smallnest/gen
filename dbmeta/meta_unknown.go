@@ -10,6 +10,8 @@ import (
 	"github.com/jimsmart/schema"
 )
 
+
+// NewUnknownMeta fetch db meta data for unknown database type
 func NewUnknownMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error) {
 	m := &dbTableMeta{
 		sqlType:     sqlType,
@@ -40,7 +42,7 @@ func NewUnknownMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTable
 		colDDL := v.DatabaseTypeName()
 
 		defaultVal := ""
-		columnType, columnLen := ParseSqlType(v.DatabaseTypeName())
+		columnType, columnLen := ParseSQLType(v.DatabaseTypeName())
 
 		if columnLen == -1 {
 
@@ -60,8 +62,8 @@ func NewUnknownMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTable
 		if infoSchema != nil {
 			infoSchemaColInfo, ok := infoSchema[v.Name()]
 			if ok {
-				if infoSchemaColInfo.column_default != nil {
-					defaultVal = BytesToString(infoSchemaColInfo.column_default.([]uint8))
+				if infoSchemaColInfo.ColumnDefault != nil {
+					defaultVal = BytesToString(infoSchemaColInfo.ColumnDefault.([]uint8))
 					defaultVal = cleanupDefault(defaultVal)
 				}
 			}

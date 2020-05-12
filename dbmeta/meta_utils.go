@@ -8,7 +8,8 @@ import (
 	"strings"
 )
 
-func ParseSqlType(dbType string) (resultType string, dbTypeLen int64) {
+// ParseSQLType parse sql type and return raw type and length
+func ParseSQLType(dbType string) (resultType string, dbTypeLen int64) {
 
 	resultType = strings.ToLower(dbType)
 	dbTypeLen = -1
@@ -28,6 +29,7 @@ func ParseSqlType(dbType string) (resultType string, dbTypeLen int64) {
 	return resultType, dbTypeLen
 }
 
+// TrimSpaceNewlineInString replace spaces in string
 func TrimSpaceNewlineInString(s string) string {
 
 	re := regexp.MustCompile(` +\r?\n +`)
@@ -45,9 +47,10 @@ WHERE
   AND COLUMN_NAME = @ColumnName;
 */
 
+// FindPrimaryKeyFromInformationSchema fetch primary key info from information_schema
 func FindPrimaryKeyFromInformationSchema(db *sql.DB, tableName string) (primaryKey string, err error) {
 
-	primaryKeySql := fmt.Sprintf(`
+	primaryKeySQL := fmt.Sprintf(`
 SELECT Col.Column_Name from 
     INFORMATION_SCHEMA.TABLE_CONSTRAINTS Tab, 
     INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE Col 
@@ -57,7 +60,7 @@ WHERE
     AND Constraint_Type = 'PRIMARY KEY'
     AND Col.Table_Name = '%s'
 `, tableName)
-	res, err := db.Query(primaryKeySql)
+	res, err := db.Query(primaryKeySQL)
 	if err != nil {
 		return "", fmt.Errorf("unable to load ddl from ms sql: %v", err)
 	}
@@ -73,23 +76,25 @@ WHERE
 	return "", nil
 }
 
-type postgresInformationSchema struct {
-	TABLE_CATALOG            string
-	table_schema             string
-	table_name               string
-	ordinal_position         int
-	column_name              string
-	data_type                string
-	character_maximum_length interface{}
-	column_default           interface{}
-	is_nullable              string
-	is_identity              string
+// PostgresInformationSchema results from a query of the postgres InformationSchema db table
+type PostgresInformationSchema struct {
+	TableCatalog           string
+	TableSchema            string
+	TableName              string
+	OrdinalPosition        int
+	ColumnName             string
+	DataType               string
+	CharacterMaximumLength interface{}
+	ColumnDefault          interface{}
+	IsNullable             string
+	IsIdentity             string
 }
 
-func LoadTableInfoFromPostgresInformationSchema(db *sql.DB, tableName string) (primaryKey map[string]*postgresInformationSchema, err error) {
-	colInfo := make(map[string]*postgresInformationSchema)
+// LoadTableInfoFromPostgresInformationSchema fetch info from information_schema for postgres database
+func LoadTableInfoFromPostgresInformationSchema(db *sql.DB, tableName string) (primaryKey map[string]*PostgresInformationSchema, err error) {
+	colInfo := make(map[string]*PostgresInformationSchema)
 
-	identitySql := fmt.Sprintf(`
+	identitySQL := fmt.Sprintf(`
 SELECT TABLE_CATALOG, table_schema, table_name, ordinal_position, column_name, data_type, character_maximum_length,
 column_default, is_nullable, is_identity 
 FROM information_schema.columns
@@ -97,41 +102,44 @@ WHERE table_name = '%s'
 ORDER BY table_name, ordinal_position;
 `, tableName)
 
-	res, err := db.Query(identitySql)
+	res, err := db.Query(identitySQL)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load ddl from postgres: %v", err)
 	}
 
 	for res.Next() {
-		ci := &postgresInformationSchema{}
-		err = res.Scan(&ci.TABLE_CATALOG, &ci.table_schema, &ci.table_name, &ci.ordinal_position, &ci.column_name, &ci.data_type, &ci.character_maximum_length,
-			&ci.column_default, &ci.is_nullable, &ci.is_identity)
+		ci := &PostgresInformationSchema{}
+		err = res.Scan(&ci.TableCatalog, &ci.TableSchema, &ci.TableName, &ci.OrdinalPosition, &ci.ColumnName, &ci.DataType, &ci.CharacterMaximumLength,
+			&ci.ColumnDefault, &ci.IsNullable, &ci.IsIdentity)
 		if err != nil {
 			return nil, fmt.Errorf("unable to load identity info from postgres Scan: %v", err)
 		}
 
-		colInfo[ci.column_name] = ci
+		colInfo[ci.ColumnName] = ci
 	}
 
 	return colInfo, nil
 }
 
-type mssqlInformationSchema struct {
-	TABLE_CATALOG            string
-	table_schema             string
-	table_name               string
-	ordinal_position         int
-	column_name              string
-	data_type                string
-	character_maximum_length interface{}
-	column_default           interface{}
-	is_nullable              string
+
+// InformationSchema results from a query of the InformationSchema db table
+type InformationSchema struct {
+	TableCatalog           string
+	TableSchema            string
+	TableName              string
+	OrdinalPosition        int
+	ColumnName             string
+	DataType               string
+	CharacterMaximumLength interface{}
+	ColumnDefault          interface{}
+	IsNullable             string
 }
 
-func LoadTableInfoFromMSSqlInformationSchema(db *sql.DB, tableName string) (primaryKey map[string]*mssqlInformationSchema, err error) {
-	colInfo := make(map[string]*mssqlInformationSchema)
+// LoadTableInfoFromMSSqlInformationSchema fetch info from information_schema for ms sql database
+func LoadTableInfoFromMSSqlInformationSchema(db *sql.DB, tableName string) (primaryKey map[string]*InformationSchema, err error) {
+	colInfo := make(map[string]*InformationSchema)
 
-	identitySql := fmt.Sprintf(`
+	identitySQL := fmt.Sprintf(`
 SELECT TABLE_CATALOG, TABLE_SCHEMA, TABLE_NAME, ORDINAL_POSITION, COLUMN_NAME, DATA_TYPE, character_maximum_length,
 column_default, is_nullable 
 FROM information_schema.columns
@@ -139,26 +147,27 @@ WHERE table_name = '%s'
 ORDER BY table_name, ordinal_position;
 `, tableName)
 
-	res, err := db.Query(identitySql)
+	res, err := db.Query(identitySQL)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load ddl from postgres: %v", err)
 	}
 
 	for res.Next() {
-		ci := &mssqlInformationSchema{}
-		err = res.Scan(&ci.TABLE_CATALOG, &ci.table_schema, &ci.table_name, &ci.ordinal_position, &ci.column_name, &ci.data_type, &ci.character_maximum_length,
-			&ci.column_default, &ci.is_nullable)
+		ci := &InformationSchema{}
+		err = res.Scan(&ci.TableCatalog, &ci.TableSchema, &ci.TableName, &ci.OrdinalPosition, &ci.ColumnName, &ci.DataType, &ci.CharacterMaximumLength,
+			&ci.ColumnDefault, &ci.IsNullable)
 
 		if err != nil {
 			return nil, fmt.Errorf("unable to load identity info from postgres Scan: %v", err)
 		}
 
-		colInfo[ci.column_name] = ci
+		colInfo[ci.ColumnName] = ci
 	}
 
 	return colInfo, nil
 }
 
+// GetFieldLenFromInformationSchema fetch field length from database
 func GetFieldLenFromInformationSchema(db *sql.DB, tableSchema, tableName, columnName string) (int64, error) {
 	sql := fmt.Sprintf(`
 select CHARACTER_MAXIMUM_LENGTH 
@@ -204,7 +213,7 @@ func cleanupDefault(val string) string {
 	return val
 }
 
-
+// BytesToString convert []uint8 to string
 func BytesToString(bs []uint8) string {
 	b := make([]byte, len(bs))
 	for i, v := range bs {
@@ -212,7 +221,6 @@ func BytesToString(bs []uint8) string {
 	}
 	return string(b)
 }
-
 
 func indexAt(s, sep string, n int) int {
 	idx := strings.Index(s[n:], sep)

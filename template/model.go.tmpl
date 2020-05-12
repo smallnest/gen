@@ -23,7 +23,7 @@ DB Table Details
 
 JSON Sample
 -------------------------------------
-{{ToJson .TableInfo.Instance 4}}
+{{ToJSON .TableInfo.Instance 4}}
 */
 
 
@@ -41,15 +41,16 @@ func ({{.ShortStructName}} *{{.StructName}}) TableName() string {
 
 
 
-
+// BeforeSave invoked before saving, return an error if field is not populated.
 func ({{.ShortStructName}} *{{.StructName}}) BeforeSave() error {
 	return nil
 }
 
+// Prepare invoked before saving, can be used to populate fields etc.
 func ({{.ShortStructName}} *{{.StructName}}) Prepare() {
 }
 
+// Validate invoked before performing action, return an error if field is not populated.
 func ({{.ShortStructName}} *{{.StructName}}) Validate(action Action) error {
-
     return nil
 }
