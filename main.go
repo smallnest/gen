@@ -228,6 +228,11 @@ func main() {
 		}
 	}
 
+	fmt.Printf("Generating code for the following tables (%d)\n", len(dbTables))
+	for i, tableName := range dbTables {
+		fmt.Printf("[%d] %s\n", i, tableName)
+	}
+
 	if outDir == nil || *outDir == "" {
 		*outDir = "."
 	}

@@ -100,7 +100,7 @@ func NewSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 	colsDDL := make(map[string]string)
 
 	lines := strings.Split(ddl, ",")
-	for i, line := range lines {
+	for _, line := range lines {
 		line = strings.Replace(line, "\n", " ", -1)
 
 		line := strings.TrimSpace(line)
@@ -121,7 +121,7 @@ func NewSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 		}
 
 
-		fmt.Printf("[%2d] %s\n", i, line)
+		//fmt.Printf("[%2d] %s\n", i, line)
 
 		parts := strings.Split(line, " ")
 		name := parts[0]
