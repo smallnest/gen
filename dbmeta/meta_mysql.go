@@ -150,13 +150,6 @@ func NewMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 
 	return m, nil
 }
-func indexAt(s, sep string, n int) int {
-	idx := strings.Index(s[n:], sep)
-	if idx > -1 {
-		idx += n
-	}
-	return idx
-}
 
 /*
 https://dataedo.com/kb/query/mysql/list-table-default-constraints

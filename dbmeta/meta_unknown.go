@@ -2,6 +2,7 @@ package dbmeta
 
 import (
 	"database/sql"
+	"fmt"
 	"regexp"
 	"strconv"
 	"strings"
@@ -23,6 +24,11 @@ func NewUnknownMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTable
 
 	m.columns = make([]ColumnMeta, len(cols))
 
+	infoSchema, err := LoadTableInfoFromMSSqlInformationSchema(db, tableName)
+	if err != nil {
+		fmt.Printf("NOTICE unable to load InformationSchema table: %s error: %v\n", tableName, err)
+	}
+
 	for i, v := range cols {
 
 		nullable, ok := v.Nullable()
@@ -32,6 +38,35 @@ func NewUnknownMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTable
 		isAutoIncrement := false
 		isPrimaryKey := i == 0
 		colDDL := v.DatabaseTypeName()
+
+		defaultVal := ""
+		columnType, columnLen := ParseSqlType(v.DatabaseTypeName())
+
+		if columnLen == -1 {
+
+			dbType := strings.ToLower(v.DatabaseTypeName())
+			if strings.Contains(dbType, "varchar") {
+				re := regexp.MustCompile(`[-]?\d[\d,]*[\.]?[\d{2}]*`)
+				submatchall := re.FindAllString(dbType, -1)
+				if len(submatchall) > 0 {
+					i, err := strconv.Atoi(submatchall[0])
+					if err == nil {
+						columnLen = int64(i)
+					}
+				}
+			}
+		}
+
+		if infoSchema != nil {
+			infoSchemaColInfo, ok := infoSchema[v.Name()]
+			if ok {
+				if infoSchemaColInfo.column_default != nil {
+					defaultVal = BytesToString(infoSchemaColInfo.column_default.([]uint8))
+					defaultVal = cleanupDefault(defaultVal)
+				}
+			}
+		}
+
 		colMeta := &columnMeta{
 			index:           i,
 			ct:              v,
@@ -39,18 +74,9 @@ func NewUnknownMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTable
 			isPrimaryKey:    isPrimaryKey,
 			isAutoIncrement: isAutoIncrement,
 			colDDL:          colDDL,
-		}
-
-		dbType := strings.ToLower(colMeta.DatabaseTypeName())
-		if strings.Contains(dbType, "varchar") {
-			re := regexp.MustCompile(`[-]?\d[\d,]*[\.]?[\d{2}]*`)
-			submatchall := re.FindAllString(dbType, -1)
-			if len(submatchall) > 0 {
-				i, err := strconv.Atoi(submatchall[0])
-				if err == nil {
-					colMeta.columnLen = int64(i)
-				}
-			}
+			defaultVal:      defaultVal,
+			columnType:      columnType,
+			columnLen:       columnLen,
 		}
 
 		m.columns[i] = colMeta
