@@ -259,3 +259,11 @@ The following info is available within use of the exec template.
     - Added support for varchar2, datetime2, float8, USER_DEFINED 
 - v0.5 
 
+
+
+ 
+## Contributors
+
+- [alexj212](https://github.com/alexj212) -  a big thanks to alexj212 for his contributions
+
+See more contributors: [contributors](https://github.com/smallnest/gen/graphs/contributors)
