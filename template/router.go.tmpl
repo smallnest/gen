@@ -15,9 +15,11 @@ import (
 )
 
 var (
+    // DB reference to database
 	DB           *gorm.DB
 )
 
+// PagedResults results for pages GetAll results.
 type PagedResults struct {
 	Page         int64       `json:"page"`
 	PageSize     int64       `json:"page_size"`
@@ -39,7 +41,7 @@ type HTTPError struct {
 //  defer db.Close()
 
 
-
+// ConfigRouter configure http.Handler router
 func ConfigRouter() http.Handler {
 	router := httprouter.New()
     {{range .structs}}config{{pluralize .}}Router(router)
@@ -48,6 +50,8 @@ func ConfigRouter() http.Handler {
 	return router
 }
 
+
+// ConfigGinRouter configure gin router
 func ConfigGinRouter(router gin.IRoutes) {
     {{range .structs}}configGin{{pluralize .}}Router(router)
 	{{end}}
@@ -55,6 +59,8 @@ func ConfigGinRouter(router gin.IRoutes) {
 	return
 }
 
+
+// ConverHttprouterToGin wrap httprouter.Handle to gin.HandlerFunc
 func ConverHttprouterToGin(f httprouter.Handle) gin.HandlerFunc {
 	return func(c *gin.Context) {
 		var params httprouter.Params
@@ -105,17 +111,17 @@ func readJSON(r *http.Request, v interface{}) error {
 func returnError(w http.ResponseWriter, r *http.Request, err error) {
 	status :=0
 	switch err {
-	case {{.daoPackageName}}.NotFound:
+	case {{.daoPackageName}}.ErrNotFound:
 		status = http.StatusBadRequest
-	case {{.daoPackageName}}.UnableToMarshalJson:
+	case {{.daoPackageName}}.ErrUnableToMarshalJSON:
 		status = http.StatusBadRequest
-	case {{.daoPackageName}}.UpdateFailedError:
+	case {{.daoPackageName}}.ErrUpdateFailed:
 		status = http.StatusBadRequest
-	case {{.daoPackageName}}.InsertFailedError:
+	case {{.daoPackageName}}.ErrInsertFailed:
 		status = http.StatusBadRequest
-	case {{.daoPackageName}}.DeleteFailedError:
+	case {{.daoPackageName}}.ErrDeleteFailed:
 		status = http.StatusBadRequest
-	case {{.daoPackageName}}.BadParamsError:
+	case {{.daoPackageName}}.ErrBadParams:
 		status = http.StatusBadRequest
 	default:
 		status = http.StatusBadRequest
@@ -125,7 +131,7 @@ func returnError(w http.ResponseWriter, r *http.Request, err error) {
 		Message: err.Error(),
 	}
 
-	SendJson(w, r, er.Code, er)
+	SendJSON(w, r, er.Code, er)
 }
 
 

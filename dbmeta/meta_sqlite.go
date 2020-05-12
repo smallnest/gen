@@ -8,6 +8,7 @@ import (
 	"github.com/jimsmart/schema"
 )
 
+// NewSqliteMeta fetch db meta data for Sqlite3 database
 func NewSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error) {
 
 	if tableName == "sqlite_sequence" || tableName == "sqlite_stat1" {
@@ -20,13 +21,13 @@ func NewSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 		tableName:   tableName,
 	}
 
-	sql := fmt.Sprintf("SELECT sql FROM sqlite_master WHERE type='table' and name = '%s';", m.tableName)
-	_, err := db.Query(sql)
+	ddlSQL := fmt.Sprintf("SELECT sql FROM sqlite_master WHERE type='table' and name = '%s';", m.tableName)
+	_, err := db.Query(ddlSQL)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load ddl from sqlite_master: %v", err)
 	}
 
-	row := db.QueryRow(sql, 0)
+	row := db.QueryRow(ddlSQL, 0)
 	err = row.Scan(&m.ddl)
 	if err != nil {
 		return nil, err
@@ -65,15 +66,15 @@ func NewSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 
 	colsInfos := make(map[string]*sqliteColumnInfo)
 
-	sql = fmt.Sprintf("PRAGMA table_info('%s');", m.tableName)
-	res, err := db.Query(sql)
+	pragmaSQL := fmt.Sprintf("PRAGMA table_info('%s');", m.tableName)
+	res, err := db.Query(pragmaSQL)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load PRAGMA table_info %s: %v", m.tableName, err)
 	}
 
 	for res.Next() {
 		ci := &sqliteColumnInfo{}
-		err = res.Scan(&ci.cid, &ci.name, &ci.data_type, &ci.notnull, &ci.dflt_value, &ci.primary_key)
+		err = res.Scan(&ci.cid, &ci.name, &ci.dataType, &ci.notnull, &ci.dfltValue, &ci.primaryKey)
 		if err != nil {
 			return nil, fmt.Errorf("unable to load identity info from postgres Scan: %v", err)
 		}
@@ -158,13 +159,13 @@ func NewSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 
 		details, ok := colsInfos[v.Name()]
 		if ok {
-			isPrimaryKey = details.primary_key == 1
-			if details.dflt_value != nil {
-				defaultVal = details.dflt_value.(string)
+			isPrimaryKey = details.primaryKey == 1
+			if details.dfltValue != nil {
+				defaultVal = details.dfltValue.(string)
 			}
 
 			notNull = details.notnull == 1
-			columnType, columnLen = ParseSqlType(details.data_type)
+			columnType, columnLen = ParseSQLType(details.dataType)
 		}
 
 		if isPrimaryKey {
@@ -191,10 +192,10 @@ func NewSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 }
 
 type sqliteColumnInfo struct {
-	cid         int
-	name        string
-	data_type   string
-	notnull     int
-	dflt_value  interface{}
-	primary_key int
+	cid        int
+	name       string
+	dataType   string
+	notnull    int
+	dfltValue  interface{}
+	primaryKey int
 }

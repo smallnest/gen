@@ -59,7 +59,7 @@ var intToWordMap = []string{
 	"nine",
 }
 
-// fmtFieldName formats a string as a struct key
+// FmtFieldName formats a string as a struct key
 //
 // Example:
 // 	fmtFieldName("foo_id")
@@ -168,6 +168,8 @@ func stringifyFirstChar(str string) string {
 	return intToWordMap[i] + "_" + str[1:]
 }
 
+
+// Copy a src struct into a destination struct
 func Copy(dst interface{}, src interface{}) error {
 	dstV := reflect.Indirect(reflect.ValueOf(dst))
 	srcV := reflect.Indirect(reflect.ValueOf(src))

@@ -8,7 +8,8 @@ import (
 	"github.com/jimsmart/schema"
 )
 
-func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error) {
+// NewMsSQLMeta fetch db meta data for MS SQL database
+func NewMsSQLMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error) {
 	m := &dbTableMeta{
 		sqlType:     sqlType,
 		sqlDatabase: sqlDatabase,
@@ -22,34 +23,34 @@ func NewMsSqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 
 	m.columns = make([]ColumnMeta, len(cols))
 
-	colInfo := make(map[string]*msSqlColumnInfo)
+	colInfo := make(map[string]*msSQLColumnInfo)
 
-	identitySql := fmt.Sprintf("SELECT name, is_identity, is_nullable, max_length FROM sys.columns WHERE  object_id = object_id('dbo.%s')", tableName)
+	identitySQL := fmt.Sprintf("SELECT name, is_identity, is_nullable, max_length FROM sys.columns WHERE  object_id = object_id('dbo.%s')", tableName)
 
-	res, err := db.Query(identitySql)
+	res, err := db.Query(identitySQL)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load ddl from ms sql: %v", err)
 	}
 
 	for res.Next() {
 		var name string
-		var is_identity, is_nullable bool
-		var max_length int64
-		err = res.Scan(&name, &is_identity, &is_nullable, &max_length)
+		var isIdentity, isNullable bool
+		var maxLength int64
+		err = res.Scan(&name, &isIdentity, &isNullable, &maxLength)
 		if err != nil {
 			return nil, fmt.Errorf("unable to load identity info from ms sql Scan: %v", err)
 		}
 
-		colInfo[name] = &msSqlColumnInfo{
-			name:        name,
-			is_identity: is_identity,
-			is_nullable: is_nullable,
-			max_length:  max_length,
+		colInfo[name] = &msSQLColumnInfo{
+			name:       name,
+			isIdentity: isIdentity,
+			isNullable: isNullable,
+			maxLength:  maxLength,
 		}
 
 	}
 
-	primaryKeySql := fmt.Sprintf(`
+	primaryKeySQL := fmt.Sprintf(`
 SELECT Col.Column_Name from 
     INFORMATION_SCHEMA.TABLE_CONSTRAINTS Tab, 
     INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE Col 
@@ -59,7 +60,7 @@ WHERE
     AND Constraint_Type = 'PRIMARY KEY'
     AND Col.Table_Name = '%s'
 `, tableName)
-	res, err = db.Query(primaryKeySql)
+	res, err = db.Query(primaryKeySQL)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load ddl from ms sql: %v", err)
 	}
@@ -74,7 +75,7 @@ WHERE
 		//fmt.Printf("## PRIMARY KEY COLUMN_NAME: %s\n", columnName)
 		colInfo, ok := colInfo[columnName]
 		if ok {
-			colInfo.primary_key = true
+			colInfo.primaryKey = true
 			//fmt.Printf("name: %s primary_key: %t\n", colInfo.name, colInfo.primary_key)
 		}
 	}
@@ -96,13 +97,13 @@ WHERE
 
 		colInfo, ok := colInfo[v.Name()]
 		if ok {
-			// fmt.Printf("name: %s DatabaseTypeName: %s primary_key: %t is_identity: %t is_nullable: %t max_length: %d\n", colInfo.name, v.DatabaseTypeName(), colInfo.primary_key, colInfo.is_identity, colInfo.is_nullable, colInfo.max_length)
-			isPrimaryKey = colInfo.primary_key
-			nullable = colInfo.is_nullable
-			isAutoIncrement = colInfo.is_identity
+			// fmt.Printf("name: %s DatabaseTypeName: %s primary_key: %t is_identity: %t is_nullable: %t max_length: %d\n", colInfo.name, v.DatabaseTypeName(), colInfo.primaryKey, colInfo.isIdentity, colInfo.isNullable, colInfo.maxLength)
+			isPrimaryKey = colInfo.primaryKey
+			nullable = colInfo.isNullable
+			isAutoIncrement = colInfo.isIdentity
 			dbType := strings.ToLower(v.DatabaseTypeName())
 			if strings.Contains(dbType, "char") || strings.Contains(dbType, "text") {
-				columnLen = colInfo.max_length
+				columnLen = colInfo.maxLength
 			}
 		} else {
 			fmt.Printf("name: %s DatabaseTypeName: %s NOT FOUND in colInfo\n", v.Name(), v.DatabaseTypeName())
@@ -115,8 +116,8 @@ WHERE
 		if infoSchema != nil {
 			infoSchemaColInfo, ok := infoSchema[v.Name()]
 			if ok {
-				if infoSchemaColInfo.column_default != nil {
-					defaultVal = fmt.Sprintf("%v", infoSchemaColInfo.column_default)
+				if infoSchemaColInfo.ColumnDefault != nil {
+					defaultVal = fmt.Sprintf("%v", infoSchemaColInfo.ColumnDefault)
 					defaultVal = cleanupDefault(defaultVal)
 				}
 			}
@@ -144,12 +145,12 @@ WHERE
 	return m, nil
 }
 
-type msSqlColumnInfo struct {
-	name        string
-	is_identity bool
-	is_nullable bool
-	primary_key bool
-	max_length  int64
+type msSQLColumnInfo struct {
+	name       string
+	isIdentity bool
+	isNullable bool
+	primaryKey bool
+	maxLength  int64
 }
 
 /*
