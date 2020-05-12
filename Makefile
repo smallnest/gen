@@ -85,6 +85,8 @@ generate_example: clean_example ## generate example project code from sqlite db 
 		--templateDir=../template \
 		--json \
 		--db \
+		--generate-dao \
+		--generate-proj \
 		--protobuf \
 		--gorm \
 		--guregu \
@@ -127,4 +129,17 @@ clean_example: ## remove generated example code
 	 ./example/go.sum \
 	 ./example/model \
 	 ./example/.gitignore
+
+
+
+
+
+
+run_dbmeta: clean_example ## generate example project code from sqlite db in ./examples
+	go run github.com/smallnest/gen/_test/dbmeta \
+		--sqltype=sqlite3 \
+		--connstr "./example/sample.db" \
+		--database main
+
+ ## --table employees_2
 

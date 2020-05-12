@@ -18,7 +18,6 @@ func NewPostgresMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTabl
 	if err != nil {
 		return nil, err
 	}
-	m.ddl = BuildDefaultTableDDL(tableName, cols)
 	m.columns = make([]ColumnMeta, len(cols))
 
 	colInfo := make(map[string]*postgresColumnInfo)
@@ -47,7 +46,6 @@ ORDER BY table_name, ordinal_position;
 		colInfo[ci.column_name] = ci
 	}
 
-	//, c.ordinal_position
 	primaryKeySql := fmt.Sprintf(`
 	SELECT c.column_name
 	FROM information_schema.key_column_usage AS c
@@ -76,6 +74,7 @@ ORDER BY table_name, ordinal_position;
 	}
 
 	for i, v := range cols {
+		defaultVal := ""
 		nullable, ok := v.Nullable()
 		if !ok {
 			nullable = false
@@ -90,12 +89,21 @@ ORDER BY table_name, ordinal_position;
 			nullable = colInfo.is_nullable == "YES"
 			isAutoIncrement = colInfo.is_identity == "YES"
 			isPrimaryKey = colInfo.primary_key
+			if colInfo.column_default != nil {
+				defaultVal = cleanupDefault(fmt.Sprintf("%v", colInfo.column_default))
+			}
 
 			ml, ok := colInfo.character_maximum_length.(int64)
 			if ok {
 				// fmt.Printf("@@ Name: %v maxLen: %v\n", v.Name(), ml)
 				maxLen = ml
 			}
+		}
+
+		definedType := v.DatabaseTypeName()
+
+		if definedType == "" {
+			definedType = "USER_DEFINED"
 		}
 
 		colDDL := v.DatabaseTypeName()
@@ -108,6 +116,8 @@ ORDER BY table_name, ordinal_position;
 			isAutoIncrement: isAutoIncrement,
 			colDDL:          colDDL,
 			columnLen:       maxLen,
+			columnType:      definedType,
+			defaultVal:      defaultVal,
 		}
 
 		m.columns[i] = colMeta
@@ -118,7 +128,7 @@ ORDER BY table_name, ordinal_position;
 	if err != nil {
 		return nil, err
 	}
-
+	m.ddl = BuildDefaultTableDDL(tableName, m.columns)
 	return m, nil
 }
 
@@ -140,3 +150,16 @@ type postgresColumnInfo struct {
 func (ci *postgresColumnInfo) String() string {
 	return fmt.Sprintf("[%2d] %-20s %-20s data_type: %v character_maximum_length: %v is_nullable: %v is_identity: %v", ci.ordinal_position, ci.table_name, ci.column_name, ci.data_type, ci.character_maximum_length, ci.is_nullable, ci.is_identity)
 }
+
+/*
+https://dataedo.com/kb/query/postgresql/list-table-default-constraints
+
+select col.table_schema,
+       col.table_name,
+       col.column_name,
+       col.column_default
+from information_schema.columns col
+where col.column_default is not null
+      and col.table_schema not in('information_schema', 'pg_catalog')
+order by col.column_name;
+*/

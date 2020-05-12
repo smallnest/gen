@@ -36,5 +36,6 @@ example/docs/
 example/templates/
 example/go.sum
 custom/test/
-test.sh
+example/*.proto
 tests/
+.env

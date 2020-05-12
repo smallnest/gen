@@ -1,4 +1,4 @@
-### gen 
+## gen 
 
 [![License](https://img.shields.io/badge/License-Apache%203.0-blue.svg)](https://opensource.org/licenses/Apache-3.0) [![GoDoc](https://godoc.org/github.com/smallnest/gen?status.png)](http://godoc.org/github.com/smallnest/gen)  [![travis](https://travis-ci.org/smallnest/gen.svg?branch=master)](https://travis-ci.org/smallnest/gen) [![Go Report Card](https://goreportcard.com/badge/github.com/smallnest/gen)](https://goreportcard.com/report/github.com/smallnest/gen)
 
@@ -160,7 +160,7 @@ Currently Supported,
 Planned Support
 - Oracle
 
-#### Supported Data Types
+## Supported Data Types
 
 Most datatypes are supported, for Mysql, Postgres, SQLite and MS SQL. `gen` uses a mapping json file that can be used to add mapping types. By default the internal mapping file is loaded and processed. If can be overwritten or additional types added by using the `--mapping=extra.json` command line option.
 
@@ -178,7 +178,7 @@ Below is a portion of the mapping file, showing the mapping for `varchar`.
 ```
  
 
-### Advanced
+## Advanced
 The `gen` tool provides functionality to layout your own project format. Users have 2 options.
 * Provide local templates with the `--templateDir=` option - this will generate code using the local templates. Templates can either be exported from `gen`
 via the command `gen --save ./mytemplates`. This will save the embedded templates for local editing. Then you would specify the `--templateDir=` option when generating a project.
@@ -241,11 +241,30 @@ The following info is available within use of the exec template.
 ## Notes
 - MySql, Mssql, Postgres and Sqlite have a database metadata fetcher that will query the db, and update the auto increment, primary key and nullable info for the gorm annotation.
 
+## DB Meta Data Loading    
+| DB   | Type  | Nullable  | Primary Key  | Auto Increment  | Column Len | default Value| create ddl
+|---|---|---|---|---|---|---|---|
+|sqlite   |y   | y  | y  | y  | y | y| y
+|postgres   |y   | y  | y  | y  | y | y| n
+|mysql   |y   | y  | y  | y  | y | y| y
+|ms sql   |y   | y  | y  | y  | y | y| n
+
+## Version History
+- v0.9 (05/12/2020) 
+    - updated db meta data loading fetching default values
+    - added default value to GORM tags
+    - Added protobuf .proto generation
+    - Added test app to display meta data
+    - Cleanup DDL generation
+    - Added support for varchar2, datetime2, float8, USER_DEFINED 
+- v0.5 
+
+
 
  
 ## Contributors
 
+- [alexj212](https://github.com/alexj212) -  a big thanks to alexj212 for his contributions
 
-- [alexj212](https://github.com/alexj212) -  a big thanks to alexj212 for his hrad works
 
 See more contributors: [contributors](https://github.com/smallnest/gen/graphs/contributors)

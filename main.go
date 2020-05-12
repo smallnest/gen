@@ -61,6 +61,7 @@ var (
 	jsonNameFormat     = goopt.String([]string{"--json-fmt"}, "snake", "json name format [snake | camel | lower_camel | none]")
 	gormAnnotation     = goopt.Flag([]string{"--gorm"}, []string{}, "Add gorm annotations (tags)", "")
 	protobufAnnotation = goopt.Flag([]string{"--protobuf"}, []string{}, "Add protobuf annotations (tags)", "")
+	protoNameFormat    = goopt.String([]string{"--proto-fmt"}, "snake", "proto name format [snake | camel | lower_camel | none]")
 	dbAnnotation       = goopt.Flag([]string{"--db"}, []string{}, "Add db annotations (tags)", "")
 	gureguTypes        = goopt.Flag([]string{"--guregu"}, []string{}, "Add guregu null types", "")
 
@@ -111,7 +112,8 @@ func init() {
 	goopt.Description = func() string {
 		return "ORM and RESTful API generator for SQl databases"
 	}
-	goopt.Version = "0.5"
+
+	goopt.Version = "0.9 (05/12/2020)"
 	goopt.Summary = `gen [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> --module=example.com/example [--json] [--gorm] [--guregu] [--generate-dao] [--generate-proj]
 
            sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
@@ -226,6 +228,11 @@ func main() {
 		}
 	}
 
+	fmt.Printf("Generating code for the following tables (%d)\n", len(dbTables))
+	for i, tableName := range dbTables {
+		fmt.Printf("[%d] %s\n", i, tableName)
+	}
+
 	if outDir == nil || *outDir == "" {
 		*outDir = "."
 	}
@@ -256,6 +263,7 @@ func main() {
 	SwaggerInfo.Host = fmt.Sprintf("%s:%d", *serverHost, *serverPort)
 
 	// generate go files for each table
+	var tableIdx = 0
 	for i, tableName := range dbTables {
 		if strings.HasPrefix(tableName, "[") && strings.HasSuffix(tableName, "]") {
 			tableName = tableName[1 : len(tableName)-1]
@@ -275,6 +283,7 @@ func main() {
 			*dbAnnotation,
 			*gureguTypes,
 			*jsonNameFormat,
+			*protoNameFormat,
 			*verbose)
 
 		if err != nil {
@@ -288,6 +297,10 @@ func main() {
 			}
 			continue
 		}
+
+		tableInfo.Index = tableIdx
+		tableInfo.IndexPlus1 = tableIdx + 1
+		tableIdx++
 
 		tableInfos[tableName] = tableInfo
 		structNames = append(structNames, structName)
@@ -397,6 +410,7 @@ func generate() {
 	var ReadMeTmpl string
 	var GitIgnoreTmpl string
 	var MakefileTmpl string
+	var ProtobufTmpl string
 
 	if ControllerTmpl, err = loadTemplate("controller.go.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
@@ -427,6 +441,10 @@ func generate() {
 		return
 	}
 	if MakefileTmpl, err = loadTemplate("Makefile.tmpl"); err != nil {
+		fmt.Printf("Error loading template %v\n", err)
+		return
+	}
+	if ProtobufTmpl, err = loadTemplate("protobuf.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
 		return
 	}
@@ -561,6 +579,14 @@ func generate() {
 		if *restApiGenerate {
 			buf.WriteString(fmt.Sprintf(" --rest"))
 		}
+
+		if *daoGenerate {
+			buf.WriteString(fmt.Sprintf(" --generate-dao"))
+		}
+		if *projectGenerate {
+			buf.WriteString(fmt.Sprintf(" --generate-proj"))
+		}
+
 		if *verbose {
 			buf.WriteString(fmt.Sprintf(" --verbose"))
 		}
@@ -580,6 +606,11 @@ func generate() {
 			"RegenCmdLine": regenCmdLine,
 		}
 		writeTemplate("makefile", MakefileTmpl, data, filepath.Join(*outDir, "Makefile"), *overwrite, false)
+	}
+
+	if *protobufAnnotation {
+		protofile := fmt.Sprintf("%s.proto", *sqlDatabase)
+		writeTemplate("protobuf", ProtobufTmpl, data, filepath.Join(*outDir, protofile), *overwrite, false)
 	}
 
 	data = map[string]interface{}{
@@ -772,6 +803,7 @@ func getTemplate(name, t string) (*template.Template, error) {
 		"wrapBash":          wrapBash,
 		"GenerateTableFile": GenerateTableFile,
 		"GenerateFile":      GenerateFile,
+		"ToJson":            ToJson,
 	}
 
 	tmpl, err := template.New(name).Funcs(funcMap).Parse(t)
@@ -880,4 +912,13 @@ func loadTemplate(filename string) (content string, err error) {
 	}
 
 	return content, nil
+}
+
+func ToJson(val interface{}, indent int) string {
+	pad := fmt.Sprintf("%*s", indent, "")
+	strB, _ := json.MarshalIndent(val, "", pad)
+
+	response := string(strB)
+	response = strings.Replace(response, "\n", "", -1)
+	return response
 }
