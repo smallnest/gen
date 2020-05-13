@@ -22,7 +22,7 @@ $ go get -u github.com/smallnest/gen
 ## download sample sqlite database
 $ wget https://github.com/smallnest/gen/raw/master/example/sample.db
 
-## generate code based on the sqlite database (project will be containied within the ./example dir)
+## generate code based on the sqlite database (project will be contained within the ./example dir)
 $ gen --sqltype=sqlite3 \
    	--connstr "./sample.db" \
    	--database main  \
@@ -60,7 +60,7 @@ curl http://localhost:8080/artists
 
 
 ## Usage
-```BASH
+```console
 $ ./gen --help
 Usage of gen:
         gen [-v] --connstr "user:password@/dbname" --package pkgName --database databaseName --table tableName [--json] [--gorm] [--guregu]
@@ -162,9 +162,9 @@ Planned Support
 
 ## Supported Data Types
 
-Most datatypes are supported, for Mysql, Postgres, SQLite and MS SQL. `gen` uses a mapping json file that can be used to add mapping types. By default the internal mapping file is loaded and processed. If can be overwritten or additional types added by using the `--mapping=extra.json` command line option.
+Most data types are supported, for Mysql, Postgres, SQLite and MS SQL. `gen` uses a mapping json file that can be used to add mapping types. By default, the internal mapping file is loaded and processed. If can be overwritten or additional types added by using the `--mapping=extra.json` command line option.
 
-The default `mapping.json` file is located within the templates dir. Use `gen --save=./templates` to save the contents of the templates to `./templates`. 
+The default `mapping.json` file is located within the ./templates dir. Use `gen --save=./templates` to save the contents of the templates to `./templates`. 
 Below is a portion of the mapping file, showing the mapping for `varchar`. 
    
 ```json
