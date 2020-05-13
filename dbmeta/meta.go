@@ -37,24 +37,23 @@ type SQLMappings struct {
 type SQLMapping struct {
 
 	// SqlType sql type reported from db
-	SQLType        string `json:"sql_type"`
+	SQLType string `json:"sql_type"`
 
 	// GoType mapped go type
-	GoType         string `json:"go_type"`
+	GoType string `json:"go_type"`
 
 	// JSONType mapped json type
-	JSONType       string `json:"json_type"`
+	JSONType string `json:"json_type"`
 
 	// ProtobufType mapped protobuf type
-	ProtobufType   string `json:"protobuf_type"`
+	ProtobufType string `json:"protobuf_type"`
 
 	// GureguType mapped go type using Guregu
-	GureguType     string `json:"guregu_type"`
+	GureguType string `json:"guregu_type"`
 
 	// GoNullableType mapped go type using nullable
 	GoNullableType string `json:"go_nullable_type"`
 }
-
 
 // ColumnMeta meta data for a column
 type ColumnMeta interface {
@@ -92,7 +91,6 @@ type columnMeta struct {
 	columnLen       int64
 	defaultVal      string
 }
-
 
 // ColumnType column type
 func (ci *columnMeta) ColumnType() string {
@@ -231,7 +229,7 @@ type FieldInfo struct {
 }
 
 // LoadMeta loads the DbTableMeta data from the db connection for the table
-func LoadMeta(sqlType string, db *sql.DB, sqlDatabase, tableName string, ) (DbTableMeta, error) {
+func LoadMeta(sqlType string, db *sql.DB, sqlDatabase, tableName string) (DbTableMeta, error) {
 	dbMetaFunc, haveMeta := metaDataFuncs[sqlType]
 	if !haveMeta {
 		dbMetaFunc = NewUnknownMeta
@@ -348,7 +346,7 @@ func generateFieldsTypes(dbMeta DbTableMeta,
 	verbose bool) []*FieldInfo {
 
 	var fields []*FieldInfo
-	var field = ""
+	field := ""
 	for i, c := range dbMeta.Columns() {
 		name := c.Name()
 		if verbose {
@@ -486,15 +484,14 @@ func createGormAnnotation(c ColumnMeta) string {
 			value := c.DefaultValue()
 			value = strings.Replace(value, "\"", "'", -1)
 
-			if value == "NULL" ||value == "null" {
+			if value == "NULL" || value == "null" {
 				value = ""
 			}
 
-			if value != "" && strings.Index(value, "()") ==  -1 {
-				buf.WriteString(fmt.Sprintf("default:%s;", value ))
+			if value != "" && strings.Index(value, "()") == -1 {
+				buf.WriteString(fmt.Sprintf("default:%s;", value))
 			}
 		}
-
 
 		if c.IsPrimaryKey() {
 			buf.WriteString("primary_key")
@@ -536,6 +533,11 @@ func ProcessMappings(mappingJsonstring []byte) error {
 // LoadMappings load sql mappings to load mapping json file
 func LoadMappings(mappingFileName string) error {
 	mappingFile, err := os.Open(mappingFileName)
+	if err != nil {
+		fmt.Printf("Error loading mapping file %s error: %v\n", mappingFileName, err)
+		return err
+	}
+
 	defer mappingFile.Close()
 	byteValue, err := ioutil.ReadAll(mappingFile)
 	if err != nil {

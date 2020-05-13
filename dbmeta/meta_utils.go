@@ -121,7 +121,6 @@ ORDER BY table_name, ordinal_position;
 	return colInfo, nil
 }
 
-
 // InformationSchema results from a query of the InformationSchema db table
 type InformationSchema struct {
 	TableCatalog           string

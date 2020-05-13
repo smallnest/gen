@@ -60,7 +60,8 @@ deps:## analyze project deps
 	go list -f '{{ join .Deps  "\n"}}' . |grep "/" | grep -v "github.com/smallnest/gen"| grep "\." | sort |uniq
 
 fmt: ## run fmt on the project
-	go fmt .
+	## go fmt .
+	gofmt -s -d -w -l .
 
 build: check_prereq ## build gen binary
 	packr2 build .

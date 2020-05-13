@@ -121,7 +121,6 @@ func NewSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 			continue
 		}
 
-
 		//fmt.Printf("[%2d] %s\n", i, line)
 
 		parts := strings.Split(line, " ")

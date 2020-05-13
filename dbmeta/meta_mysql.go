@@ -86,8 +86,6 @@ func NewMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 		fmt.Printf("error calling LoadTableInfoFromMSSqlInformationSchema table: %s error: %v\n", tableName, err)
 	}
 
-
-
 	m.columns = make([]ColumnMeta, len(cols))
 
 	for i, v := range cols {
@@ -110,13 +108,11 @@ func NewMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 			infoSchemaColInfo, ok := infoSchema[v.Name()]
 			if ok {
 				if infoSchemaColInfo.ColumnDefault != nil {
-					defaultVal = BytesToString(  infoSchemaColInfo.ColumnDefault.([]uint8))
+					defaultVal = BytesToString(infoSchemaColInfo.ColumnDefault.([]uint8))
 					defaultVal = cleanupDefault(defaultVal)
 				}
 			}
 		}
-
-
 
 		colMeta := &columnMeta{
 			index:           i,
