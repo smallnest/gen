@@ -77,6 +77,26 @@ func FmtFieldName(s string) string {
 	}
 	return string(runes)
 }
+func isAllLower(name string) (allLower bool) {
+	allLower = true
+	for _, r := range name {
+		if !unicode.IsLower(r) {
+			allLower = false
+			break
+		}
+	}
+	return
+}
+
+func lintAllLowerFieldName(name string) string {
+	runes := []rune(name)
+	if u := strings.ToUpper(name); commonInitialisms[u] {
+		copy(runes[0:], []rune(u))
+	} else {
+		runes[0] = unicode.ToUpper(runes[0])
+	}
+	return string(runes)
+}
 
 func lintFieldName(name string) string {
 	// Fast path for simple cases: "_" and all lowercase.
@@ -88,27 +108,21 @@ func lintFieldName(name string) string {
 		name = name[1:]
 	}
 
-	allLower := true
-	for _, r := range name {
-		if !unicode.IsLower(r) {
-			allLower = false
-			break
-		}
-	}
+	allLower := isAllLower(name)
+
 	if allLower {
-		runes := []rune(name)
-		if u := strings.ToUpper(name); commonInitialisms[u] {
-			copy(runes[0:], []rune(u))
-		} else {
-			runes[0] = unicode.ToUpper(runes[0])
-		}
-		return string(runes)
+		return lintAllLowerFieldName(name)
 	}
 
+	return lintMixedFieldName(name)
+}
+
+func lintMixedFieldName(name string) string {
 	// Split camelCase at any lower->upper transition, and split on underscores.
 	// Check each word for common initialisms.
 	runes := []rune(name)
 	w, i := 0, 0 // index of start of word, scan
+
 	for i+1 <= len(runes) {
 		eow := false // whether we hit the end of a word
 
