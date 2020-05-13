@@ -8,7 +8,6 @@ import (
 	"unicode"
 )
 
-
 // commonInitialisms is a set of common initialisms.
 // Only add entries that are highly unlikely to be non-initialisms.
 // For instance, "ID" is fine (Freudian code is rare), but "AND" is not.
@@ -167,7 +166,6 @@ func stringifyFirstChar(str string) string {
 
 	return intToWordMap[i] + "_" + str[1:]
 }
-
 
 // Copy a src struct into a destination struct
 func Copy(dst interface{}, src interface{}) error {

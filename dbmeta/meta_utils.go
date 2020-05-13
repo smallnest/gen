@@ -88,6 +88,7 @@ type PostgresInformationSchema struct {
 	ColumnDefault          interface{}
 	IsNullable             string
 	IsIdentity             string
+	PrimaryKey             bool
 }
 
 // LoadTableInfoFromPostgresInformationSchema fetch info from information_schema for postgres database
@@ -120,7 +121,6 @@ ORDER BY table_name, ordinal_position;
 
 	return colInfo, nil
 }
-
 
 // InformationSchema results from a query of the InformationSchema db table
 type InformationSchema struct {

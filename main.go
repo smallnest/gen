@@ -95,7 +95,6 @@ var (
 	tables      []string
 	contextMap  map[string]interface{}
 
-
 	swaggerInfo = &swaggerInfoDetails{
 		Version:      "1.0",
 		BasePath:     "/",
@@ -114,7 +113,7 @@ func init() {
 		return "ORM and RESTful API generator for SQl databases"
 	}
 
-	goopt.Version = "0.9 (05/12/2020)"
+	goopt.Version = "0.9.2 (05/12/2020)"
 	goopt.Summary = `gen [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> --module=example.com/example [--json] [--gorm] [--guregu] [--generate-dao] [--generate-proj]
 
            sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
@@ -151,11 +150,12 @@ func main() {
 
 	if *contextFileName != "" {
 		contextFile, err := os.Open(*contextFileName)
-		defer contextFile.Close()
 		if err != nil {
 			fmt.Printf("Error loading context file %s error: %v\n", *contextFileName, err)
 			return
 		}
+
+		defer contextFile.Close()
 		jsonParser := json.NewDecoder(contextFile)
 		err = jsonParser.Decode(&contextMap)
 		if err != nil {
@@ -652,7 +652,6 @@ func generate() {
 	}
 }
 
-
 // GenerateTableFile generate file from template using specific table used within templates
 func GenerateTableFile(tableName, templateFilename, outputDirectory, outputFileName string, formatOutput bool) string {
 	buf := bytes.Buffer{}
@@ -695,7 +694,6 @@ func GenerateTableFile(tableName, templateFilename, outputDirectory, outputFileN
 	writeTemplate(templateFilename, tpl, data, outputFile, *overwrite, formatOutput)
 	return buf.String()
 }
-
 
 // GenerateFile generate file from template, non table used within templates
 func GenerateFile(templateFilename, outputDirectory, outputFileName string, formatOutput bool) string {
@@ -918,7 +916,6 @@ func loadTemplate(filename string) (content string, err error) {
 
 	return content, nil
 }
-
 
 // ToJSON func to return json string representation of struct
 func ToJSON(val interface{}, indent int) string {

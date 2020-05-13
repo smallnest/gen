@@ -10,9 +10,8 @@ import (
 	"github.com/jimsmart/schema"
 )
 
-
-// NewUnknownMeta fetch db meta data for unknown database type
-func NewUnknownMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error) {
+// LoadUnknownMeta fetch db meta data for unknown database type
+func LoadUnknownMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error) {
 	m := &dbTableMeta{
 		sqlType:     sqlType,
 		sqlDatabase: sqlDatabase,

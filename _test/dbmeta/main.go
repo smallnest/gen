@@ -22,7 +22,6 @@ var (
 	sqlConnStr    = goopt.String([]string{"-c", "--connstr"}, "nil", "database connection string")
 	sqlDatabase   = goopt.String([]string{"-d", "--database"}, "nil", "Database to for connection")
 	sqlTable      = goopt.String([]string{"-t", "--table"}, "", "Table to build struct from")
-	verbose       = goopt.Flag([]string{"-v", "--verbose"}, []string{}, "Enable verbose output", "")
 	baseTemplates *packr.Box
 )
 
@@ -31,7 +30,7 @@ func init() {
 	goopt.Description = func() string {
 		return "ORM and RESTful meta data viewer for SQl databases"
 	}
-	goopt.Version = "0.9 (05/12/2020)"
+	goopt.Version = "0.9.2 (05/12/2020)"
 	goopt.Summary = `dbmeta [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> 
 
            sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
@@ -45,9 +44,6 @@ func init() {
 
 func main() {
 	baseTemplates = packr.New("gen", "./template")
-
-	if *verbose {
-	}
 
 	var err error
 	var content []byte
@@ -82,7 +78,8 @@ func main() {
 		fmt.Printf("Error in open database: %v\n\n", err.Error())
 		return
 	}
-	defer db.Close()
+	defer func() { _ = db.Close() }()
+
 	err = db.Ping()
 	if err != nil {
 		fmt.Printf("Error connecting to database: %v\n\n", err.Error())
