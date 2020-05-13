@@ -88,6 +88,7 @@ type PostgresInformationSchema struct {
 	ColumnDefault          interface{}
 	IsNullable             string
 	IsIdentity             string
+	PrimaryKey             bool
 }
 
 // LoadTableInfoFromPostgresInformationSchema fetch info from information_schema for postgres database

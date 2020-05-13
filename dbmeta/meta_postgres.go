@@ -21,7 +21,7 @@ func LoadPostgresMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTab
 	}
 	m.columns = make([]ColumnMeta, len(cols))
 
-	colInfo, err := postgresLoadInfoSchema(db, tableName)
+	colInfo, err := LoadTableInfoFromPostgresInformationSchema(db, tableName)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load identity info schema from postgres table: %s error: %v", tableName, err)
 	}
@@ -44,14 +44,14 @@ func LoadPostgresMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTab
 		maxLen = -1
 		colInfo, ok := colInfo[v.Name()]
 		if ok {
-			nullable = colInfo.isNullable == "YES"
-			isAutoIncrement = colInfo.isIdentity == "YES"
-			isPrimaryKey = colInfo.primaryKey
-			if colInfo.columnDefault != nil {
-				defaultVal = cleanupDefault(fmt.Sprintf("%v", colInfo.columnDefault))
+			nullable = colInfo.IsNullable == "YES"
+			isAutoIncrement = colInfo.IsIdentity == "YES"
+			isPrimaryKey = colInfo.PrimaryKey
+			if colInfo.ColumnDefault != nil {
+				defaultVal = cleanupDefault(fmt.Sprintf("%v", colInfo.ColumnDefault))
 			}
 
-			ml, ok := colInfo.characterMaximumLength.(int64)
+			ml, ok := colInfo.CharacterMaximumLength.(int64)
 			if ok {
 				maxLen = ml
 			}
@@ -78,15 +78,12 @@ func LoadPostgresMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTab
 		}
 
 		m.columns[i] = colMeta
-
-		// fmt.Printf("@@ Name: %v columnLen: %v\n", colMeta.Name(), colMeta.columnLen)
-
 	}
 	m.ddl = BuildDefaultTableDDL(tableName, m.columns)
 	return m, nil
 }
 
-func postgresLoadPrimaryKey(db *sql.DB, tableName string, colInfo map[string]*postgresColumnInfo) error {
+func postgresLoadPrimaryKey(db *sql.DB, tableName string, colInfo map[string]*PostgresInformationSchema) error {
 	primaryKeySQL := fmt.Sprintf(`
 	SELECT c.column_name
 	FROM information_schema.key_column_usage AS c
@@ -109,59 +106,11 @@ func postgresLoadPrimaryKey(db *sql.DB, tableName string, colInfo map[string]*po
 		//fmt.Printf("## PRIMARY KEY COLUMN_NAME: %s\n", columnName)
 		colInfo, ok := colInfo[columnName]
 		if ok {
-			colInfo.primaryKey = true
+			colInfo.PrimaryKey = true
 			//fmt.Printf("name: %s primary_key: %t\n", colInfo.name, colInfo.primary_key)
 		}
 	}
 	return nil
-}
-
-type postgresColumnInfo struct {
-	tableName              string
-	columnName             string
-	ordinalPosition        int
-	tableSchema            string
-	dataType               string
-	characterMaximumLength interface{}
-	columnDefault          interface{}
-	isNullable             string
-	isIdentity             string
-	udtName                string
-	numericPrecision       interface{}
-	primaryKey             bool
-}
-
-func (ci *postgresColumnInfo) String() string {
-	return fmt.Sprintf("[%2d] %-20s %-20s data_type: %v character_maximum_length: %v is_nullable: %v is_identity: %v", ci.ordinalPosition, ci.tableName, ci.columnName, ci.dataType, ci.characterMaximumLength, ci.isNullable, ci.isIdentity)
-}
-
-func postgresLoadInfoSchema(db *sql.DB, tableName string) (colInfo map[string]*postgresColumnInfo, err error) {
-	colInfo = make(map[string]*postgresColumnInfo)
-
-	identitySQL := fmt.Sprintf(`
-SELECT table_name, table_schema, ordinal_position, column_name, data_type, character_maximum_length,
-column_default, is_nullable, is_identity, udt_name, numeric_precision
-FROM information_schema.columns
-WHERE table_name = '%s' and table_schema = 'public'
-ORDER BY table_name, ordinal_position;
-`, tableName)
-
-	res, err := db.Query(identitySQL)
-	if err != nil {
-		return nil, fmt.Errorf("unable to load ddl from postgres: %v", err)
-	}
-
-	for res.Next() {
-		ci := &postgresColumnInfo{}
-		err = res.Scan(&ci.tableName, &ci.tableSchema, &ci.ordinalPosition, &ci.columnName, &ci.dataType, &ci.characterMaximumLength,
-			&ci.columnDefault, &ci.isNullable, &ci.isIdentity, &ci.udtName, &ci.numericPrecision)
-		if err != nil {
-			return nil, fmt.Errorf("unable to load identity info from postgres Scan: %v", err)
-		}
-
-		colInfo[ci.columnName] = ci
-	}
-	return colInfo, nil
 }
 
 /*
