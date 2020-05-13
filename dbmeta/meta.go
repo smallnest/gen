@@ -272,15 +272,16 @@ func GenerateStruct(sqlType string,
 	}
 
 	generator := dynamicstruct.NewStruct()
-	keyField := -1
+	keyField := 0
 	for i, c := range fields {
 		meta := dbMeta.Columns()[i]
 		jsonName := formatFieldName(jsonNameFormat, meta)
 		tag := fmt.Sprintf(`json:"%s"`, jsonName)
 		fakeData := c.FakeData
 		generator = generator.AddField(c.GoFieldName, fakeData, tag)
-		if keyField == -1 && meta.IsPrimaryKey() {
+		if meta.IsPrimaryKey() {
 			keyField = i
+			break
 		}
 	}
 
@@ -302,6 +303,7 @@ func GenerateStruct(sqlType string,
 		primaryKeyFieldType = fields[keyField].GoFieldType
 	}
 	primaryKeyFieldParser := "parseString"
+
 	switch primaryKeyFieldType {
 	case "interface{}":
 		primaryKeyFieldParser = "parseInterface"
@@ -314,7 +316,6 @@ func GenerateStruct(sqlType string,
 		primaryKeyFieldParser = "parseInt32"
 	case "int64":
 		primaryKeyFieldParser = "parseInt64"
-
 	}
 
 	var modelInfo = &ModelInfo{
