@@ -8,8 +8,8 @@ import (
 	"github.com/jimsmart/schema"
 )
 
-// NewMysqlMeta fetch db meta data for MySQL database
-func NewMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error) {
+// LoadMysqlMeta fetch db meta data for MySQL database
+func LoadMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error) {
 	m := &dbTableMeta{
 		sqlType:     sqlType,
 		sqlDatabase: sqlDatabase,
@@ -21,65 +21,13 @@ func NewMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 		return nil, err
 	}
 
-	ddlSQL := fmt.Sprintf("SHOW CREATE TABLE %s;", tableName)
-	res, err := db.Query(ddlSQL)
+	ddl, err := mysqlLoadDDL(db, tableName)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load ddl from mysql: %v", err)
 	}
 
-	var ddl1 string
-	var ddl2 string
-	if res.Next() {
-		err = res.Scan(&ddl1, &ddl2)
-		if err != nil {
-			return nil, fmt.Errorf("unable to load ddl from mysql Scan: %v", err)
-		}
-	}
-	m.ddl = ddl2
-	//m.ddl = BuildDefaultTableDDL(tableName, cols)
-
-	/*
-
-
-		CREATE TABLE `designer_work` (
-		  `id` int(11) NOT NULL AUTO_INCREMENT,
-		  `taskId` int(11) DEFAULT NULL,
-		  `userId` int(11) DEFAULT NULL,
-		  `image` text,
-		  `stickerName` text,
-		  `status` int(11) DEFAULT '1' COMMENT '0->reject,1->request sent,2-approved,3-In process',
-		  `rejectStatus` int(11) DEFAULT '0' COMMENT '0->not rejected,1-rejected',
-		  `rejectedDate` datetime DEFAULT NULL,
-		  `reason` text,
-		  `created_at` datetime DEFAULT CURRENT_TIMESTAMP,
-		  `updated_at` datetime NOT NULL DEFAULT CURRENT_TIMESTAMP ON UPDATE CURRENT_TIMESTAMP,
-		  PRIMARY KEY (`id`)
-		) ENGINE=InnoDB AUTO_INCREMENT=1622 DEFAULT CHARSET=latin1
-
-	*/
-
-	colsDDL := make(map[string]string)
-	lines := strings.Split(m.ddl, "\n")
-	primaryKey := ""
-	for _, line := range lines {
-		line = strings.Trim(line, " \t")
-		if strings.HasPrefix(line, "CREATE TABLE") || strings.HasPrefix(line, "(") || strings.HasPrefix(line, ")") {
-			continue
-		}
-
-		if line[0] == '`' {
-			idx := indexAt(line, "`", 1)
-			if idx > 0 {
-				name := line[1:idx]
-				colDDL := line[idx+1 : len(line)-1]
-				colsDDL[name] = colDDL
-			}
-		} else if strings.HasPrefix(line, "PRIMARY KEY") {
-			idx := strings.Index(line, "`")
-			idx1 := indexAt(line, "`", idx+1)
-			primaryKey = line[idx+1 : idx1]
-		}
-	}
+	m.ddl = ddl
+	colsDDL, primaryKey := mysqlParseDDL(ddl)
 
 	infoSchema, err := LoadTableInfoFromMSSqlInformationSchema(db, tableName)
 	if err != nil {
@@ -99,8 +47,6 @@ func NewMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 		isAutoIncrement := strings.Index(colDDL, "AUTO_INCREMENT") > -1
 
 		isPrimaryKey := v.Name() == primaryKey
-		// isPrimaryKey := i == 0
-		// colDDL := v.DatabaseTypeName()
 		defaultVal := ""
 		columnType, columnLen := ParseSQLType(v.DatabaseTypeName())
 
@@ -133,9 +79,6 @@ func NewMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 			columnLen, err := GetFieldLenFromInformationSchema(db, "DATABASE()", tableName, v.Name())
 			if err == nil {
 				colMeta.columnLen = columnLen
-				//fmt.Printf("getFieldLen %s %s : columnLen %v\n",tableName,v.Name(), columnLen)
-			} else {
-				//fmt.Printf("getFieldLen %s %s : error: %v\n",tableName,v.Name(), err)
 			}
 		}
 
@@ -146,6 +89,51 @@ func NewMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 	}
 
 	return m, nil
+}
+
+func mysqlLoadDDL(db *sql.DB, tableName string) (ddl string, err error) {
+	ddlSQL := fmt.Sprintf("SHOW CREATE TABLE %s;", tableName)
+	res, err := db.Query(ddlSQL)
+	if err != nil {
+		return "", fmt.Errorf("unable to load ddl from mysql: %v", err)
+	}
+
+	var ddl1 string
+	var ddl2 string
+	if res.Next() {
+		err = res.Scan(&ddl1, &ddl2)
+		if err != nil {
+			return "", fmt.Errorf("unable to load ddl from mysql Scan: %v", err)
+		}
+	}
+	return ddl2, nil
+
+}
+
+func mysqlParseDDL(ddl string) (colsDDL map[string]string, primaryKey string) {
+	colsDDL = make(map[string]string)
+	lines := strings.Split(ddl, "\n")
+	primaryKey = ""
+	for _, line := range lines {
+		line = strings.Trim(line, " \t")
+		if strings.HasPrefix(line, "CREATE TABLE") || strings.HasPrefix(line, "(") || strings.HasPrefix(line, ")") {
+			continue
+		}
+
+		if line[0] == '`' {
+			idx := indexAt(line, "`", 1)
+			if idx > 0 {
+				name := line[1:idx]
+				colDDL := line[idx+1 : len(line)-1]
+				colsDDL[name] = colDDL
+			}
+		} else if strings.HasPrefix(line, "PRIMARY KEY") {
+			idx := strings.Index(line, "`")
+			idx1 := indexAt(line, "`", idx+1)
+			primaryKey = line[idx+1 : idx1]
+		}
+	}
+	return
 }
 
 /*

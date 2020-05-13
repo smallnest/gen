@@ -8,8 +8,8 @@ import (
 	"github.com/jimsmart/schema"
 )
 
-// NewMsSQLMeta fetch db meta data for MS SQL database
-func NewMsSQLMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error) {
+// LoadMsSQLMeta fetch db meta data for MS SQL database
+func LoadMsSQLMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error) {
 	m := &dbTableMeta{
 		sqlType:     sqlType,
 		sqlDatabase: sqlDatabase,
@@ -22,62 +22,14 @@ func NewMsSQLMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMe
 	}
 
 	m.columns = make([]ColumnMeta, len(cols))
-
-	colInfo := make(map[string]*msSQLColumnInfo)
-
-	identitySQL := fmt.Sprintf("SELECT name, is_identity, is_nullable, max_length FROM sys.columns WHERE  object_id = object_id('dbo.%s')", tableName)
-
-	res, err := db.Query(identitySQL)
+	colInfo, err := msSQLloadFromSysColumns(db, tableName)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load ddl from ms sql: %v", err)
 	}
 
-	for res.Next() {
-		var name string
-		var isIdentity, isNullable bool
-		var maxLength int64
-		err = res.Scan(&name, &isIdentity, &isNullable, &maxLength)
-		if err != nil {
-			return nil, fmt.Errorf("unable to load identity info from ms sql Scan: %v", err)
-		}
-
-		colInfo[name] = &msSQLColumnInfo{
-			name:       name,
-			isIdentity: isIdentity,
-			isNullable: isNullable,
-			maxLength:  maxLength,
-		}
-
-	}
-
-	primaryKeySQL := fmt.Sprintf(`
-SELECT Col.Column_Name from 
-    INFORMATION_SCHEMA.TABLE_CONSTRAINTS Tab, 
-    INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE Col 
-WHERE 
-    Col.Constraint_Name = Tab.Constraint_Name
-    AND Col.Table_Name = Tab.Table_Name
-    AND Constraint_Type = 'PRIMARY KEY'
-    AND Col.Table_Name = '%s'
-`, tableName)
-	res, err = db.Query(primaryKeySQL)
+	err = msSQLLoadPrimaryKey(db, tableName, colInfo)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load ddl from ms sql: %v", err)
-	}
-	for res.Next() {
-
-		var columnName string
-		err = res.Scan(&columnName)
-		if err != nil {
-			return nil, fmt.Errorf("unable to load identity info from ms sql Scan: %v", err)
-		}
-
-		//fmt.Printf("## PRIMARY KEY COLUMN_NAME: %s\n", columnName)
-		colInfo, ok := colInfo[columnName]
-		if ok {
-			colInfo.primaryKey = true
-			//fmt.Printf("name: %s primary_key: %t\n", colInfo.name, colInfo.primary_key)
-		}
 	}
 
 	infoSchema, err := LoadTableInfoFromMSSqlInformationSchema(db, tableName)
@@ -97,11 +49,11 @@ WHERE
 
 		colInfo, ok := colInfo[v.Name()]
 		if ok {
-			// fmt.Printf("name: %s DatabaseTypeName: %s primary_key: %t is_identity: %t is_nullable: %t max_length: %d\n", colInfo.name, v.DatabaseTypeName(), colInfo.primaryKey, colInfo.isIdentity, colInfo.isNullable, colInfo.maxLength)
 			isPrimaryKey = colInfo.primaryKey
 			nullable = colInfo.isNullable
 			isAutoIncrement = colInfo.isIdentity
 			dbType := strings.ToLower(v.DatabaseTypeName())
+
 			if strings.Contains(dbType, "char") || strings.Contains(dbType, "text") {
 				columnLen = colInfo.maxLength
 			}
@@ -145,6 +97,72 @@ WHERE
 	return m, nil
 }
 
+func msSQLLoadPrimaryKey(db *sql.DB, tableName string, colInfo map[string]*msSQLColumnInfo) error {
+
+	primaryKeySQL := fmt.Sprintf(`
+SELECT Col.Column_Name from 
+    INFORMATION_SCHEMA.TABLE_CONSTRAINTS Tab, 
+    INFORMATION_SCHEMA.CONSTRAINT_COLUMN_USAGE Col 
+WHERE 
+    Col.Constraint_Name = Tab.Constraint_Name
+    AND Col.Table_Name = Tab.Table_Name
+    AND Constraint_Type = 'PRIMARY KEY'
+    AND Col.Table_Name = '%s'
+`, tableName)
+	res, err := db.Query(primaryKeySQL)
+	if err != nil {
+		return fmt.Errorf("unable to load ddl from ms sql: %v", err)
+	}
+	for res.Next() {
+
+		var columnName string
+		err = res.Scan(&columnName)
+		if err != nil {
+			return fmt.Errorf("unable to load identity info from ms sql Scan: %v", err)
+		}
+
+		//fmt.Printf("## PRIMARY KEY COLUMN_NAME: %s\n", columnName)
+		colInfo, ok := colInfo[columnName]
+		if ok {
+			colInfo.primaryKey = true
+			//fmt.Printf("name: %s primary_key: %t\n", colInfo.name, colInfo.primary_key)
+		}
+	}
+	return nil
+}
+
+func msSQLloadFromSysColumns(db *sql.DB, tableName string) (colInfo map[string]*msSQLColumnInfo, err error) {
+	colInfo = make(map[string]*msSQLColumnInfo)
+
+	identitySQL := fmt.Sprintf(`
+SELECT name, is_identity, is_nullable, max_length 
+FROM sys.columns 
+WHERE  object_id = object_id('dbo.%s')`, tableName)
+
+	res, err := db.Query(identitySQL)
+	if err != nil {
+		return nil, fmt.Errorf("unable to load ddl from ms sql: %v", err)
+	}
+
+	for res.Next() {
+		var name string
+		var isIdentity, isNullable bool
+		var maxLength int64
+		err = res.Scan(&name, &isIdentity, &isNullable, &maxLength)
+		if err != nil {
+			return nil, fmt.Errorf("unable to load identity info from ms sql Scan: %v", err)
+		}
+
+		colInfo[name] = &msSQLColumnInfo{
+			name:       name,
+			isIdentity: isIdentity,
+			isNullable: isNullable,
+			maxLength:  maxLength,
+		}
+	}
+	return colInfo, err
+}
+
 type msSQLColumnInfo struct {
 	name       string
 	isIdentity bool
@@ -155,13 +173,4 @@ type msSQLColumnInfo struct {
 
 /*
 https://www.mssqltips.com/sqlservertip/1512/finding-and-listing-all-columns-in-a-sql-server-database-with-default-values/
-
-
-SELECT SO.NAME AS "Table Name", SC.NAME AS "Column Name", SM.TEXT AS "Default Value"
-FROM dbo.sysobjects SO INNER JOIN dbo.syscolumns SC ON SO.id = SC.id
-LEFT JOIN dbo.syscomments SM ON SC.cdefault = SM.id
-WHERE SO.xtype = 'U'
-ORDER BY SO.[name], SC.colid
-
-
 */

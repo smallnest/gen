@@ -21,11 +21,11 @@ var metaDataFuncs = make(map[string]metaDataLoader)
 var sqlMappings = make(map[string]*SQLMapping)
 
 func init() {
-	metaDataFuncs["sqlite3"] = NewSqliteMeta
-	metaDataFuncs["sqlite"] = NewSqliteMeta
-	metaDataFuncs["mssql"] = NewMsSQLMeta
-	metaDataFuncs["postgres"] = NewPostgresMeta
-	metaDataFuncs["mysql"] = NewMysqlMeta
+	metaDataFuncs["sqlite3"] = LoadSqliteMeta
+	metaDataFuncs["sqlite"] = LoadSqliteMeta
+	metaDataFuncs["mssql"] = LoadMsSQLMeta
+	metaDataFuncs["postgres"] = LoadPostgresMeta
+	metaDataFuncs["mysql"] = LoadMysqlMeta
 }
 
 // SQLMappings mappings for sql types to json, go etc
@@ -232,7 +232,7 @@ type FieldInfo struct {
 func LoadMeta(sqlType string, db *sql.DB, sqlDatabase, tableName string) (DbTableMeta, error) {
 	dbMetaFunc, haveMeta := metaDataFuncs[sqlType]
 	if !haveMeta {
-		dbMetaFunc = NewUnknownMeta
+		dbMetaFunc = LoadUnknownMeta
 	}
 
 	dbMeta, err := dbMetaFunc(db, sqlType, sqlDatabase, tableName)
@@ -349,9 +349,6 @@ func generateFieldsTypes(dbMeta DbTableMeta,
 	field := ""
 	for i, c := range dbMeta.Columns() {
 		name := c.Name()
-		if verbose {
-			//fmt.Printf("   [%s]   [%d] field: %s type: %s\n", dbMeta.TableName(), i, key, c.DatabaseTypeName())
-		}
 
 		valueType, err := SQLTypeToGoType(strings.ToLower(c.DatabaseTypeName()), c.Nullable(), gureguTypes)
 		if err != nil { // unknown type
@@ -361,19 +358,19 @@ func generateFieldsTypes(dbMeta DbTableMeta,
 		fieldName := FmtFieldName(stringifyFirstChar(name))
 
 		var annotations []string
-		if addGormAnnotation == true {
+		if addGormAnnotation {
 			annotations = append(annotations, createGormAnnotation(c))
 		}
 
-		if addJSONAnnotation == true {
+		if addJSONAnnotation {
 			annotations = append(annotations, createJSONAnnotation(jsonNameFormat, c))
 		}
 
-		if addDBAnnotation == true {
+		if addDBAnnotation {
 			annotations = append(annotations, createDBAnnotation(c))
 		}
 
-		if addProtobufAnnotation == true {
+		if addProtobufAnnotation {
 			annnotation, err := createProtobufAnnotation(protobufNameFormat, c)
 			if err == nil {
 				annotations = append(annotations, annnotation)
@@ -488,7 +485,7 @@ func createGormAnnotation(c ColumnMeta) string {
 				value = ""
 			}
 
-			if value != "" && strings.Index(value, "()") == -1 {
+			if value != "" && !strings.Contains(value, "()") {
 				buf.WriteString(fmt.Sprintf("default:%s;", value))
 			}
 		}
@@ -538,7 +535,9 @@ func LoadMappings(mappingFileName string) error {
 		return err
 	}
 
-	defer mappingFile.Close()
+	defer func() {
+		_ = mappingFile.Close()
+	}()
 	byteValue, err := ioutil.ReadAll(mappingFile)
 	if err != nil {
 		fmt.Printf("Error loading mapping file %s error: %v\n", mappingFileName, err)

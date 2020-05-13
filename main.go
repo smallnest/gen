@@ -150,11 +150,12 @@ func main() {
 
 	if *contextFileName != "" {
 		contextFile, err := os.Open(*contextFileName)
-		defer contextFile.Close()
 		if err != nil {
 			fmt.Printf("Error loading context file %s error: %v\n", *contextFileName, err)
 			return
 		}
+
+		defer contextFile.Close()
 		jsonParser := json.NewDecoder(contextFile)
 		err = jsonParser.Decode(&contextMap)
 		if err != nil {

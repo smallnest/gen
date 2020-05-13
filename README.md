@@ -250,6 +250,9 @@ The following info is available within use of the exec template.
 |ms sql   |y   | y  | y  | y  | y | y| n
 
 ## Version History
+- v0.9.2 (05/12/2020)
+    - Code cleanup gofmt, etc. 
+- v0.9.1 (05/12/2020)
 - v0.9 (05/12/2020) 
     - updated db meta data loading fetching default values
     - added default value to GORM tags
