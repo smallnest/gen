@@ -50,8 +50,8 @@ func GetAll{{pluralize .StructName}}(ctx context.Context, page, pagesize int64, 
 
 // Get{{.StructName}} is a function to get a single record to {{.TableName}} table in the {{.DatabaseName}} database
 // error - ErrNotFound, db Find error
-func Get{{.StructName}}(ctx context.Context, id {{.TableInfo.PrimaryKeyGoType}}) (record {{.modelPackageName}}.{{.StructName}}, err error) {
-	if err = DB.First(&record, id).Error; err != nil {
+func Get{{.StructName}}(ctx context.Context,{{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}} {{$field.GoFieldType}},{{end}}{{end -}}) (record {{.modelPackageName}}.{{.StructName}}, err error) {
+	if err = DB.First(&record, {{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}},{{end}}{{end -}}).Error; err != nil {
 	    err = ErrNotFound
 		return record, err
 	}
@@ -73,10 +73,10 @@ func Add{{.StructName}}(ctx context.Context, record *{{.modelPackageName}}.{{.St
 // Update{{.StructName}} is a function to update a single record from {{.TableName}} table in the {{.DatabaseName}} database
 // error - ErrNotFound, db record for id not found
 // error - ErrUpdateFailed, db meta data copy failed or db.Save call failed
-func Update{{.StructName}}(ctx context.Context, id {{.TableInfo.PrimaryKeyGoType}}, updated *{{.modelPackageName}}.{{.StructName}}) (result *{{.modelPackageName}}.{{.StructName}}, RowsAffected int64, err error) {
+func Update{{.StructName}}(ctx context.Context, {{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}} {{$field.GoFieldType}},{{end}}{{end -}}updated *{{.modelPackageName}}.{{.StructName}}) (result *{{.modelPackageName}}.{{.StructName}}, RowsAffected int64, err error) {
 
-	result = &{{.modelPackageName}}.{{.StructName}}{}
-   db := DB.First(result, id)
+   result = &{{.modelPackageName}}.{{.StructName}}{}
+   db := DB.First(result,{{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}},{{end}}{{end -}})
    if err = db.Error; err != nil {
       return nil, -1, ErrNotFound
    }
@@ -96,10 +96,10 @@ func Update{{.StructName}}(ctx context.Context, id {{.TableInfo.PrimaryKeyGoType
 // Delete{{.StructName}} is a function to delete a single record from {{.TableName}} table in the {{.DatabaseName}} database
 // error - ErrNotFound, db Find error
 // error - ErrDeleteFailed, db Delete failed error
-func Delete{{.StructName}}(ctx context.Context, id {{.TableInfo.PrimaryKeyGoType}}) (rowsAffected int64, err error) {
+func Delete{{.StructName}}(ctx context.Context,{{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}} {{$field.GoFieldType}},{{end}}{{end -}}) (rowsAffected int64, err error) {
 
     record := &{{.modelPackageName}}.{{.StructName}}{}
-    db := DB.First(record, id)
+    db := DB.First(record, {{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName -}},{{end}}{{end}})
     if db.Error != nil {
         return -1, ErrNotFound
     }
@@ -112,13 +112,3 @@ func Delete{{.StructName}}(ctx context.Context, id {{.TableInfo.PrimaryKeyGoType
    return db.RowsAffected, nil
 }
 
-
-/*
-{{ range $key, $value := . }}
-   {{ printf "%#-20v" $key }}   {{ printf "[%T] %#v" $value $value }}{{ end }}
-
-table {{.DatabaseName}}.{{.TableName}} {
-{{ range $i, $value := .DBColumns }}
-{{ printf "    [%-02d]  %-20s %-20s" $i $value.Name $value.DatabaseTypeName }}{{ end }}
-}
-*/

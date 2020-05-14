@@ -18,17 +18,18 @@ var (
 func config{{pluralize .StructName}}Router(router *httprouter.Router) {
 	router.GET("/{{pluralize .StructName | toLower}}", GetAll{{pluralize .StructName}})
 	router.POST("/{{pluralize .StructName | toLower}}", Add{{.StructName}})
-	router.GET("/{{pluralize .StructName | toLower}}/:id", Get{{.StructName}})
-	router.PUT("/{{pluralize .StructName | toLower}}/:id", Update{{.StructName}})
-	router.DELETE("/{{pluralize .StructName | toLower}}/:id", Delete{{.StructName}})
+
+	router.GET("/{{pluralize .StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/:{{$field.PrimaryKeyArgName}}{{end}}{{end -}}", Get{{.StructName}})
+	router.PUT("/{{pluralize .StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/:{{$field.PrimaryKeyArgName}}{{end}}{{end -}}", Update{{.StructName}})
+	router.DELETE("/{{pluralize .StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/:{{$field.PrimaryKeyArgName}}{{end}}{{end -}}", Delete{{.StructName}})
 }
 
 func configGin{{pluralize .StructName}}Router(router gin.IRoutes) {
 	router.GET("/{{pluralize .StructName | toLower}}", ConverHttprouterToGin(GetAll{{pluralize .StructName}}))
 	router.POST("/{{pluralize .StructName | toLower}}", ConverHttprouterToGin(Add{{.StructName}}))
-	router.GET("/{{pluralize .StructName | toLower}}/:id", ConverHttprouterToGin(Get{{.StructName}}))
-	router.PUT("/{{pluralize .StructName | toLower}}/:id", ConverHttprouterToGin(Update{{.StructName}}))
-	router.DELETE("/{{pluralize .StructName | toLower}}/:id", ConverHttprouterToGin(Delete{{.StructName}}))
+	router.GET("/{{pluralize .StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/:{{$field.PrimaryKeyArgName}}{{end}}{{end -}}", ConverHttprouterToGin(Get{{.StructName}}))
+	router.PUT("/{{pluralize .StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/:{{$field.PrimaryKeyArgName}}{{end}}{{end -}}", ConverHttprouterToGin(Update{{.StructName}}))
+	router.DELETE("/{{pluralize .StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/:{{$field.PrimaryKeyArgName}}{{end}}{{end -}}", ConverHttprouterToGin(Delete{{.StructName}}))
 }
 
 // GetAll{{pluralize .StructName}} is a function to get a slice of record(s) from {{.TableName}} table in the {{.DatabaseName}} database
@@ -72,27 +73,31 @@ func GetAll{{pluralize .StructName}}(w http.ResponseWriter, r *http.Request, ps 
 
 
 // Get{{.StructName}} is a function to get a single record to {{.TableName}} table in the {{.DatabaseName}} database
-// @Summary Get record from table {{.StructName}} by id
+// @Summary Get record from table {{.StructName}} by {{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}} {{ $field.PrimaryKeyArgName }} {{end}}{{end}}
 // @Tags {{.StructName}}
-// @ID record id
+{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}// @ID {{ $field.PrimaryKeyArgName }} {{end}}{{end}}
 // @Description Get{{.StructName}} is a function to get a single record to {{.TableName}} table in the {{.DatabaseName}} database
 // @Accept  json
 // @Produce  json
-// @Param  id path int true "record id"
+{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}// @Param  {{ $field.PrimaryKeyArgName }} path {{ $field.GoFieldType }} true "{{ $field.ColumnMeta.Name }}"{{end}}{{end}}
 // @Success 200 {object} {{.modelPackageName}}.{{.StructName}}
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
 // @Failure 404 {object} {{.apiPackageName}}.HTTPError "ErrNotFound, db record for id not found - returns NotFound HTTP 404 not found error"
-// @Router /{{pluralize .StructName | toLower}}/{id} [get]
+// @Router /{{pluralize .StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/{ {{- $field.PrimaryKeyArgName -}} }{{end}}{{end}} [get]
 // http http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize .StructName | toLower}}/1
 func Get{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
-	id, err := {{.TableInfo.PrimaryKeyFieldParser}}(ps, "id")
+{{range $field := .TableInfo.CodeFields}}
+{{ if $field.PrimaryKeyArgName }}
+
+	{{$field.PrimaryKeyArgName}}, err := {{$field.PrimaryKeyFieldParser}}(ps, "{{$field.PrimaryKeyArgName}}")
 	if err != nil {
 		returnError(w, r, err)
 		return
 	}
+{{end}}{{end}}
 
-	record, err := {{.daoPackageName}}.Get{{.StructName}}(r.Context(), id)
+	record, err := {{.daoPackageName}}.Get{{.StructName}}(r.Context(),{{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}},{{end}}{{end -}})
 	if err != nil {
 		returnError(w, r, err)
 		return
@@ -152,20 +157,23 @@ func Add{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 // @Tags {{.StructName}}
 // @Accept  json
 // @Produce  json
-// @Param  id path int true "Account ID"
+{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}// @Param  {{ $field.PrimaryKeyArgName }} path {{ $field.GoFieldType }} true "{{ $field.ColumnMeta.Name }}"{{end}}{{end}}
 // @Param  {{.StructName}} body {{.modelPackageName}}.{{.StructName}} true "Update {{.StructName}} record"
 // @Success 200 {object} {{.modelPackageName}}.{{.StructName}}
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
 // @Failure 404 {object} {{.apiPackageName}}.HTTPError
-// @Router /{{pluralize .StructName | toLower}}/{id} [patch]
+// @Router /{{pluralize .StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/{ {{- $field.PrimaryKeyArgName -}} }{{end}}{{end}} [patch]
 // echo '{{ToJSON .TableInfo.Instance 0}}' | http PATCH http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize .StructName | toLower}}/1
 func Update{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	id, err := {{.TableInfo.PrimaryKeyFieldParser}}(ps, "id")
+{{range $field := .TableInfo.CodeFields}}
+{{ if $field.PrimaryKeyArgName }}
+
+	{{$field.PrimaryKeyArgName}}, err := {{$field.PrimaryKeyFieldParser}}(ps, "{{$field.PrimaryKeyArgName}}")
 	if err != nil {
 		returnError(w, r, err)
 		return
 	}
-
+{{end}}{{end}}
 
 	{{.StructName | toLower}} := &{{.modelPackageName}}.{{.StructName}}{}
 	if err := readJSON(r, {{.StructName | toLower}}); err != nil {
@@ -184,7 +192,9 @@ func Update{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter
       return
    }
 
-	{{.StructName | toLower}}, _, err = {{.daoPackageName}}.Update{{.StructName}}(r.Context(), id, {{.StructName | toLower}})
+	{{.StructName | toLower}}, _, err = {{.daoPackageName}}.Update{{.StructName}}(r.Context(),
+	{{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}},{{end}}{{end}}
+	{{.StructName | toLower}})
 	if err != nil {
 	    returnError(w, r, err)
    	    return
@@ -201,20 +211,23 @@ func Update{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter
 // @Tags {{.StructName}}
 // @Accept  json
 // @Produce  json
-// @Param  id path int true "ID" Format(int64)
+{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}// @Param  {{ $field.PrimaryKeyArgName }} path {{ $field.GoFieldType }} true "{{ $field.ColumnMeta.Name }}"{{end}}{{end}}
 // @Success 204 {object} {{.modelPackageName}}.{{.StructName}}
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
 // @Failure 500 {object} {{.apiPackageName}}.HTTPError
-// @Router /{{pluralize .StructName | toLower}}/{id} [delete]
+// @Router /{{pluralize .StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/{ {{- $field.PrimaryKeyArgName -}} }{{end}}{{end}} [delete]
 // http DELETE http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize .StructName | toLower}}/1
 func Delete{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	id, err := {{.TableInfo.PrimaryKeyFieldParser}}(ps, "id")
+{{range $field := .TableInfo.CodeFields}}
+{{ if $field.PrimaryKeyArgName }}
+	{{$field.PrimaryKeyArgName}}, err := {{$field.PrimaryKeyFieldParser}}(ps, "{{$field.PrimaryKeyArgName}}")
 	if err != nil {
 		returnError(w, r, err)
 		return
 	}
+{{end}}{{end}}
 
-	rowsAffected, err := {{.daoPackageName}}.Delete{{.StructName}}(r.Context(), id)
+	rowsAffected, err := {{.daoPackageName}}.Delete{{.StructName}}(r.Context(),{{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}},{{end}}{{end -}})
 	if err != nil {
 	    returnError(w, r, err)
 	    return
@@ -224,9 +237,3 @@ func Delete{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter
 }
 
 
-
-/*
-{{ range $key, $value := . }}
-   {{ printf "%#-20v" $key }}   {{ printf "[%T] %+v" $value $value }}{{ end }}
-
-*/

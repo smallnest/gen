@@ -55,22 +55,6 @@ type SQLMapping struct {
 	GoNullableType string `json:"go_nullable_type"`
 }
 
-// ColumnMeta meta data for a column
-type ColumnMeta interface {
-	Name() string
-	String() string
-	Nullable() bool
-	DatabaseTypeName() string
-	DatabaseTypePretty() string
-	Index() int
-	IsPrimaryKey() bool
-	IsAutoIncrement() bool
-	ColumnType() string
-	Notes() string
-	ColumnLength() int64
-	DefaultValue() string
-}
-
 // IsAutoIncrement return is column is a primary key column
 func (ci *columnMeta) IsPrimaryKey() bool {
 	return ci.isPrimaryKey
@@ -91,7 +75,7 @@ type columnMeta struct {
 	columnType      string
 	columnLen       int64
 	defaultVal      string
-	notes         string
+	notes           string
 }
 
 // ColumnType column type
@@ -168,8 +152,24 @@ type DbTableMeta interface {
 	SQLDatabase() string
 	TableName() string
 	DDL() string
-	PrimaryKeyPos() int
 }
+
+// ColumnMeta meta data for a column
+type ColumnMeta interface {
+	Name() string
+	String() string
+	Nullable() bool
+	DatabaseTypeName() string
+	DatabaseTypePretty() string
+	Index() int
+	IsPrimaryKey() bool
+	IsAutoIncrement() bool
+	ColumnType() string
+	Notes() string
+	ColumnLength() int64
+	DefaultValue() string
+}
+
 type dbTableMeta struct {
 	sqlType       string
 	sqlDatabase   string
@@ -216,24 +216,20 @@ func (m *dbTableMeta) DDL() string {
 
 // ModelInfo info for a sql table
 type ModelInfo struct {
-	Index                 int
-	IndexPlus1            int
-	PackageName           string
-	StructName            string
-	ShortStructName       string
-	TableName             string
-	Fields                []string
-	DBMeta                DbTableMeta
-	Instance              interface{}
-	CodeFields            []*FieldInfo
-	PrimaryKeyField       int
-	PrimaryKeyGoType      string
-	PrimaryKeyFieldParser string
+	Index           int
+	IndexPlus1      int
+	PackageName     string
+	StructName      string
+	ShortStructName string
+	TableName       string
+	Fields          []string
+	DBMeta          DbTableMeta
+	Instance        interface{}
+	CodeFields      []*FieldInfo
 }
 
 // Notes notes on table generation
 func (m *ModelInfo) Notes() string {
-	fmt.Printf("@@ Notes invoked\n\n@@\n")
 	buf := bytes.Buffer{}
 
 	for i, j := range m.DBMeta.Columns() {
@@ -251,21 +247,23 @@ func (m *ModelInfo) Notes() string {
 	return buf.String()
 }
 
-// FieldInfo info for each field in sql table
+// FieldInfo codegen info for each column in sql table
 type FieldInfo struct {
-	Index             int
-	GoFieldName       string
-	GoFieldType       string
-	GoAnnotations     []string
-	JSONFieldName     string
-	ProtobufFieldName string
-	ProtobufType      string
-	ProtobufPos       int
-	Comment           string
-	Notes             string
-	Code              string
-	FakeData          interface{}
-	ColumnMeta        ColumnMeta
+	Index                 int
+	GoFieldName           string
+	GoFieldType           string
+	GoAnnotations         []string
+	JSONFieldName         string
+	ProtobufFieldName     string
+	ProtobufType          string
+	ProtobufPos           int
+	Comment               string
+	Notes                 string
+	Code                  string
+	FakeData              interface{}
+	ColumnMeta            ColumnMeta
+	PrimaryKeyFieldParser string
+	PrimaryKeyArgName     string
 }
 
 // LoadMeta loads the DbTableMeta data from the db connection for the table
@@ -316,12 +314,18 @@ func GenerateStruct(sqlType string,
 
 	generator := dynamicstruct.NewStruct()
 
+	noOfPrimaryKeys := 0
 	for i, c := range fields {
 		meta := dbMeta.Columns()[i]
 		jsonName := formatFieldName(jsonNameFormat, meta)
 		tag := fmt.Sprintf(`json:"%s"`, jsonName)
 		fakeData := c.FakeData
 		generator = generator.AddField(c.GoFieldName, fakeData, tag)
+		if meta.IsPrimaryKey() {
+			c.PrimaryKeyArgName = strcase.ToLowerCamel(c.GoFieldName)
+			//c.PrimaryKeyArgName = fmt.Sprintf("arg%d", noOfPrimaryKeys)
+			noOfPrimaryKeys++
+		}
 	}
 
 	instance := generator.Build().New()
@@ -334,30 +338,23 @@ func GenerateStruct(sqlType string,
 
 	var code []string
 	for _, f := range fields {
+
+		if f.PrimaryKeyFieldParser == "unsupported" {
+			return nil, fmt.Errorf("unable to generate code for table: %s, primary key column: [%d] %s has unsupported type: %s / %s",
+				dbMeta.TableName(), f.ColumnMeta.Index(), f.ColumnMeta.Name(), f.ColumnMeta.DatabaseTypeName(), f.GoFieldType)
+		}
 		code = append(code, f.Code)
 	}
 
-	primaryKey := fields[dbMeta.PrimaryKeyPos()]
-	primaryKeyFieldType := primaryKey.GoFieldType
-
-	primaryKeyFieldParser, ok := parsePrimaryKeys[primaryKey.GoFieldType]
-	if !ok {
-		return nil, fmt.Errorf("unable to generate code for table: %s, primary key column: [%d] %s has unsupported type: %s / %s",
-			dbMeta.TableName(), dbMeta.PrimaryKeyPos(), primaryKey.ColumnMeta.Name(), primaryKey.ColumnMeta.DatabaseTypeName(), primaryKey.GoFieldType)
-	}
-
 	var modelInfo = &ModelInfo{
-		PackageName:           pkgName,
-		StructName:            structName,
-		TableName:             tableName,
-		ShortStructName:       strings.ToLower(string(structName[0])),
-		Fields:                code,
-		CodeFields:            fields,
-		DBMeta:                dbMeta,
-		Instance:              instance,
-		PrimaryKeyField:       dbMeta.PrimaryKeyPos(),
-		PrimaryKeyGoType:      primaryKeyFieldType,
-		PrimaryKeyFieldParser: primaryKeyFieldParser,
+		PackageName:     pkgName,
+		StructName:      structName,
+		TableName:       tableName,
+		ShortStructName: strings.ToLower(string(structName[0])),
+		Fields:          code,
+		CodeFields:      fields,
+		DBMeta:          dbMeta,
+		Instance:        instance,
 	}
 
 	return modelInfo, nil
@@ -439,19 +436,29 @@ func generateFieldsTypes(dbMeta DbTableMeta,
 		protobufType, _ := SQLTypeToProtobufType(c.DatabaseTypeName())
 		fakeData := createFakeData(goType, fieldName)
 
+		primaryKeyFieldParser := ""
+		if c.IsPrimaryKey() {
+			var ok bool
+			primaryKeyFieldParser, ok = parsePrimaryKeys[goType]
+			if !ok {
+				primaryKeyFieldParser = "unsupported"
+			}
+		}
+
 		fi := &FieldInfo{
-			Index:             i,
-			Code:              field,
-			GoFieldName:       fieldName,
-			GoFieldType:       valueType,
-			GoAnnotations:     annotations,
-			FakeData:          fakeData,
-			Comment:           c.String(),
-			JSONFieldName:     formatFieldName(jsonNameFormat, c),
-			ProtobufFieldName: formatFieldName(protobufNameFormat, c),
-			ProtobufType:      protobufType,
-			ProtobufPos:       i + 1,
-			ColumnMeta:        c,
+			Index:                 i,
+			Code:                  field,
+			GoFieldName:           fieldName,
+			GoFieldType:           valueType,
+			GoAnnotations:         annotations,
+			FakeData:              fakeData,
+			Comment:               c.String(),
+			JSONFieldName:         formatFieldName(jsonNameFormat, c),
+			ProtobufFieldName:     formatFieldName(protobufNameFormat, c),
+			ProtobufType:          protobufType,
+			ProtobufPos:           i + 1,
+			ColumnMeta:            c,
+			PrimaryKeyFieldParser: primaryKeyFieldParser,
 		}
 
 		fields = append(fields, fi)
@@ -507,6 +514,9 @@ func createGormAnnotation(c ColumnMeta) string {
 	key := c.Name()
 	buf.WriteString("gorm:\"")
 
+	if c.IsPrimaryKey() {
+		buf.WriteString("primary_key;")
+	}
 	if c.IsAutoIncrement() {
 		buf.WriteString("AUTO_INCREMENT;")
 	}
@@ -537,9 +547,6 @@ func createGormAnnotation(c ColumnMeta) string {
 			}
 		}
 
-		if c.IsPrimaryKey() {
-			buf.WriteString("primary_key")
-		}
 	}
 
 	buf.WriteString("\"")
