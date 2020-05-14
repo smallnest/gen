@@ -7,7 +7,12 @@ import (
     "{{.daoFQPN}}"
 
 	"github.com/gin-gonic/gin"
+	"github.com/guregu/null"
 	"github.com/julienschmidt/httprouter"
+)
+
+var (
+    _ = null.Bool{}
 )
 
 func config{{pluralize .StructName}}Router(router *httprouter.Router) {
@@ -120,13 +125,13 @@ func Add{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Pa
 
 
    if err := {{.StructName | toLower}}.BeforeSave(); err != nil {
-      returnError(w, r, dao.ErrBadParams)
+      returnError(w, r, {{.daoPackageName}}.ErrBadParams)
    }
 
    {{.StructName | toLower}}.Prepare()
 
-   if err := {{.StructName | toLower}}.Validate(model.Create); err != nil {
-      returnError(w, r, dao.ErrBadParams)
+   if err := {{.StructName | toLower}}.Validate({{.modelPackageName}}.Create); err != nil {
+      returnError(w, r, {{.daoPackageName}}.ErrBadParams)
       return
    }
 
@@ -169,13 +174,13 @@ func Update{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter
 	}
 
    if err := {{.StructName | toLower}}.BeforeSave(); err != nil {
-      returnError(w, r, dao.ErrBadParams)
+      returnError(w, r, {{.daoPackageName}}.ErrBadParams)
    }
 
    {{.StructName | toLower}}.Prepare()
 
-   if err := {{.StructName | toLower}}.Validate(model.Update); err != nil {
-      returnError(w, r, dao.ErrBadParams)
+   if err := {{.StructName | toLower}}.Validate( {{.modelPackageName}}.Update); err != nil {
+      returnError(w, r, {{.daoPackageName}}.ErrBadParams)
       return
    }
 

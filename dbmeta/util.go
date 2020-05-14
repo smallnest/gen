@@ -2,6 +2,7 @@ package dbmeta
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -58,6 +59,43 @@ var intToWordMap = []string{
 	"nine",
 }
 
+
+
+var parsePrimaryKeys = map[string]string{
+	"uint8": "parseUint8",
+	"uint16": "parseUint16",
+	"uint32": "parseUint32",
+	"uint64": "parseUint64",
+	"int": "parseInt",
+	"int8": "parseInt8",
+	"int16": "parseInt16",
+	"int32": "parseInt32",
+	"int64": "parseInt64",
+	"string": "parseString",
+}
+
+
+
+
+var reservedFieldNames = map[string]bool{
+	"TableName": true,
+	"BeforeSave": true,
+	"Prepare": true,
+	"Validate": true,
+}
+
+
+// RenameReservedName renames a reserved word
+func RenameReservedName(s string) string {
+	_, match := reservedFieldNames[s]
+	if match {
+		return fmt.Sprintf("%s_", s)
+	}
+
+	return s
+}
+
+
 // FmtFieldName formats a string as a struct key
 //
 // Example:
@@ -75,7 +113,8 @@ func FmtFieldName(s string) string {
 			runes[i] = '_'
 		}
 	}
-	return string(runes)
+	fieldName :=  string(runes)
+	return RenameReservedName(fieldName)
 }
 func isAllLower(name string) (allLower bool) {
 	allLower = true

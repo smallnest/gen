@@ -5,6 +5,7 @@ import (
 	"io/ioutil"
 	"net/http"
 	"strconv"
+	"time"
 	"unsafe"
 
 	"{{.daoFQPN}}"
@@ -12,6 +13,9 @@ import (
 	"github.com/gin-gonic/gin"
 	"github.com/jinzhu/gorm"
 	"github.com/julienschmidt/httprouter"
+)
+var (
+    _ = time.Second
 )
 
 var (
@@ -147,6 +151,38 @@ func NewError(ctx *gin.Context, status int, err error) {
 
 
 
+func parseUint8(ps httprouter.Params, key string) (uint8, error) {
+	idStr := ps.ByName(key)
+	id, err := strconv.ParseInt(idStr, 10, 8)
+	if err != nil {
+		return uint8(id), err
+	}
+	return uint8(id), err
+}
+func parseUint16(ps httprouter.Params, key string) (uint16, error) {
+	idStr := ps.ByName(key)
+	id, err := strconv.ParseInt(idStr, 10, 16)
+	if err != nil {
+		return uint16(id), err
+	}
+	return uint16(id), err
+}
+func parseUint32(ps httprouter.Params, key string) (uint32, error) {
+	idStr := ps.ByName(key)
+	id, err := strconv.ParseInt(idStr, 10, 32)
+	if err != nil {
+		return uint32(id), err
+	}
+	return uint32(id), err
+}
+func parseUint64(ps httprouter.Params, key string) (uint64, error) {
+	idStr := ps.ByName(key)
+	id, err := strconv.ParseInt(idStr, 10, 64)
+	if err != nil {
+		return uint64(id), err
+	}
+	return uint64(id), err
+}
 func parseInt(ps httprouter.Params, key string) (int, error) {
 	idStr := ps.ByName(key)
 	id, err := strconv.ParseInt(idStr, 10, 64)
@@ -155,7 +191,22 @@ func parseInt(ps httprouter.Params, key string) (int, error) {
 	}
 	return int(id), err
 }
-
+func parseInt8(ps httprouter.Params, key string) (int8, error) {
+	idStr := ps.ByName(key)
+	id, err := strconv.ParseInt(idStr, 10, 8)
+	if err != nil {
+		return -1, err
+	}
+	return int8(id), err
+}
+func parseInt16(ps httprouter.Params, key string) (int16, error) {
+	idStr := ps.ByName(key)
+	id, err := strconv.ParseInt(idStr, 10, 16)
+	if err != nil {
+		return -1, err
+	}
+	return int16(id), err
+}
 func parseInt32(ps httprouter.Params, key string) (int32, error) {
 	idStr := ps.ByName(key)
 	id, err := strconv.ParseInt(idStr, 10, 32)
@@ -164,21 +215,14 @@ func parseInt32(ps httprouter.Params, key string) (int32, error) {
 	}
 	return int32(id), err
 }
-
 func parseInt64(ps httprouter.Params, key string) (int64, error) {
 	idStr := ps.ByName(key)
 	id, err := strconv.ParseInt(idStr, 10, 54)
 	if err != nil {
 		return -1, err
 	}
-	return int64(id), err
+	return id, err
 }
-
-func parseInterface(ps httprouter.Params, key string) (interface{}, error) {
-	idStr := ps.ByName(key)
-	return idStr, nil
-}
-
 func parseString(ps httprouter.Params, key string) (string, error) {
 	idStr := ps.ByName(key)
 	return idStr, nil

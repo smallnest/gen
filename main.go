@@ -113,7 +113,7 @@ func init() {
 		return "ORM and RESTful API generator for SQl databases"
 	}
 
-	goopt.Version = "0.9.2 (05/12/2020)"
+	goopt.Version = "0.9.3 (05/14/2020)"
 	goopt.Summary = `gen [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> --module=example.com/example [--json] [--gorm] [--guregu] [--generate-dao] [--generate-proj]
 
            sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
@@ -496,17 +496,17 @@ func generate() {
 			"TableInfo":       tableInfo,
 		}
 
-		modelFile := filepath.Join(modelDir, inflection.Singular(tableName)+".go")
+		modelFile := filepath.Join(modelDir, CreateGoSrcFileName(tableName))
 		writeTemplate("model", ModelTmpl, modelInfo, modelFile, *overwrite, true)
 
 		if *restAPIGenerate {
-			restFile := filepath.Join(apiDir, inflection.Singular(tableName)+".go")
+			restFile := filepath.Join(apiDir, CreateGoSrcFileName(tableName))
 			writeTemplate("rest", ControllerTmpl, modelInfo, restFile, *overwrite, true)
 		}
 
 		if *daoGenerate {
 			//write dao
-			outputFile := filepath.Join(daoDir, inflection.Singular(tableName)+".go")
+			outputFile := filepath.Join(daoDir, CreateGoSrcFileName(tableName))
 			writeTemplate("dao", DaoTmpl, modelInfo, outputFile, *overwrite, true)
 		}
 	}
@@ -1019,4 +1019,13 @@ func ToJSON(val interface{}, indent int) string {
 	response := string(strB)
 	response = strings.Replace(response, "\n", "", -1)
 	return response
+}
+
+func CreateGoSrcFileName(tableName string) string {
+	name := inflection.Singular(tableName)
+	if strings.HasSuffix(name, "_test") {
+		name = name[0 : len(name)-5]
+		name = name + "_tst"
+	}
+	return name + ".go"
 }

@@ -21,7 +21,7 @@ func LoadMsSQLMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 		return nil, err
 	}
 
-	m.columns = make([]ColumnMeta, len(cols))
+	m.columns = make([]*columnMeta, len(cols))
 	colInfo, err := msSQLloadFromSysColumns(db, tableName)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load ddl from ms sql: %v", err)
@@ -89,11 +89,9 @@ func LoadMsSQLMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 
 		m.columns[i] = colMeta
 	}
-	if err != nil {
-		return nil, err
-	}
-	m.ddl = BuildDefaultTableDDL(tableName, m.columns)
 
+	m.ddl = BuildDefaultTableDDL(tableName, m.columns)
+	m = updateDefaultPrimaryKey(m)
 	return m, nil
 }
 

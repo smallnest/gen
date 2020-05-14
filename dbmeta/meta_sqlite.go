@@ -40,7 +40,7 @@ func LoadSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTable
 		return nil, err
 	}
 
-	m.columns = make([]ColumnMeta, len(cols))
+	m.columns = make([]*columnMeta, len(cols))
 
 	for i, v := range cols {
 		colDDL := colsDDL[v.Name()]
@@ -84,6 +84,7 @@ func LoadSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTable
 		m.columns[i] = colMeta
 	}
 
+	m = updateDefaultPrimaryKey(m)
 	return m, nil
 }
 

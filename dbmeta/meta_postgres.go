@@ -19,7 +19,7 @@ func LoadPostgresMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTab
 	if err != nil {
 		return nil, err
 	}
-	m.columns = make([]ColumnMeta, len(cols))
+	m.columns = make([]*columnMeta, len(cols))
 
 	colInfo, err := LoadTableInfoFromPostgresInformationSchema(db, tableName)
 	if err != nil {
@@ -79,7 +79,9 @@ func LoadPostgresMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTab
 
 		m.columns[i] = colMeta
 	}
+
 	m.ddl = BuildDefaultTableDDL(tableName, m.columns)
+	m = updateDefaultPrimaryKey(m)
 	return m, nil
 }
 

@@ -10,7 +10,15 @@ usage() {
 }
 
 func_gen() {
+  if [[ -d ./tests/${DB_TYPE} ]];
+  then
+    rm -rf "./tests/${DB_TYPE}"
+  fi
+
   DEFAULT_GEN_OPTIONS="--json
+      --api=apis
+      --dao=daos
+      --model=models
       --gorm
       --guregu
       --rest
@@ -25,6 +33,7 @@ func_gen() {
       --port=8080
       --db
       --protobuf
+      --templateDir=./template
       --verbose"
 
 
@@ -34,7 +43,7 @@ func_gen() {
     --connstr="${DB_CON}" \
     --database="${DB}" \
     --out="./tests/${DB_TYPE}" \
-    --module="github.com/alexj212/${DB}" \
+    --module="github.com/alexj212A/${DB}" \
     ${DEFAULT_GEN_OPTIONS}
 }
 

@@ -2,10 +2,18 @@ package {{.daoPackageName}}
 
 import (
     "context"
+    "time"
 
 	"{{.modelFQPN}}"
 
+    "github.com/guregu/null"
+
 	"github.com/smallnest/gen/dbmeta"
+)
+
+var (
+    _ = time.Second
+    _ = null.Bool{}
 )
 
 
@@ -53,13 +61,13 @@ func Get{{.StructName}}(ctx context.Context, id {{.TableInfo.PrimaryKeyGoType}})
 
 // Add{{.StructName}} is a function to add a single record to {{.TableName}} table in the {{.DatabaseName}} database
 // error - ErrInsertFailed, db save call failed
-func Add{{.StructName}}(ctx context.Context, {{.StructName | toLower}} *{{.modelPackageName}}.{{.StructName}}) (result *{{.modelPackageName}}.{{.StructName}}, RowsAffected int64, err error) {
-    db := DB.Save({{.StructName | toLower}})
+func Add{{.StructName}}(ctx context.Context, record *{{.modelPackageName}}.{{.StructName}}) (result *{{.modelPackageName}}.{{.StructName}}, RowsAffected int64, err error) {
+    db := DB.Save(record)
 	if err = db.Error; err != nil {
 	    return nil, -1, ErrInsertFailed
 	}
 
-	return {{.StructName | toLower}}, db.RowsAffected, nil
+	return record, db.RowsAffected, nil
 }
 
 // Update{{.StructName}} is a function to update a single record from {{.TableName}} table in the {{.DatabaseName}} database
@@ -90,13 +98,13 @@ func Update{{.StructName}}(ctx context.Context, id {{.TableInfo.PrimaryKeyGoType
 // error - ErrDeleteFailed, db Delete failed error
 func Delete{{.StructName}}(ctx context.Context, id {{.TableInfo.PrimaryKeyGoType}}) (rowsAffected int64, err error) {
 
-    {{.StructName | toLower}} := &{{.modelPackageName}}.{{.StructName}}{}
-    db := DB.First({{.StructName | toLower}}, id)
+    record := &{{.modelPackageName}}.{{.StructName}}{}
+    db := DB.First(record, id)
     if db.Error != nil {
         return -1, ErrNotFound
     }
 
-    db = db.Delete({{.StructName | toLower}})
+    db = db.Delete(record)
     if err = db.Error; err != nil {
         return -1, ErrDeleteFailed
     }

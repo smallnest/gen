@@ -24,6 +24,13 @@ DB Table Details
 JSON Sample
 -------------------------------------
 {{ToJSON .TableInfo.Instance 4}}
+
+{{if .TableInfo.Notes }}
+Comments
+-------------------------------------
+{{ .TableInfo.Notes}}
+{{end}}
+
 */
 
 
