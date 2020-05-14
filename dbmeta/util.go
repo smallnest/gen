@@ -2,6 +2,7 @@ package dbmeta
 
 import (
 	"errors"
+	"fmt"
 	"reflect"
 	"strconv"
 	"strings"
@@ -58,6 +59,46 @@ var intToWordMap = []string{
 	"nine",
 }
 
+
+
+var parsePrimaryKeys = map[string]string{
+	"uint8": "parseUint8",
+	"uint16": "parseUint16",
+	"uint32": "parseUint32",
+	"uint64": "parseUint64",
+	"int": "parseInt",
+	"int8": "parseInt8",
+	"int16": "parseInt16",
+	"int32": "parseInt32",
+	"int64": "parseInt64",
+	"string": "parseString",
+}
+
+
+
+
+var reservedFieldNames = map[string]bool{
+	"TableName": true,
+	"BeforeSave": true,
+	"Prepare": true,
+	"Validate": true,
+	"type": true,
+}
+
+
+// RenameReservedName renames a reserved word
+func RenameReservedName(s string) string {
+	_, match := reservedFieldNames[s]
+	if match {
+		return fmt.Sprintf("%s_", s)
+	}
+
+	return s
+}
+
+
+
+
 // FmtFieldName formats a string as a struct key
 //
 // Example:
@@ -75,6 +116,27 @@ func FmtFieldName(s string) string {
 			runes[i] = '_'
 		}
 	}
+	fieldName :=  string(runes)
+	return RenameReservedName(fieldName)
+}
+func isAllLower(name string) (allLower bool) {
+	allLower = true
+	for _, r := range name {
+		if !unicode.IsLower(r) {
+			allLower = false
+			break
+		}
+	}
+	return
+}
+
+func lintAllLowerFieldName(name string) string {
+	runes := []rune(name)
+	if u := strings.ToUpper(name); commonInitialisms[u] {
+		copy(runes[0:], []rune(u))
+	} else {
+		runes[0] = unicode.ToUpper(runes[0])
+	}
 	return string(runes)
 }
 
@@ -88,27 +150,21 @@ func lintFieldName(name string) string {
 		name = name[1:]
 	}
 
-	allLower := true
-	for _, r := range name {
-		if !unicode.IsLower(r) {
-			allLower = false
-			break
-		}
-	}
+	allLower := isAllLower(name)
+
 	if allLower {
-		runes := []rune(name)
-		if u := strings.ToUpper(name); commonInitialisms[u] {
-			copy(runes[0:], []rune(u))
-		} else {
-			runes[0] = unicode.ToUpper(runes[0])
-		}
-		return string(runes)
+		return lintAllLowerFieldName(name)
 	}
 
+	return lintMixedFieldName(name)
+}
+
+func lintMixedFieldName(name string) string {
 	// Split camelCase at any lower->upper transition, and split on underscores.
 	// Check each word for common initialisms.
 	runes := []rune(name)
 	w, i := 0, 0 // index of start of word, scan
+
 	for i+1 <= len(runes) {
 		eow := false // whether we hit the end of a word
 

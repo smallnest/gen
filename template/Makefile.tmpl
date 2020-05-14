@@ -112,7 +112,8 @@ test: ## run tests
 	go test -v $(PROJ_PATH)
 
 fmt: ## run fmt on project
-	go fmt $(PROJ_PATH)/...
+	#go fmt $(PROJ_PATH)/...
+	gofmt -s -d -w -l .
 
 doc: ## launch godoc on port 6060
 	godoc -http=:6060

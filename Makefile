@@ -129,7 +129,8 @@ clean_example: ## remove generated example code
 	 ./example/go.mod \
 	 ./example/go.sum \
 	 ./example/model \
-	 ./example/.gitignore
+	 ./example/.gitignore \
+	 ./tests
 
 
 
@@ -144,3 +145,14 @@ run_dbmeta: clean_example ## generate example project code from sqlite db in ./e
 
  ## --table employees_2
 
+
+test: clean_example test_mysql test_postgres test_mssql test_sqlite3 ## test mysql, mssql, postgres and sqlite3 code generation
+
+test_mysql: ## test sqlite3 code generation
+	test.sh mysql  gen && cd ./tests/mysql && make example
+test_postgres: ## test postgres code generation
+	test.sh postgres  gen && cd ./tests/postgres && make example
+test_mssql: ## test mssql code generation
+	test.sh mssql  gen && cd ./tests/mssql && make example
+test_sqlite3: ## test sqlite3 code generation
+	test.sh sqlite3  gen && cd ./tests/sqlite3 && make example

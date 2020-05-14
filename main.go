@@ -113,7 +113,7 @@ func init() {
 		return "ORM and RESTful API generator for SQl databases"
 	}
 
-	goopt.Version = "0.9.2 (05/12/2020)"
+	goopt.Version = "0.9.3 (05/14/2020)"
 	goopt.Summary = `gen [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> --module=example.com/example [--json] [--gorm] [--guregu] [--generate-dao] [--generate-proj]
 
            sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
@@ -125,59 +125,59 @@ func init() {
 
 }
 
+func saveTemplates() {
+	fmt.Printf("Saving templates to %s\n", *saveTemplateDir)
+	err := SaveAssets(*saveTemplateDir, baseTemplates)
+	if err != nil {
+		fmt.Printf("Error saving: %v\n", err)
+	}
+
+}
+func listTemplates() {
+	for i, file := range baseTemplates.List() {
+		fmt.Printf("   [%d] [%s]\n", i, file)
+	}
+}
+
+func loadContextMapping() {
+	contextFile, err := os.Open(*contextFileName)
+	if err != nil {
+		fmt.Printf("Error loading context file %s error: %v\n", *contextFileName, err)
+		return
+	}
+
+	defer contextFile.Close()
+	jsonParser := json.NewDecoder(contextFile)
+	err = jsonParser.Decode(&contextMap)
+	if err != nil {
+		fmt.Printf("Error loading context file %s error: %v\n", *contextFileName, err)
+		return
+	}
+
+	fmt.Printf("Loaded Context from %s with %d defaults\n", *contextFileName, len(contextMap))
+	for key, value := range contextMap {
+		fmt.Printf("    Context:%s -> %s\n", key, value)
+	}
+}
+
 func main() {
 
 	baseTemplates = packr.New("gen", "./template")
 
-	//if *verbose {
-	//	fmt.Printf("Base Template Details: Name: %v Path: %v ResolutionDir: %v\n", baseTemplates.Name, baseTemplates.Path, baseTemplates.ResolutionDir)
-	//}
-
 	if *verbose {
-		for i, file := range baseTemplates.List() {
-			fmt.Printf("   [%d] [%s]\n", i, file)
-		}
+		listTemplates()
 	}
 
 	if *saveTemplateDir != "" {
-		fmt.Printf("Saving templates to %s\n", *saveTemplateDir)
-		err := SaveAssets(*saveTemplateDir, baseTemplates)
-		if err != nil {
-			fmt.Printf("Error saving: %v\n", err)
-		}
+		saveTemplates()
 		return
 	}
 
 	if *contextFileName != "" {
-		contextFile, err := os.Open(*contextFileName)
-		if err != nil {
-			fmt.Printf("Error loading context file %s error: %v\n", *contextFileName, err)
-			return
-		}
-
-		defer contextFile.Close()
-		jsonParser := json.NewDecoder(contextFile)
-		err = jsonParser.Decode(&contextMap)
-		if err != nil {
-			fmt.Printf("Error loading context file %s error: %v\n", *contextFileName, err)
-			return
-		}
-
-		fmt.Printf("Loaded Context from %s with %d defaults\n", *contextFileName, len(contextMap))
-		for key, value := range contextMap {
-			fmt.Printf("    Context:%s -> %s\n", key, value)
-		}
+		loadContextMapping()
 	}
 
-	var err error
-	var content []byte
-	content, err = baseTemplates.Find("mapping.json")
-	if err != nil {
-		fmt.Printf("Error getting default map[mapping file error: %v\n", err)
-		return
-	}
-
-	err = dbmeta.ProcessMappings(content)
+	err := loadDefaultDBMappings()
 	if err != nil {
 		fmt.Printf("Error processing default mapping file error: %v\n", err)
 		return
@@ -204,18 +204,12 @@ func main() {
 		return
 	}
 
-	var db *sql.DB
-	db, err = sql.Open(*sqlType, *sqlConnStr)
+	db, err := initializeDB()
 	if err != nil {
-		fmt.Printf("Error in open database: %v\n\n", err.Error())
 		return
 	}
+
 	defer db.Close()
-	err = db.Ping()
-	if err != nil {
-		fmt.Printf("Error connecting to database: %v\n\n", err.Error())
-		return
-	}
 
 	var dbTables []string
 	// parse or read tables
@@ -234,6 +228,36 @@ func main() {
 		fmt.Printf("[%d] %s\n", i, tableName)
 	}
 
+	initialize()
+
+	loadTableInfo(db, dbTables)
+
+	if *exec != "" {
+		executeCustomScript()
+		return
+	}
+
+	generate()
+}
+
+func initializeDB() (db *sql.DB, err error) {
+
+	db, err = sql.Open(*sqlType, *sqlConnStr)
+	if err != nil {
+		fmt.Printf("Error in open database: %v\n\n", err.Error())
+		return nil, err
+	}
+
+	err = db.Ping()
+	if err != nil {
+		fmt.Printf("Error pinging database: %v\n\n", err.Error())
+		return
+	}
+
+	return
+}
+
+func initialize() {
 	if outDir == nil || *outDir == "" {
 		*outDir = "."
 	}
@@ -262,7 +286,38 @@ func main() {
 	swaggerInfo.ContactURL = *swaggerContactURL
 	swaggerInfo.ContactEmail = *swaggerContactEmail
 	swaggerInfo.Host = fmt.Sprintf("%s:%d", *serverHost, *serverPort)
+	cmdLine = strings.Join(os.Args, " ")
+}
 
+func loadDefaultDBMappings() error {
+	var err error
+	var content []byte
+	content, err = baseTemplates.Find("mapping.json")
+	if err != nil {
+		return err
+	}
+
+	err = dbmeta.ProcessMappings(content)
+	if err != nil {
+		return err
+	}
+	return nil
+}
+
+func executeCustomScript() {
+	fmt.Printf("Executing script %s\n", *exec)
+
+	b, err := ioutil.ReadFile(*exec)
+	if err != nil {
+		fmt.Printf("Error Loading exec script: %s, error: %v\n", *exec, err)
+		return
+	}
+	content := string(b)
+	data := map[string]interface{}{}
+	execTemplate("exec", content, data)
+}
+
+func loadTableInfo(db *sql.DB, dbTables []string) {
 	// generate go files for each table
 	var tableIdx = 0
 	for i, tableName := range dbTables {
@@ -308,24 +363,6 @@ func main() {
 		tables = append(tables, tableName)
 	}
 
-	cmdLine = strings.Join(os.Args, " ")
-
-	if *exec != "" {
-		fmt.Printf("Executing script %s\n", *exec)
-
-		var b []byte
-		b, err = ioutil.ReadFile(*exec)
-		if err != nil {
-			fmt.Printf("Error Loading exec script: %s, error: %v\n", *exec, err)
-			return
-		}
-		content := string(b)
-		data := map[string]interface{}{}
-		execTemplate("exec", content, data)
-		return
-	}
-
-	generate()
 }
 
 func execTemplate(name, templateStr string, data map[string]interface{}) {
@@ -403,15 +440,9 @@ func generate() {
 	var ModelBaseTmpl string
 	var ControllerTmpl string
 	var DaoTmpl string
-	var RouterTmpl string
+
 	var DaoInitTmpl string
 	var GoModuleTmpl string
-	var MainServerTmpl string
-	var HTTPUtilsTmpl string
-	var ReadMeTmpl string
-	var GitIgnoreTmpl string
-	var MakefileTmpl string
-	var ProtobufTmpl string
 
 	if ControllerTmpl, err = loadTemplate("controller.go.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
@@ -425,44 +456,17 @@ func generate() {
 		fmt.Printf("Error loading template %v\n", err)
 		return
 	}
-	if GitIgnoreTmpl, err = loadTemplate("GitIgnore.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
-		return
-	}
+
 	if GoModuleTmpl, err = loadTemplate("GoMod.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
 		return
 	}
-	if HTTPUtilsTmpl, err = loadTemplate("http_utils.go.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
-		return
-	}
-	if MainServerTmpl, err = loadTemplate("MainServer.go.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
-		return
-	}
-	if MakefileTmpl, err = loadTemplate("Makefile.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
-		return
-	}
-	if ProtobufTmpl, err = loadTemplate("protobuf.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
-		return
-	}
+
 	if ModelTmpl, err = loadTemplate("model.go.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
 		return
 	}
 	if ModelBaseTmpl, err = loadTemplate("model_base.go.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
-		return
-	}
-
-	if ReadMeTmpl, err = loadTemplate("README.md.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
-		return
-	}
-	if RouterTmpl, err = loadTemplate("router.go.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
 		return
 	}
@@ -492,17 +496,17 @@ func generate() {
 			"TableInfo":       tableInfo,
 		}
 
-		modelFile := filepath.Join(modelDir, inflection.Singular(tableName)+".go")
+		modelFile := filepath.Join(modelDir, CreateGoSrcFileName(tableName))
 		writeTemplate("model", ModelTmpl, modelInfo, modelFile, *overwrite, true)
 
 		if *restAPIGenerate {
-			restFile := filepath.Join(apiDir, inflection.Singular(tableName)+".go")
+			restFile := filepath.Join(apiDir, CreateGoSrcFileName(tableName))
 			writeTemplate("rest", ControllerTmpl, modelInfo, restFile, *overwrite, true)
 		}
 
 		if *daoGenerate {
 			//write dao
-			outputFile := filepath.Join(daoDir, inflection.Singular(tableName)+".go")
+			outputFile := filepath.Join(daoDir, CreateGoSrcFileName(tableName))
 			writeTemplate("dao", DaoTmpl, modelInfo, outputFile, *overwrite, true)
 		}
 	}
@@ -510,8 +514,9 @@ func generate() {
 	data := map[string]interface{}{}
 
 	if *restAPIGenerate {
-		writeTemplate("router", RouterTmpl, data, filepath.Join(apiDir, "router.go"), *overwrite, true)
-		writeTemplate("example server", HTTPUtilsTmpl, data, filepath.Join(apiDir, "http_utils.go"), *overwrite, true)
+		if err = generateRestBaseFiles(apiDir); err != nil {
+			return
+		}
 	}
 
 	if *daoGenerate {
@@ -525,93 +530,15 @@ func generate() {
 	}
 
 	if *makefileGenerate {
-		buf := bytes.Buffer{}
-
-		buf.WriteString("gen")
-		buf.WriteString(fmt.Sprintf(" --sqltype=%s", *sqlType))
-		buf.WriteString(fmt.Sprintf(" --connstr=%s", *sqlConnStr))
-		buf.WriteString(fmt.Sprintf(" --database=%s", *sqlDatabase))
-		buf.WriteString(fmt.Sprintf(" --templateDir=%s", "./templates"))
-
-		if *sqlTable != "" {
-			buf.WriteString(fmt.Sprintf(" --table=%s", *sqlTable))
+		if err = generateMakefile(); err != nil {
+			return
 		}
-
-		buf.WriteString(fmt.Sprintf(" --model=%s", *modelPackageName))
-		buf.WriteString(fmt.Sprintf(" --dao=%s", *daoPackageName))
-		buf.WriteString(fmt.Sprintf(" --api=%s", *apiPackageName))
-		buf.WriteString(fmt.Sprintf(" --out=%s", "./"))
-		buf.WriteString(fmt.Sprintf(" --module=%s", *module))
-		if *jsonAnnotation {
-			buf.WriteString(fmt.Sprintf(" --json"))
-			buf.WriteString(fmt.Sprintf(" --json-fmt=%s", *jsonNameFormat))
-		}
-		if *gormAnnotation {
-			buf.WriteString(fmt.Sprintf(" --gorm"))
-		}
-		if *protobufAnnotation {
-			buf.WriteString(fmt.Sprintf(" --protobuf"))
-		}
-		if *dbAnnotation {
-			buf.WriteString(fmt.Sprintf(" --db"))
-		}
-		if *gureguTypes {
-			buf.WriteString(fmt.Sprintf(" --guregu"))
-		}
-		if *modGenerate {
-			buf.WriteString(fmt.Sprintf(" --mod"))
-		}
-		if *makefileGenerate {
-			buf.WriteString(fmt.Sprintf(" --makefile"))
-		}
-		if *serverGenerate {
-			buf.WriteString(fmt.Sprintf(" --server"))
-		}
-		if *overwrite {
-			buf.WriteString(fmt.Sprintf(" --overwrite"))
-		}
-
-		if *contextFileName != "" {
-			buf.WriteString(fmt.Sprintf(" --context=%s", *contextFileName))
-		}
-
-		buf.WriteString(fmt.Sprintf(" --host=%s", *serverHost))
-		buf.WriteString(fmt.Sprintf(" --port=%d", *serverPort))
-		if *restAPIGenerate {
-			buf.WriteString(fmt.Sprintf(" --rest"))
-		}
-
-		if *daoGenerate {
-			buf.WriteString(fmt.Sprintf(" --generate-dao"))
-		}
-		if *projectGenerate {
-			buf.WriteString(fmt.Sprintf(" --generate-proj"))
-		}
-
-		if *verbose {
-			buf.WriteString(fmt.Sprintf(" --verbose"))
-		}
-
-		buf.WriteString(fmt.Sprintf(" --swagger_version=%s", *swaggerVersion))
-		buf.WriteString(fmt.Sprintf(" --swagger_path=%s", *swaggerBasePath))
-		buf.WriteString(fmt.Sprintf(" --swagger_tos=%s", *swaggerTos))
-		buf.WriteString(fmt.Sprintf(" --swagger_contact_name=%s", *swaggerContactName))
-		buf.WriteString(fmt.Sprintf(" --swagger_contact_url=%s", *swaggerContactURL))
-		buf.WriteString(fmt.Sprintf(" --swagger_contact_email=%s", *swaggerContactEmail))
-
-		regenCmdLine := buf.String()
-		regenCmdLine = strings.Trim(regenCmdLine, " \t")
-
-		data := map[string]interface{}{
-			"deps":         "go list -f '{{ join .Deps  \"\\n\"}}' .",
-			"RegenCmdLine": regenCmdLine,
-		}
-		writeTemplate("makefile", MakefileTmpl, data, filepath.Join(*outDir, "Makefile"), *overwrite, false)
 	}
 
 	if *protobufAnnotation {
-		protofile := fmt.Sprintf("%s.proto", *sqlDatabase)
-		writeTemplate("protobuf", ProtobufTmpl, data, filepath.Join(*outDir, protofile), *overwrite, false)
+		if err = generateProtobufDefinitionFile(data); err != nil {
+			return
+		}
 	}
 
 	data = map[string]interface{}{
@@ -620,36 +547,203 @@ func generate() {
 	}
 
 	if *projectGenerate {
-		writeTemplate("gitignore", GitIgnoreTmpl, data, filepath.Join(*outDir, ".gitignore"), *overwrite, false)
-		writeTemplate("readme", ReadMeTmpl, data, filepath.Join(*outDir, "README.md"), *overwrite, false)
+		if err = generateProjectFiles(data); err != nil {
+			return
+		}
 	}
 
 	if *serverGenerate {
-		data := map[string]interface{}{}
-
-		serverDir := filepath.Join(*outDir, "app/server")
-		err = os.MkdirAll(serverDir, 0777)
-		if err != nil {
-			fmt.Printf("unable to create serverDir: %s error: %v\n", serverDir, err)
+		if err = generateServerCode(); err != nil {
 			return
 		}
-		writeTemplate("example server", MainServerTmpl, data, filepath.Join(serverDir, "main.go"), *overwrite, true)
 	}
 
 	if *copyTemplates {
-		templatesDir := filepath.Join(*outDir, "templates")
-		err = os.MkdirAll(templatesDir, 0777)
-		if err != nil && !*overwrite {
-			fmt.Printf("unable to create templatesDir: %s error: %v\n", templatesDir, err)
+		if err = copyTemplatesToTarget(); err != nil {
 			return
 		}
-
-		fmt.Printf("Saving templates to %s\n", templatesDir)
-		err := SaveAssets(templatesDir, baseTemplates)
-		if err != nil {
-			fmt.Printf("Error saving: %v\n", err)
-		}
 	}
+}
+
+func generateRestBaseFiles(apiDir string) (err error) {
+
+	data := map[string]interface{}{}
+	var RouterTmpl string
+	var HTTPUtilsTmpl string
+
+	if HTTPUtilsTmpl, err = loadTemplate("http_utils.go.tmpl"); err != nil {
+		fmt.Printf("Error loading template %v\n", err)
+		return
+	}
+	if RouterTmpl, err = loadTemplate("router.go.tmpl"); err != nil {
+		fmt.Printf("Error loading template %v\n", err)
+		return
+	}
+
+	writeTemplate("router", RouterTmpl, data, filepath.Join(apiDir, "router.go"), *overwrite, true)
+	writeTemplate("example server", HTTPUtilsTmpl, data, filepath.Join(apiDir, "http_utils.go"), *overwrite, true)
+	return nil
+}
+
+func generateMakefile() (err error) {
+	var MakefileTmpl string
+
+	if MakefileTmpl, err = loadTemplate("Makefile.tmpl"); err != nil {
+		fmt.Printf("Error loading template %v\n", err)
+		return
+	}
+
+	data := map[string]interface{}{
+		"deps":         "go list -f '{{ join .Deps  \"\\n\"}}' .",
+		"RegenCmdLine": regenCmdLine(),
+	}
+	writeTemplate("makefile", MakefileTmpl, data, filepath.Join(*outDir, "Makefile"), *overwrite, false)
+	return nil
+}
+
+func generateProtobufDefinitionFile(data map[string]interface{}) (err error) {
+	var ProtobufTmpl string
+
+	if ProtobufTmpl, err = loadTemplate("protobuf.tmpl"); err != nil {
+		fmt.Printf("Error loading template %v\n", err)
+		return err
+	}
+
+	protofile := fmt.Sprintf("%s.proto", *sqlDatabase)
+	writeTemplate("protobuf", ProtobufTmpl, data, filepath.Join(*outDir, protofile), *overwrite, false)
+	return nil
+}
+
+func generateProjectFiles(data map[string]interface{}) (err error) {
+
+	var GitIgnoreTmpl string
+	if GitIgnoreTmpl, err = loadTemplate("GitIgnore.tmpl"); err != nil {
+		fmt.Printf("Error loading template %v\n", err)
+		return
+	}
+	var ReadMeTmpl string
+	if ReadMeTmpl, err = loadTemplate("README.md.tmpl"); err != nil {
+		fmt.Printf("Error loading template %v\n", err)
+		return
+	}
+
+	writeTemplate("gitignore", GitIgnoreTmpl, data, filepath.Join(*outDir, ".gitignore"), *overwrite, false)
+	writeTemplate("readme", ReadMeTmpl, data, filepath.Join(*outDir, "README.md"), *overwrite, false)
+	return nil
+}
+
+func generateServerCode() (err error) {
+	data := map[string]interface{}{}
+	var MainServerTmpl string
+	if MainServerTmpl, err = loadTemplate("MainServer.go.tmpl"); err != nil {
+		fmt.Printf("Error loading template %v\n", err)
+		return
+	}
+
+	serverDir := filepath.Join(*outDir, "app/server")
+	err = os.MkdirAll(serverDir, 0777)
+	if err != nil {
+		fmt.Printf("unable to create serverDir: %s error: %v\n", serverDir, err)
+		return
+	}
+	writeTemplate("example server", MainServerTmpl, data, filepath.Join(serverDir, "main.go"), *overwrite, true)
+	return nil
+}
+
+func copyTemplatesToTarget() (err error) {
+	templatesDir := filepath.Join(*outDir, "templates")
+	err = os.MkdirAll(templatesDir, 0777)
+	if err != nil && !*overwrite {
+		fmt.Printf("unable to create templatesDir: %s error: %v\n", templatesDir, err)
+		return
+	}
+
+	fmt.Printf("Saving templates to %s\n", templatesDir)
+	err = SaveAssets(templatesDir, baseTemplates)
+	if err != nil {
+		fmt.Printf("Error saving: %v\n", err)
+	}
+	return nil
+}
+
+func regenCmdLine() string {
+	buf := bytes.Buffer{}
+
+	buf.WriteString("gen")
+	buf.WriteString(fmt.Sprintf(" --sqltype=%s", *sqlType))
+	buf.WriteString(fmt.Sprintf(" --connstr=%s", *sqlConnStr))
+	buf.WriteString(fmt.Sprintf(" --database=%s", *sqlDatabase))
+	buf.WriteString(fmt.Sprintf(" --templateDir=%s", "./templates"))
+
+	if *sqlTable != "" {
+		buf.WriteString(fmt.Sprintf(" --table=%s", *sqlTable))
+	}
+
+	buf.WriteString(fmt.Sprintf(" --model=%s", *modelPackageName))
+	buf.WriteString(fmt.Sprintf(" --dao=%s", *daoPackageName))
+	buf.WriteString(fmt.Sprintf(" --api=%s", *apiPackageName))
+	buf.WriteString(fmt.Sprintf(" --out=%s", "./"))
+	buf.WriteString(fmt.Sprintf(" --module=%s", *module))
+	if *jsonAnnotation {
+		buf.WriteString(fmt.Sprintf(" --json"))
+		buf.WriteString(fmt.Sprintf(" --json-fmt=%s", *jsonNameFormat))
+	}
+	if *gormAnnotation {
+		buf.WriteString(fmt.Sprintf(" --gorm"))
+	}
+	if *protobufAnnotation {
+		buf.WriteString(fmt.Sprintf(" --protobuf"))
+	}
+	if *dbAnnotation {
+		buf.WriteString(fmt.Sprintf(" --db"))
+	}
+	if *gureguTypes {
+		buf.WriteString(fmt.Sprintf(" --guregu"))
+	}
+	if *modGenerate {
+		buf.WriteString(fmt.Sprintf(" --mod"))
+	}
+	if *makefileGenerate {
+		buf.WriteString(fmt.Sprintf(" --makefile"))
+	}
+	if *serverGenerate {
+		buf.WriteString(fmt.Sprintf(" --server"))
+	}
+	if *overwrite {
+		buf.WriteString(fmt.Sprintf(" --overwrite"))
+	}
+
+	if *contextFileName != "" {
+		buf.WriteString(fmt.Sprintf(" --context=%s", *contextFileName))
+	}
+
+	buf.WriteString(fmt.Sprintf(" --host=%s", *serverHost))
+	buf.WriteString(fmt.Sprintf(" --port=%d", *serverPort))
+	if *restAPIGenerate {
+		buf.WriteString(fmt.Sprintf(" --rest"))
+	}
+
+	if *daoGenerate {
+		buf.WriteString(fmt.Sprintf(" --generate-dao"))
+	}
+	if *projectGenerate {
+		buf.WriteString(fmt.Sprintf(" --generate-proj"))
+	}
+
+	if *verbose {
+		buf.WriteString(fmt.Sprintf(" --verbose"))
+	}
+
+	buf.WriteString(fmt.Sprintf(" --swagger_version=%s", *swaggerVersion))
+	buf.WriteString(fmt.Sprintf(" --swagger_path=%s", *swaggerBasePath))
+	buf.WriteString(fmt.Sprintf(" --swagger_tos=%s", *swaggerTos))
+	buf.WriteString(fmt.Sprintf(" --swagger_contact_name=%s", *swaggerContactName))
+	buf.WriteString(fmt.Sprintf(" --swagger_contact_url=%s", *swaggerContactURL))
+	buf.WriteString(fmt.Sprintf(" --swagger_contact_email=%s", *swaggerContactEmail))
+
+	regenCmdLine := buf.String()
+	regenCmdLine = strings.Trim(regenCmdLine, " \t")
+	return regenCmdLine
 }
 
 // GenerateTableFile generate file from template using specific table used within templates
@@ -925,4 +1019,13 @@ func ToJSON(val interface{}, indent int) string {
 	response := string(strB)
 	response = strings.Replace(response, "\n", "", -1)
 	return response
+}
+
+func CreateGoSrcFileName(tableName string) string {
+	name := inflection.Singular(tableName)
+	if strings.HasSuffix(name, "_test") {
+		name = name[0 : len(name)-5]
+		name = name + "_tst"
+	}
+	return name + ".go"
 }

@@ -23,7 +23,7 @@ func LoadUnknownMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTabl
 		return nil, err
 	}
 
-	m.columns = make([]ColumnMeta, len(cols))
+	m.columns = make([]*columnMeta, len(cols))
 
 	infoSchema, err := LoadTableInfoFromMSSqlInformationSchema(db, tableName)
 	if err != nil {
@@ -82,10 +82,8 @@ func LoadUnknownMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTabl
 
 		m.columns[i] = colMeta
 	}
-	if err != nil {
-		return nil, err
-	}
 
 	m.ddl = BuildDefaultTableDDL(tableName, m.columns)
+	m = updateDefaultPrimaryKey(m)
 	return m, nil
 }

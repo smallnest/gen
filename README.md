@@ -240,6 +240,7 @@ The following info is available within use of the exec template.
 
 ## Notes
 - MySql, Mssql, Postgres and Sqlite have a database metadata fetcher that will query the db, and update the auto increment, primary key and nullable info for the gorm annotation.
+- Only works with tables with single primary key, 
 
 ## DB Meta Data Loading    
 | DB   | Type  | Nullable  | Primary Key  | Auto Increment  | Column Len | default Value| create ddl
@@ -250,6 +251,16 @@ The following info is available within use of the exec template.
 |ms sql   |y   | y  | y  | y  | y | y| n
 
 ## Version History
+- v0.9.3 (05/14/2020)
+    - Template bug fixes, when using custom api, dao and model package.
+    - Set primary key if not set to the first column
+    - Skip code gen if primary key column is not int or string
+    - validated codegen for mysql, mssql, postgres and sqlite3
+    - Fixed file naming if table ends with _test.go renames to _tst.go
+    - Fix for duplicate field names in struct due to renaming
+    - Added Notes for columns and tables for situations where a primary key is set since not defined in db
+    - Fixed issue when model contained field that had were named the same as funcs within model.
+           
 - v0.9.2 (05/12/2020)
     - Code cleanup gofmt, etc. 
 - v0.9.1 (05/12/2020)

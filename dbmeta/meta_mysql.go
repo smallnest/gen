@@ -34,7 +34,7 @@ func LoadMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 		fmt.Printf("error calling LoadTableInfoFromMSSqlInformationSchema table: %s error: %v\n", tableName, err)
 	}
 
-	m.columns = make([]ColumnMeta, len(cols))
+	m.columns = make([]*columnMeta, len(cols))
 
 	for i, v := range cols {
 
@@ -84,10 +84,8 @@ func LoadMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 
 		m.columns[i] = colMeta
 	}
-	if err != nil {
-		return nil, err
-	}
 
+	m = updateDefaultPrimaryKey(m)
 	return m, nil
 }
 
