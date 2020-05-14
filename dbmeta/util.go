@@ -82,6 +82,7 @@ var reservedFieldNames = map[string]bool{
 	"BeforeSave": true,
 	"Prepare": true,
 	"Validate": true,
+	"type": true,
 }
 
 
@@ -94,6 +95,8 @@ func RenameReservedName(s string) string {
 
 	return s
 }
+
+
 
 
 // FmtFieldName formats a string as a struct key

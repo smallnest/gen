@@ -75,7 +75,8 @@ func GetAll{{pluralize .StructName}}(w http.ResponseWriter, r *http.Request, ps 
 // Get{{.StructName}} is a function to get a single record to {{.TableName}} table in the {{.DatabaseName}} database
 // @Summary Get record from table {{.StructName}} by {{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}} {{ $field.PrimaryKeyArgName }} {{end}}{{end}}
 // @Tags {{.StructName}}
-{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}// @ID {{ $field.PrimaryKeyArgName }} {{end}}{{end}}
+{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}// @ID {{ $field.PrimaryKeyArgName }}{{end}}
+{{end}}
 // @Description Get{{.StructName}} is a function to get a single record to {{.TableName}} table in the {{.DatabaseName}} database
 // @Accept  json
 // @Produce  json

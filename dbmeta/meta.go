@@ -322,8 +322,8 @@ func GenerateStruct(sqlType string,
 		fakeData := c.FakeData
 		generator = generator.AddField(c.GoFieldName, fakeData, tag)
 		if meta.IsPrimaryKey() {
-			c.PrimaryKeyArgName = strcase.ToLowerCamel(c.GoFieldName)
-			//c.PrimaryKeyArgName = fmt.Sprintf("arg%d", noOfPrimaryKeys)
+			//c.PrimaryKeyArgName = RenameReservedName(strcase.ToLowerCamel(c.GoFieldName))
+			c.PrimaryKeyArgName = fmt.Sprintf("arg%s", strcase.ToCamel(c.GoFieldName))
 			noOfPrimaryKeys++
 		}
 	}
