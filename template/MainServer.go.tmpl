@@ -82,7 +82,6 @@ func main() {
 	}
 
 	db.LogMode(true)
-	{{.apiPackageName}}.DB = db
 	{{.daoPackageName}}.DB = db
 
     {{ $modelPackage := .modelPackageName }}
