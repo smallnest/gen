@@ -430,7 +430,7 @@ func generateFieldsTypes(dbMeta DbTableMeta,
 			field = fmt.Sprintf("%s %s", fieldName, valueType)
 		}
 
-		field = fmt.Sprintf("%s //%s", field, c.String())
+		field = fmt.Sprintf("//%s\n    %s", c.String(), field)
 
 		goType, _ := SQLTypeToGoType(strings.ToLower(c.DatabaseTypeName()), false, false)
 		protobufType, _ := SQLTypeToProtobufType(c.DatabaseTypeName())

@@ -70,7 +70,7 @@ var (
 	makefileGenerate = goopt.Flag([]string{"--makefile"}, []string{}, "Generate Makefile in output dir", "")
 	serverGenerate   = goopt.Flag([]string{"--server"}, []string{}, "Generate server app output dir", "")
 	daoGenerate      = goopt.Flag([]string{"--generate-dao"}, []string{}, "Generate dao functions", "")
-	projectGenerate  = goopt.Flag([]string{"--generate-proj"}, []string{}, "Generate project readme an d gitignore", "")
+	projectGenerate  = goopt.Flag([]string{"--generate-proj"}, []string{}, "Generate project readme and gitignore", "")
 	restAPIGenerate  = goopt.Flag([]string{"--rest"}, []string{}, "Enable generating RESTful api", "")
 
 	serverHost          = goopt.String([]string{"--host"}, "localhost", "host for server")
@@ -113,7 +113,7 @@ func init() {
 		return "ORM and RESTful API generator for SQl databases"
 	}
 
-	goopt.Version = "0.9.3 (05/14/2020)"
+	goopt.Version = "0.9.4 (05/15/2020)"
 	goopt.Summary = `gen [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> --module=example.com/example [--json] [--gorm] [--guregu] [--generate-dao] [--generate-proj]
 
            sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
@@ -1021,6 +1021,7 @@ func ToJSON(val interface{}, indent int) string {
 	return response
 }
 
+// CreateGoSrcFileName ensures name doesnt clash with go naming conventions like _test.go
 func CreateGoSrcFileName(tableName string) string {
 	name := inflection.Singular(tableName)
 	if strings.HasSuffix(name, "_test") {
