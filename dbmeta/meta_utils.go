@@ -230,8 +230,6 @@ func indexAt(s, sep string, n int) int {
 	return idx
 }
 
-
-
 func updateDefaultPrimaryKey(m *dbTableMeta) *dbTableMeta {
 	hasPrimary := false
 	primaryKeyPos := -1
@@ -248,15 +246,14 @@ func updateDefaultPrimaryKey(m *dbTableMeta) *dbTableMeta {
 		fmt.Printf(comments)
 		primaryKeyPos = 0
 		m.columns[0].isPrimaryKey = true
-		m.columns[0].notes = m.columns[0].notes+ comments
+		m.columns[0].notes = m.columns[0].notes + comments
 	}
-
 
 	if m.columns[primaryKeyPos].nullable {
 		comments := fmt.Sprintf("Warning table: %s primary key column %s is nullable column, setting it as NOT NULL\n", m.tableName, m.columns[primaryKeyPos].Name())
 		fmt.Printf(comments)
 		m.columns[primaryKeyPos].nullable = false
-		m.columns[0].notes = m.columns[0].notes+ comments
+		m.columns[0].notes = m.columns[0].notes + comments
 	}
 	m.primaryKeyPos = primaryKeyPos
 	return m

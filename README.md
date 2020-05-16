@@ -14,6 +14,34 @@ and the expected basic built in go types.
 `gen` is based / inspired by the work of Seth Shelnutt's [db2struct](https://github.com/Shelnutt2/db2struct), and Db2Struct is based/inspired by the work of ChimeraCoder's gojson package [gojson](https://github.com/ChimeraCoder/gojson).
 
 
+
+## CRUD Generation
+This is a sample table contained within the ./example/sample.db Sqlite3 database. Using `gen` will generate the following struct. 
+```sql
+CREATE TABLE "albums"
+(
+    [AlbumId]  INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    [Title]    NVARCHAR(160) NOT NULL,
+    [ArtistId] INTEGER NOT NULL,
+    FOREIGN KEY ([ArtistId]) REFERENCES "artists" ([ArtistId])
+		ON DELETE NO ACTION ON UPDATE NO ACTION
+)
+```
+#### Transforms into 
+```go
+type Album struct {
+	//[ 0] AlbumId                                        integer              null: false  primary: true   auto: true   col: integer         len: -1      default: []
+	AlbumID int `gorm:"primary_key;AUTO_INCREMENT;column:AlbumId;type:INTEGER;" json:"album_id" db:"AlbumId" protobuf:"int32,0,opt,name=album_id"`
+	//[ 1] Title                                          nvarchar(160)        null: false  primary: false  auto: false  col: nvarchar        len: 160     default: []
+	Title string `gorm:"column:Title;type:NVARCHAR(160);size:160;" json:"title" db:"Title" protobuf:"string,1,opt,name=title"`
+	//[ 2] ArtistId                                       integer              null: false  primary: false  auto: false  col: integer         len: -1      default: []
+	ArtistID int `gorm:"column:ArtistId;type:INTEGER;" json:"artist_id" db:"ArtistId" protobuf:"int32,2,opt,name=artist_id"`
+}
+```
+Code generation for a complete CRUD rest project is possible with DAO crud functions, http handlers, makefile, sample server are available. Check out some of the [code generated samples](#Generated-Samples).
+
+ 
+
 ## Binary Installation
 ```BASH
 ## install gen tool (should be installed to ~/go/bin, make sure ~/go/bin is in your path.
@@ -141,6 +169,13 @@ The generated project will contain the following code under the `./example` dire
   * Structs representing a row for each database table
 
 
+#### Generated Samples
+* [DAO CRUD Functions](./code_dao.md)
+* [Http CRUD Handlers](./code_http.md)
+* [Model](./code_model.md)
+* [Protobuf Definition](./code_protobuf.md)
+
+
 The REST api server utilizes the Gin framework, GORM db api and Swag for providing swagger documentation   
 * [Gin](https://github.com/gin-gonic/gin)
 * [Swaggo](https://github.com/swaggo/swag)
@@ -234,13 +269,9 @@ The following info is available within use of the exec template.
    "tables"               [[]string] []string{"albums", "artists", "customers", "employees", "genres", "invoices", "invoice_items", "media_types", "playlists", "playlist_track", "tracks"}
 ```
 
-
-
-
-
 ## Notes
 - MySql, Mssql, Postgres and Sqlite have a database metadata fetcher that will query the db, and update the auto increment, primary key and nullable info for the gorm annotation.
-- Only works with tables with single primary key, 
+- Tables that have a non-standard primary key (NON integer based or String) the table will be ignored. 
 
 ## DB Meta Data Loading    
 | DB   | Type  | Nullable  | Primary Key  | Auto Increment  | Column Len | default Value| create ddl
@@ -251,6 +282,8 @@ The following info is available within use of the exec template.
 |ms sql   |y   | y  | y  | y  | y | y| n
 
 ## Version History
+- v0.9.4 (05/15/2020)
+    - Documentation updates, samples etc. 
 - v0.9.3 (05/14/2020)
     - Template bug fixes, when using custom api, dao and model package.
     - Set primary key if not set to the first column
@@ -273,12 +306,8 @@ The following info is available within use of the exec template.
     - Added support for varchar2, datetime2, float8, USER_DEFINED 
 - v0.5 
 
-
-
  
 ## Contributors
-
 - [alexj212](https://github.com/alexj212) -  a big thanks to alexj212 for his contributions
-
 
 See more contributors: [contributors](https://github.com/smallnest/gen/graphs/contributors)

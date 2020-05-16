@@ -11,16 +11,10 @@ import (
 	"{{.daoFQPN}}"
 
 	"github.com/gin-gonic/gin"
-	"github.com/jinzhu/gorm"
 	"github.com/julienschmidt/httprouter"
 )
 var (
     _ = time.Second
-)
-
-var (
-    // DB reference to database
-	DB           *gorm.DB
 )
 
 // PagedResults results for pages GetAll results.
