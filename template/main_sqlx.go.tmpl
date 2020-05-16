@@ -1,0 +1,99 @@
+package main
+
+import (
+	"fmt"
+	"log"
+	"os"
+	"os/signal"
+	"syscall"
+
+    "github.com/jmoiron/sqlx"
+
+    _ "github.com/denisenkom/go-mssqldb"
+    _ "github.com/go-sql-driver/mysql"
+    _ "github.com/lib/pq"
+    _ "github.com/mattn/go-sqlite3"
+
+	"github.com/gin-gonic/gin"
+	"github.com/swaggo/files"       // swagger embed files
+	"github.com/swaggo/gin-swagger" // gin-swagger middleware
+
+	"{{.module}}/{{.apiPackageName}}"
+    "{{.module}}/{{.daoPackageName}}"
+    _ "{{.module}}/docs"
+)
+
+var (
+    // BuildDate date string of when build was performed filled in by -X compile flag
+	BuildDate    string
+
+	// LatestCommit date string of when build was performed filled in by -X compile flag
+	LatestCommit string
+
+	// BuildNumber date string of when build was performed filled in by -X compile flag
+	BuildNumber  string
+
+	// BuiltOnIP date string of when build was performed filled in by -X compile flag
+	BuiltOnIP    string
+
+	// BuiltOnOs date string of when build was performed filled in by -X compile flag
+	BuiltOnOs    string
+
+	// RuntimeVer date string of when build was performed filled in by -X compile flag
+	RuntimeVer   string
+
+	// OsSignal signal used to shutdown
+	OsSignal     chan os.Signal
+)
+
+// GinServer launch gin server
+func GinServer() {
+	url := ginSwagger.URL("http://{{.serverHost}}:{{.serverPort}}/swagger/doc.json") // The url pointing to API definition
+
+	router := gin.Default()
+	router.GET("/swagger/*any", ginSwagger.WrapHandler(swaggerFiles.Handler, url))
+
+	{{.apiPackageName}}.ConfigGinRouter(router)
+	router.Run(":{{.serverPort}}")
+}
+
+
+
+// @title {{.SwaggerInfo.Title}}
+// @version {{.SwaggerInfo.Version}}
+// @description {{.SwaggerInfo.Description}}
+// @termsOfService {{.SwaggerInfo.TOS}}
+
+// @contact.name {{.SwaggerInfo.ContactName}}
+// @contact.url {{.SwaggerInfo.ContactURL}}
+// @contact.email {{.SwaggerInfo.ContactEmail}}
+
+// @license.name Apache 2.0
+// @license.url http://www.apache.org/licenses/LICENSE-2.0.html
+
+// @host {{.serverHost}}:{{.serverPort}}
+// @BasePath {{.SwaggerInfo.BasePath}}
+func main() {
+    OsSignal = make(chan os.Signal, 1)
+
+	db, err := sqlx.Open("{{.sqlType}}", "{{.sqlConnStr}}")
+	if err != nil {
+		log.Fatalf("Got error when connect database, the error is '%v'", err)
+	}
+
+	{{.daoPackageName}}.DB = db
+
+	go GinServer()
+    LoopForever()
+}
+
+// LoopForever on signal processing
+func LoopForever() {
+	fmt.Printf("Entering infinite loop\n")
+
+	signal.Notify(OsSignal, syscall.SIGINT, syscall.SIGTERM, syscall.SIGUSR1)
+	_ = <-OsSignal
+
+	fmt.Printf("Exiting infinite loop received OsSignal\n")
+
+}

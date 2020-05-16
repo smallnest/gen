@@ -1,5 +1,7 @@
 ## CRUD DAO Functions
-`gen` will generate dao functions if the `--generate-dao` is passed to `gen`. The code can be customized with the `--dao=dao` flag to set the name of the dao package.   
+`gen` will generate dao functions if the `--generate-dao` is passed to `gen`. The code can be customized with the `--dao=dao` flag to set the name of the dao package.
+
+Code can be generated in two flavours, SQLX by default and GORM with the flag `--gorm`    
 
 
 The code generation, will generate functions for 
@@ -10,8 +12,8 @@ The code generation, will generate functions for
 - [Delete a record](#Delete-record)
 
 ## Retrieve Paged Records 
+# GORM
 ```go
-
 // GetAllAlbums is a function to get a slice of record(s) from albums table in the main database
 // params - page     - page requested (defaults to 0)
 // params - pagesize - number of records in a page  (defaults to 20)
@@ -44,10 +46,25 @@ func GetAllAlbums(ctx context.Context, page, pagesize int64, order string) (albu
 }
 ```
 
+# sqlx
+```go
+func GetAllAlbums(ctx context.Context, page, pagesize int64, order string) (albums []*models.Album, totalRows int, err error) {
+	sql := "SELECT * FROM albums"
+
+	if order != "" {
+		sql = sql + " order by " + order
+	}
+	sql = fmt.Sprintf("%s LIMIT %d, %d", sql, page, pagesize)
+	fmt.Printf("%s\n", sql)
+	err = DB.SelectContext(ctx, &albums, sql, page, pagesize)
+	return albums, len(albums), err
+}
+
+```
 
 ## Retrieve record
+# GORM
 ```go
-
 // GetAlbum is a function to get a single record to albums table in the main database
 // error - ErrNotFound, db Find error
 func GetAlbum(ctx context.Context, argAlbumID int) (record models.Album, err error) {
@@ -60,10 +77,21 @@ func GetAlbum(ctx context.Context, argAlbumID int) (record models.Album, err err
 }
 ```
 
+# SQLX
+```go
+func GetAlbum(ctx context.Context, argAlbumID int) (record *models.Album, err error) {
+	sql := "SELECT * FROM albums WHERE AlbumId=?"
+	record = &models.Album{}
+	err = DB.GetContext(ctx, record, sql, argAlbumID)
+	if err != nil {
+		return nil, err
+	}
+	return record, nil
+}
+```
 
 ## Create record
 ```go
-
 // AddAlbum is a function to add a single record to albums table in the main database
 // error - ErrInsertFailed, db save call failed
 func AddAlbum(ctx context.Context, record *models.Album) (result *models.Album, RowsAffected int64, err error) {
@@ -75,6 +103,17 @@ func AddAlbum(ctx context.Context, record *models.Album) (result *models.Album, 
 	return record, db.RowsAffected, nil
 }
 ```
+# SQLX
+```go
+func AddAlbum(ctx context.Context, record *models.Album) (result *models.Album, RowsAffected int64, err error) {
+	sql := "INSERT INTO albums ( Title,  ArtistId) values ( $1, $2 )"
+	dbResult := DB.MustExecContext(ctx, sql, record.Title, record.ArtistID)
+	id, err := dbResult.LastInsertId()
+	rows, err := dbResult.RowsAffected()
+	record.AlbumID = int(id)
+	return record, rows, err
+```
+
 
 ## Update record
 ```go
@@ -102,6 +141,17 @@ func UpdateAlbum(ctx context.Context, argAlbumID int, updated *models.Album) (re
 	return result, db.RowsAffected, nil
 }
 ```
+# SQLX
+```go
+func UpdateAlbum(ctx context.Context, argAlbumID int, updated *models.Album) (result *models.Album, RowsAffected int64, err error) {
+	sql := "UPDATE albums set Title = $1, ArtistId = $2 WHERE AlbumId = $3"
+	dbResult := DB.MustExecContext(ctx, sql, updated.Title, updated.ArtistID, argAlbumID)
+	id, err := dbResult.LastInsertId()
+	rows, err := dbResult.RowsAffected()
+	updated.AlbumID = argAlbumID
+	return updated, rows, err
+}
+```
 
 
 ## Delete record
@@ -126,4 +176,12 @@ func DeleteAlbum(ctx context.Context, argAlbumID int) (rowsAffected int64, err e
 	return db.RowsAffected, nil
 }
 
+```
+# SQLX
+```go
+func DeleteAlbum(ctx context.Context, argAlbumID int) (rowsAffected int64, err error) {
+	sql := "DELETE FROM albums where AlbumId = $1"
+	result := DB.MustExecContext(ctx, sql, argAlbumID)
+	return result.RowsAffected()
+}
 ```

@@ -7,8 +7,6 @@ import (
 	"{{.modelFQPN}}"
 
     "github.com/guregu/null"
-
-	"github.com/smallnest/gen/dbmeta"
 )
 
 var (
@@ -50,7 +48,7 @@ func GetAll{{pluralize .StructName}}(ctx context.Context, page, pagesize int64, 
 
 // Get{{.StructName}} is a function to get a single record to {{.TableName}} table in the {{.DatabaseName}} database
 // error - ErrNotFound, db Find error
-func Get{{.StructName}}(ctx context.Context,{{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}} {{$field.GoFieldType}},{{end}}{{end -}}) (record {{.modelPackageName}}.{{.StructName}}, err error) {
+func Get{{.StructName}}(ctx context.Context,{{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}} {{$field.GoFieldType}},{{end}}{{end -}}) (record *{{.modelPackageName}}.{{.StructName}}, err error) {
 	if err = DB.First(&record, {{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}},{{end}}{{end -}}).Error; err != nil {
 	    err = ErrNotFound
 		return record, err
@@ -81,7 +79,7 @@ func Update{{.StructName}}(ctx context.Context, {{range $field := .TableInfo.Cod
       return nil, -1, ErrNotFound
    }
 
-   if err = dbmeta.Copy(result, updated); err != nil {
+   if err = Copy(result, updated); err != nil {
       return nil, -1, ErrUpdateFailed
    }
 

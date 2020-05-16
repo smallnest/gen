@@ -444,20 +444,34 @@ func generate() {
 	var DaoInitTmpl string
 	var GoModuleTmpl string
 
-	if ControllerTmpl, err = loadTemplate("controller.go.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
-		return
-	}
-	if DaoTmpl, err = loadTemplate("dao.go.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
-		return
-	}
-	if DaoInitTmpl, err = loadTemplate("dao_init.go.tmpl"); err != nil {
+	if ControllerTmpl, err = loadTemplate("api.go.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
 		return
 	}
 
-	if GoModuleTmpl, err = loadTemplate("GoMod.tmpl"); err != nil {
+	if *gormAnnotation {
+
+		if DaoTmpl, err = loadTemplate("dao_gorm.go.tmpl"); err != nil {
+			fmt.Printf("Error loading template %v\n", err)
+			return
+		}
+		if DaoInitTmpl, err = loadTemplate("dao_gorm_init.go.tmpl"); err != nil {
+			fmt.Printf("Error loading template %v\n", err)
+			return
+		}
+	} else {
+		if DaoTmpl, err = loadTemplate("dao_sqlx.go.tmpl"); err != nil {
+			fmt.Printf("Error loading template %v\n", err)
+			return
+		}
+		if DaoInitTmpl, err = loadTemplate("dao_sqlx_init.go.tmpl"); err != nil {
+			fmt.Printf("Error loading template %v\n", err)
+			return
+		}
+
+	}
+
+	if GoModuleTmpl, err = loadTemplate("gomod.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
 		return
 	}
@@ -489,12 +503,7 @@ func generate() {
 			continue
 		}
 
-		var modelInfo = map[string]interface{}{
-			"StructName":      tableInfo.StructName,
-			"TableName":       tableName,
-			"ShortStructName": strings.ToLower(string(tableInfo.StructName[0])),
-			"TableInfo":       tableInfo,
-		}
+		modelInfo := createContextForTableFile(tableInfo)
 
 		modelFile := filepath.Join(modelDir, CreateGoSrcFileName(tableName))
 		writeTemplate("model", ModelTmpl, modelInfo, modelFile, *overwrite, true)
@@ -617,7 +626,7 @@ func generateProtobufDefinitionFile(data map[string]interface{}) (err error) {
 func generateProjectFiles(data map[string]interface{}) (err error) {
 
 	var GitIgnoreTmpl string
-	if GitIgnoreTmpl, err = loadTemplate("GitIgnore.tmpl"); err != nil {
+	if GitIgnoreTmpl, err = loadTemplate("gitignore.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
 		return
 	}
@@ -635,9 +644,17 @@ func generateProjectFiles(data map[string]interface{}) (err error) {
 func generateServerCode() (err error) {
 	data := map[string]interface{}{}
 	var MainServerTmpl string
-	if MainServerTmpl, err = loadTemplate("MainServer.go.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
-		return
+
+	if *gormAnnotation {
+		if MainServerTmpl, err = loadTemplate("main_gorm.go.tmpl"); err != nil {
+			fmt.Printf("Error loading template %v\n", err)
+			return
+		}
+	} else {
+		if MainServerTmpl, err = loadTemplate("main_sqlx.go.tmpl"); err != nil {
+			fmt.Printf("Error loading template %v\n", err)
+			return
+		}
 	}
 
 	serverDir := filepath.Join(*outDir, "app/server")
@@ -763,12 +780,7 @@ func GenerateTableFile(tableName, templateFilename, outputDirectory, outputFileN
 		return buf.String()
 	}
 
-	var data = map[string]interface{}{
-		"StructName":      tableInfo.StructName,
-		"TableName":       tableName,
-		"ShortStructName": strings.ToLower(string(tableInfo.StructName[0])),
-		"TableInfo":       tableInfo,
-	}
+	data := createContextForTableFile(tableInfo)
 
 	fileOutDir := filepath.Join(*outDir, outputDirectory)
 	err := os.MkdirAll(fileOutDir, 0777)
@@ -1029,4 +1041,43 @@ func CreateGoSrcFileName(tableName string) string {
 		name = name + "_tst"
 	}
 	return name + ".go"
+}
+
+func createContextForTableFile(tableInfo *dbmeta.ModelInfo) map[string]interface{} {
+	var modelInfo = map[string]interface{}{
+		"StructName":      tableInfo.StructName,
+		"TableName":       tableInfo.DBMeta.TableName(),
+		"ShortStructName": strings.ToLower(string(tableInfo.StructName[0])),
+		"TableInfo":       tableInfo,
+	}
+
+	keys := dbmeta.PrimaryKeyNames(tableInfo.DBMeta)
+	modelInfo["PrimaryKeyNamesList"] = keys
+	modelInfo["PrimaryKeyNames"] = strings.Join(keys, ",")
+
+	delSql, err := dbmeta.GenerateDeleteSql(tableInfo.DBMeta)
+	if err == nil {
+		modelInfo["delSql"] = delSql
+	}
+
+	updateSql, err := dbmeta.GenerateUpdateSql(tableInfo.DBMeta)
+	if err == nil {
+		modelInfo["updateSql"] = updateSql
+	}
+
+	insertSql, err := dbmeta.GenerateInsertSql(tableInfo.DBMeta)
+	if err == nil {
+		modelInfo["insertSql"] = insertSql
+	}
+
+	selectOneSql, err := dbmeta.GenerateSelectOneSql(tableInfo.DBMeta)
+	if err == nil {
+		modelInfo["selectOneSql"] = selectOneSql
+	}
+
+	selectMultiSql, err := dbmeta.GenerateSelectMultiSql(tableInfo.DBMeta)
+	if err == nil {
+		modelInfo["selectMultiSql"] = selectMultiSql
+	}
+	return modelInfo
 }

@@ -9,17 +9,56 @@ usage() {
   exit 0
 }
 
-func_gen() {
-  if [[ -d ./tests/${DB_TYPE} ]];
+func_gen_gorm() {
+  OUT_DIR="./tests/${DB_TYPE}_gorm"
+  if [[ -d ${OUT_DIR} ]];
   then
-    rm -rf "./tests/${DB_TYPE}"
+    rm -rf "${OUT_DIR}"
   fi
 
   DEFAULT_GEN_OPTIONS="--json
       --api=apis
       --dao=daos
       --model=models
+      --guregu
+      --rest
+      --mod
+      --server
+      --makefile
+      --generate-dao
+      --generate-proj
+      --overwrite
+      --copy-templates
+      --host=localhost
+      --port=8080
+      --db
+      --protobuf
+      --templateDir=./template
       --gorm
+      --verbose"
+
+  go run . \
+    --sqltype="${DB_TYPE}" \
+    --connstr="${DB_CON}" \
+    --database="${DB}" \
+    --out="${OUT_DIR}" \
+    --module="github.com/alexj212A/${DB}" \
+    ${DEFAULT_GEN_OPTIONS}
+}
+
+
+
+func_gen_sqlx() {
+  OUT_DIR="./tests/${DB_TYPE}_sqlx"
+  if [[ -d ./tests/${DB_TYPE} ]];
+  then
+    rm -rf "${OUT_DIR}"
+  fi
+
+  DEFAULT_GEN_OPTIONS="--json
+      --api=apis
+      --dao=daos
+      --model=models
       --guregu
       --rest
       --mod
@@ -36,13 +75,13 @@ func_gen() {
       --templateDir=./template
       --verbose"
 
-
+##       --gorm
 
   go run . \
     --sqltype="${DB_TYPE}" \
     --connstr="${DB_CON}" \
     --database="${DB}" \
-    --out="./tests/${DB_TYPE}" \
+    --out="${OUT_DIR}" \
     --module="github.com/alexj212A/${DB}" \
     ${DEFAULT_GEN_OPTIONS}
 }
@@ -118,7 +157,7 @@ DB=${!DB_NAME}
 
 
 case ${APP} in
-gen | meta)
+gen_gorm | gen_sqlx | meta)
   echo "running ${APP}"
   "func_${APP}"
   ;;
