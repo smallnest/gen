@@ -113,7 +113,7 @@ func init() {
 		return "ORM and RESTful API generator for SQl databases"
 	}
 
-	goopt.Version = "0.9.4 (05/15/2020)"
+	goopt.Version = "0.9.5 (05/15/2020)"
 	goopt.Summary = `gen [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> --module=example.com/example [--json] [--gorm] [--guregu] [--generate-dao] [--generate-proj]
 
            sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
