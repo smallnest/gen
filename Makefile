@@ -137,7 +137,7 @@ clean_example: ## remove generated example code
 
 
 
-run_dbmeta: clean_example ## generate example project code from sqlite db in ./examples
+run_dbmeta: ## generate example project code from sqlite db in ./examples
 	go run github.com/smallnest/gen/_test/dbmeta \
 		--sqltype=sqlite3 \
 		--connstr "./example/sample.db" \
@@ -149,10 +149,14 @@ run_dbmeta: clean_example ## generate example project code from sqlite db in ./e
 test: clean_example test_mysql test_postgres test_mssql test_sqlite3 ## test mysql, mssql, postgres and sqlite3 code generation
 
 test_mysql: ## test sqlite3 code generation
-	test.sh mysql  gen && cd ./tests/mysql && make example
+	test.sh mysql  gen_sqlx && cd ./tests/mysql_sqlx && make example
+	test.sh mysql  gen_gorm && cd ./tests/mysql_gorm && make example
 test_postgres: ## test postgres code generation
-	test.sh postgres  gen && cd ./tests/postgres && make example
+	test.sh postgres  gen_sqlx && cd ./tests/postgres_sqlx && make example
+	test.sh postgres  gen_gorm && cd ./tests/postgres_gorm && make example
 test_mssql: ## test mssql code generation
-	test.sh mssql  gen && cd ./tests/mssql && make example
+	test.sh mssql  gen_sqlx && cd ./tests/mssql_sqlx && make example
+	test.sh mssql  gen_gorm && cd ./tests/mssql_gorm && make example
 test_sqlite3: ## test sqlite3 code generation
-	test.sh sqlite3  gen && cd ./tests/sqlite3 && make example
+	test.sh sqlite3  gen_sqlx && cd ./tests/sqlite3_sqlx && make example
+	test.sh sqlite3  gen_gorm && cd ./tests/sqlite3_gorm && make example

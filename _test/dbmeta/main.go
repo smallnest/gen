@@ -30,7 +30,7 @@ func init() {
 	goopt.Description = func() string {
 		return "ORM and RESTful meta data viewer for SQl databases"
 	}
-	goopt.Version = "0.9.4 (05/15/2020)"
+	goopt.Version = "0.9.5 (05/15/2020)"
 	goopt.Summary = `dbmeta [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> 
 
            sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
@@ -119,14 +119,30 @@ func main() {
 			fmt.Printf("%s\n", col.String())
 		}
 
+		fmt.Printf("\n\n")
+		delSql, err := dbmeta.GenerateDeleteSql(tableInfo)
+		if err == nil {
+			fmt.Printf("delSql: %s\n", delSql)
+		}
+
+		updateSql, err := dbmeta.GenerateUpdateSql(tableInfo)
+		if err == nil {
+			fmt.Printf("updateSql: %s\n", updateSql)
+		}
+
+		insertSql, err := dbmeta.GenerateInsertSql(tableInfo)
+		if err == nil {
+			fmt.Printf("insertSql: %s\n", insertSql)
+		}
+
+		selectOneSql, err := dbmeta.GenerateSelectOneSql(tableInfo)
+		if err == nil {
+			fmt.Printf("selectOneSql: %s\n", selectOneSql)
+		}
+
+		selectMultiSql, err := dbmeta.GenerateSelectMultiSql(tableInfo)
+		if err == nil {
+			fmt.Printf("selectMultiSql: %s\n", selectMultiSql)
+		}
 	}
 }
-
-/*
-	Columns() []ColumnMeta
-	SqlType() string
-	SqlDatabase() string
-	TableName() string
-	DDL() string
-
-*/
