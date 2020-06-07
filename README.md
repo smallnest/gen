@@ -283,8 +283,10 @@ The following info is available within use of the exec template.
 |ms sql   |y   | y  | y  | y  | y | y| n
 
 ## Version History
-- v0.9.6 (06/06/2020)
-    - Updated SQLX codegen 
+- v0.9.6 (06/08/2020)
+    - Updated SQLX codegen
+    - Updated templates to split code gen functions into seperate files
+    - Added code_dao_gorm, code_dao_sqlx to be generated from templates     
 - v0.9.5 (05/16/2020)
     - Added SQLX codegen by default, split dao templates. 
     - Renamed templates
