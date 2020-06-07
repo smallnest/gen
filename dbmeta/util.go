@@ -60,16 +60,17 @@ var intToWordMap = []string{
 }
 
 var parsePrimaryKeys = map[string]string{
-	"uint8":  "parseUint8",
-	"uint16": "parseUint16",
-	"uint32": "parseUint32",
-	"uint64": "parseUint64",
-	"int":    "parseInt",
-	"int8":   "parseInt8",
-	"int16":  "parseInt16",
-	"int32":  "parseInt32",
-	"int64":  "parseInt64",
-	"string": "parseString",
+	"uint8":     "parseUint8",
+	"uint16":    "parseUint16",
+	"uint32":    "parseUint32",
+	"uint64":    "parseUint64",
+	"int":       "parseInt",
+	"int8":      "parseInt8",
+	"int16":     "parseInt16",
+	"int32":     "parseInt32",
+	"int64":     "parseInt64",
+	"string":    "parseString",
+	"uuid.UUID": "parseUUID",
 }
 
 var reservedFieldNames = map[string]bool{

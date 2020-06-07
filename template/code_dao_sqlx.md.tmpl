@@ -1,0 +1,37 @@
+## CRUD DAO Functions
+`gen` will generate dao functions if the `--generate-dao` is passed to `gen`. The code can be customized with the `--dao=dao` flag to set the name of the dao package.
+
+Code can be generated in two flavours, SQLX by default and GORM with the flag `--gorm`
+
+
+The code generation, will generate functions for
+- [Retrieving records with paging](#Retrieve-Paged-Records)
+- [Retrieve a specific record](#Retrieve-record)
+- [Create a record](#Create-record)
+- [Update a record](#Update-record)
+- [Delete a record](#Delete-record)
+
+## Retrieve Paged Records
+```go
+{{template "getall" .}}
+```
+
+## Retrieve record
+```go
+{{template "get" .}}
+```
+
+## Create record
+```go
+{{template "add" .}}
+```
+
+## Update record
+```go
+{{template "update" .}}
+```
+
+## Delete record
+```go
+{{template "delete" .}}
+```

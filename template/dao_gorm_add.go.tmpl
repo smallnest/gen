@@ -1,0 +1,12 @@
+{{define "add"}}
+// Add{{.StructName}} is a function to add a single record to {{.TableName}} table in the {{.DatabaseName}} database
+// error - ErrInsertFailed, db save call failed
+func Add{{.StructName}}(ctx context.Context, record *{{.modelPackageName}}.{{.StructName}}) (result *{{.modelPackageName}}.{{.StructName}}, RowsAffected int64, err error) {
+    db := DB.Save(record)
+	if err = db.Error; err != nil {
+	    return nil, -1, ErrInsertFailed
+	}
+
+	return record, db.RowsAffected, nil
+}
+{{end}}

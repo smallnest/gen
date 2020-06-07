@@ -1,0 +1,40 @@
+{{define "getall"}}
+// GetAll{{pluralize .StructName}} is a function to get a slice of record(s) from {{.TableName}} table in the {{.DatabaseName}} database
+// @Summary Get list of {{.StructName}}
+// @Tags {{.StructName}}
+// @Description GetAll{{.StructName}} is a handler to get a slice of record(s) from {{.TableName}} table in the {{.DatabaseName}} database
+// @Accept  json
+// @Produce  json
+// @Param   page     query    int     false        "page requested (defaults to 0)"
+// @Param   pagesize query    int     false        "number of records in a page  (defaults to 20)"
+// @Param   order    query    string  false        "db sort order column"
+// @Success 200 {object} {{.apiPackageName}}.PagedResults{data=[]{{.modelPackageName}}.{{.StructName}}}
+// @Failure 400 {object} {{.apiPackageName}}.HTTPError
+// @Failure 404 {object} {{.apiPackageName}}.HTTPError
+// @Router /{{pluralize .StructName | toLower}} [get]
+// http "http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize .StructName | toLower}}?page=0&pagesize=20"
+func GetAll{{pluralize .StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    page, err := readInt(r, "page", 0)
+	if err != nil || page < 0 {
+		returnError(w, r, {{.daoPackageName}}.ErrBadParams)
+		return
+	}
+
+	pagesize, err := readInt(r, "pagesize", 20)
+	if err != nil || pagesize <= 0 {
+		returnError(w, r, {{.daoPackageName}}.ErrBadParams)
+		return
+	}
+
+	order := r.FormValue("order")
+
+    records, totalRows, err :=  {{.daoPackageName}}.GetAll{{pluralize .StructName}}(r.Context(), page, pagesize, order)
+	if err != nil {
+	    returnError(w, r, err)
+		return
+	}
+
+	result := &PagedResults{Page: page, PageSize: pagesize, Data: records, TotalRecords: totalRows}
+	writeJSON(w, result)
+}
+{{end}}

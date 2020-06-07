@@ -27,6 +27,17 @@ func PrimaryKeyNames(dbTable DbTableMeta) []string {
 	return primaryKeyNames
 }
 
+// NonPrimaryKeyNames return the list of primary key names
+func NonPrimaryKeyNames(dbTable DbTableMeta) []string {
+	primaryKeyNames := make([]string, 0)
+	for _, col := range dbTable.Columns() {
+		if !col.IsPrimaryKey() {
+			primaryKeyNames = append(primaryKeyNames, col.Name())
+		}
+	}
+	return primaryKeyNames
+}
+
 // GenerateDeleteSql generate sql for a delete
 func GenerateDeleteSql(dbTable DbTableMeta) (string, error) {
 	primaryCnt := PrimaryKeyCount(dbTable)
@@ -38,14 +49,15 @@ func GenerateDeleteSql(dbTable DbTableMeta) (string, error) {
 	buf := bytes.Buffer{}
 	buf.WriteString(fmt.Sprintf("DELETE FROM %s where", dbTable.TableName()))
 
-	addedKey := 0
+	addedKey := 1
 	for _, col := range dbTable.Columns() {
 		if col.IsPrimaryKey() {
-			addedKey++
 			buf.WriteString(fmt.Sprintf(" %s = $%d", col.Name(), addedKey))
-		}
-		if addedKey < primaryCnt {
-			buf.WriteString(" AND")
+			addedKey++
+
+			if addedKey < primaryCnt {
+				buf.WriteString(" AND")
+			}
 		}
 	}
 
@@ -55,7 +67,7 @@ func GenerateDeleteSql(dbTable DbTableMeta) (string, error) {
 // GenerateUpdateSql generate sql for a update
 func GenerateUpdateSql(dbTable DbTableMeta) (string, error) {
 	primaryCnt := PrimaryKeyCount(dbTable)
-	nonPrimaryCnt := len(dbTable.Columns()) - primaryCnt
+	// nonPrimaryCnt := len(dbTable.Columns()) - primaryCnt
 
 	if primaryCnt == 0 {
 		return "", fmt.Errorf("table %s does not have a primary key, cannot generate sql", dbTable.TableName())
@@ -64,15 +76,15 @@ func GenerateUpdateSql(dbTable DbTableMeta) (string, error) {
 	buf := bytes.Buffer{}
 	buf.WriteString(fmt.Sprintf("UPDATE %s set", dbTable.TableName()))
 
-	setCol := 0
+	setCol := 1
 	for _, col := range dbTable.Columns() {
 		if !col.IsPrimaryKey() {
-			setCol++
-			buf.WriteString(fmt.Sprintf(" %s = $%d", col.Name(), setCol))
-
-			if setCol < nonPrimaryCnt {
+			if setCol != 1 {
 				buf.WriteString(",")
 			}
+
+			buf.WriteString(fmt.Sprintf(" %s = $%d", col.Name(), setCol))
+			setCol++
 		}
 	}
 
@@ -80,12 +92,14 @@ func GenerateUpdateSql(dbTable DbTableMeta) (string, error) {
 	addedKey := 0
 	for _, col := range dbTable.Columns() {
 		if col.IsPrimaryKey() {
+			buf.WriteString(fmt.Sprintf(" %s = $%d", col.Name(), setCol))
+
 			setCol++
 			addedKey++
-			buf.WriteString(fmt.Sprintf(" %s = $%d", col.Name(), setCol))
-		}
-		if addedKey < primaryCnt {
-			buf.WriteString(" AND")
+
+			if addedKey < primaryCnt {
+				buf.WriteString(" AND")
+			}
 		}
 	}
 
@@ -146,13 +160,15 @@ func GenerateSelectOneSql(dbTable DbTableMeta) (string, error) {
 	buf.WriteString(fmt.Sprintf("SELECT * FROM %s WHERE ", dbTable.TableName()))
 
 	pastFirst := false
+	pos := 1
 	for _, col := range dbTable.Columns() {
 		if col.IsPrimaryKey() {
 			if pastFirst {
-				buf.WriteString(", ")
+				buf.WriteString(" AND ")
 			}
 
-			buf.WriteString(fmt.Sprintf("%s=?", col.Name()))
+			buf.WriteString(fmt.Sprintf("%s = $%d", col.Name(), pos))
+			pos++
 			pastFirst = true
 		}
 	}

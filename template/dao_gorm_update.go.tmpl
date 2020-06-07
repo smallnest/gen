@@ -1,0 +1,24 @@
+{{define "update"}}
+// Update{{.StructName}} is a function to update a single record from {{.TableName}} table in the {{.DatabaseName}} database
+// error - ErrNotFound, db record for id not found
+// error - ErrUpdateFailed, db meta data copy failed or db.Save call failed
+func Update{{.StructName}}(ctx context.Context, {{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}} {{$field.GoFieldType}},{{end}}{{end -}}updated *{{.modelPackageName}}.{{.StructName}}) (result *{{.modelPackageName}}.{{.StructName}}, RowsAffected int64, err error) {
+
+   result = &{{.modelPackageName}}.{{.StructName}}{}
+   db := DB.First(result,{{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}},{{end}}{{end -}})
+   if err = db.Error; err != nil {
+      return nil, -1, ErrNotFound
+   }
+
+   if err = Copy(result, updated); err != nil {
+      return nil, -1, ErrUpdateFailed
+   }
+
+   db = db.Save(result)
+   if err = db.Error; err != nil  {
+      return nil, -1, ErrUpdateFailed
+   }
+
+   return result, db.RowsAffected, nil
+}
+{{end}}

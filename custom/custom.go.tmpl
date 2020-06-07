@@ -40,7 +40,7 @@ func GetAll{{pluralize .StructName}}(ctx context.Context, page, pagesize int64, 
 	return {{pluralize .StructName | toLower}}, totalRows, nil
 }
 
-// Get{{.StructName}} is a function to get a single record to {{.TableName}} table in the {{.DatabaseName}} database
+// Get{{.StructName}} is a function to get a single record from the {{.TableName}} table in the {{.DatabaseName}} database
 // error - ErrNotFound, db Find error
 func Get{{.StructName}}(ctx context.Context, id interface{}) (record *{{.modelPackageName}}.{{.StructName}}, err error) {
 	if err = DB.First(record, id).Error; err != nil {

@@ -1,7 +1,7 @@
 ## CRUD Http Handlers
-`gen` will generate http handlers if the `--rest` is used. The code can be customized with the `--api=api` flag to set the name of the api package.   
+`gen` will generate http handlers if the `--rest` is used. The code can be customized with the `--api=api` flag to set the name of the api package.
 
-- [Retrieving records with paging](#Retrieve-Paged-Records)  
+- [Retrieving records with paging](#Retrieve-Paged-Records)
 - [Retrieve a specific record](#Retrieve-record)
 - [Create a record](#Create-record)
 - [Update a record](#Update-record)
@@ -18,41 +18,41 @@
 ```
 
 
-## Retrieve Paged Records 
-
+## Retrieve Paged Records
 ```go
-// GetAllAlbums is a function to get a slice of record(s) from albums table in the main database
-// @Summary Get list of Album
-// @Tags Album
-// @Description GetAllAlbum is a handler to get a slice of record(s) from albums table in the main database
+
+// GetAllInvoices is a function to get a slice of record(s) from invoices table in the main database
+// @Summary Get list of Invoice
+// @Tags Invoice
+// @Description GetAllInvoice is a handler to get a slice of record(s) from invoices table in the main database
 // @Accept  json
 // @Produce  json
 // @Param   page     query    int     false        "page requested (defaults to 0)"
 // @Param   pagesize query    int     false        "number of records in a page  (defaults to 20)"
 // @Param   order    query    string  false        "db sort order column"
-// @Success 200 {object} apis.PagedResults{data=[]models.Album}
-// @Failure 400 {object} apis.HTTPError
-// @Failure 404 {object} apis.HTTPError
-// @Router /albums [get]
-// http http://localhost:8080/albums?page=0&pagesize=20
-func GetAllAlbums(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	page, err := readInt(r, "page", 0)
+// @Success 200 {object} api.PagedResults{data=[]model.Invoice}
+// @Failure 400 {object} api.HTTPError
+// @Failure 404 {object} api.HTTPError
+// @Router /invoices [get]
+// http "http://127.0.0.1:8080/invoices?page=0&pagesize=20"
+func GetAllInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+    page, err := readInt(r, "page", 0)
 	if err != nil || page < 0 {
-		returnError(w, r, daos.ErrBadParams)
+		returnError(w, r, dao.ErrBadParams)
 		return
 	}
 
 	pagesize, err := readInt(r, "pagesize", 20)
 	if err != nil || pagesize <= 0 {
-		returnError(w, r, daos.ErrBadParams)
+		returnError(w, r, dao.ErrBadParams)
 		return
 	}
 
 	order := r.FormValue("order")
 
-	records, totalRows, err := daos.GetAllAlbums(r.Context(), page, pagesize, order)
+    records, totalRows, err :=  dao.GetAllInvoices(r.Context(), page, pagesize, order)
 	if err != nil {
-		returnError(w, r, err)
+	    returnError(w, r, err)
 		return
 	}
 
@@ -62,32 +62,43 @@ func GetAllAlbums(w http.ResponseWriter, r *http.Request, ps httprouter.Params) 
 
 ```
 
-
 ## Retrieve record
 ```go
-// GetAlbum is a function to get a single record to albums table in the main database
-// @Summary Get record from table Album by  argAlbumID
-// @Tags Album
-// @ID argAlbumID
 
-// @Description GetAlbum is a function to get a single record to albums table in the main database
+// GetInvoice is a function to get a single record from the invoices table in the main database
+// @Summary Get record from table Invoice by  argInvoiceID 
+// @Tags Invoice
+// @ID argInvoiceID
+ // @Description GetInvoice is a function to get a single record from the invoices table in the main database
 // @Accept  json
 // @Produce  json
-// @Param  argAlbumID path int true "AlbumId"
-// @Success 200 {object} models.Album
-// @Failure 400 {object} apis.HTTPError
-// @Failure 404 {object} apis.HTTPError "ErrNotFound, db record for id not found - returns NotFound HTTP 404 not found error"
-// @Router /albums/{argAlbumID} [get]
-// http http://localhost:8080/albums/1
-func GetAlbum(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+// @Param  argInvoiceID path int true "InvoiceId"
+ // @Success 200 {object} model.Invoice
+// @Failure 400 {object} api.HTTPError
+// @Failure 404 {object} api.HTTPError "ErrNotFound, db record for id not found - returns NotFound HTTP 404 not found error"
+// @Router /invoices/{argInvoiceID} [get]
+// http "http://127.0.0.1:8080/invoices/1"
+func GetInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
-	argAlbumID, err := parseInt(ps, "argAlbumID")
+
+
+
+	argInvoiceID, err := parseInt(ps, "argInvoiceID")
 	if err != nil {
 		returnError(w, r, err)
 		return
 	}
 
-	record, err := daos.GetAlbum(r.Context(), argAlbumID)
+
+
+
+
+
+
+
+
+
+	record, err := dao.GetInvoice(r.Context(),  argInvoiceID,        )
 	if err != nil {
 		returnError(w, r, err)
 		return
@@ -95,136 +106,161 @@ func GetAlbum(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	writeJSON(w, record)
 }
+
 ```
 
 ## Create record
 ```go
 
-// AddAlbum add to add a single record to albums table in the main database
-// @Summary Add an record to albums table
-// @Description add to add a single record to albums table in the main database
-// @Tags Album
+// AddInvoice add to add a single record to invoices table in the main database
+// @Summary Add an record to invoices table
+// @Description add to add a single record to invoices table in the main database
+// @Tags Invoice
 // @Accept  json
 // @Produce  json
-// @Param Album body models.Album true "Add Album"
-// @Success 200 {object} models.Album
-// @Failure 400 {object} apis.HTTPError
-// @Failure 404 {object} apis.HTTPError
-// @Router /albums [post]
-// echo '{"title": "FBQslWHyXcrTdtrEZpqMgCklk","artist_id": 8,"album_id": 8}' | http POST http://localhost:8080/albums
-func AddAlbum(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	album := &models.Album{}
+// @Param Invoice body model.Invoice true "Add Invoice"
+// @Success 200 {object} model.Invoice
+// @Failure 400 {object} api.HTTPError
+// @Failure 404 {object} api.HTTPError
+// @Router /invoices [post]
+// echo '{"InvoiceDate": "2267-03-01T02:19:46.038795137-05:00","BillingAddress": "OOBZFjralhvNalrayDTpxLcng","BillingPostalCode": "MIwkbFlJzYyPluFcCWclsywtl","Total": 0.5147250309289902,"InvoiceId": 33,"CustomerId": 81,"BillingCity": "TPSJWkfdaEXTPLmPMwzolIXgU","BillingState": "iWADrSmLOTOxVgBZqfVwLxCeS","BillingCountry": "VhPnkGyZbuNryrFvEQLhWudTd"}' | http POST "http://127.0.0.1:8080/invoices"
+func AddInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	invoice := &model.Invoice{}
 
-	if err := readJSON(r, album); err != nil {
-		returnError(w, r, daos.ErrBadParams)
+	if err := readJSON(r, invoice); err != nil {
+		returnError(w, r, dao.ErrBadParams)
 		return
 	}
 
-	if err := album.BeforeSave(); err != nil {
-		returnError(w, r, daos.ErrBadParams)
-	}
 
-	album.Prepare()
+   if err := invoice.BeforeSave(); err != nil {
+      returnError(w, r, dao.ErrBadParams)
+   }
 
-	if err := album.Validate(models.Create); err != nil {
-		returnError(w, r, daos.ErrBadParams)
-		return
-	}
+   invoice.Prepare()
 
-	var err error
-	album, _, err = daos.AddAlbum(r.Context(), album)
+   if err := invoice.Validate(model.Create); err != nil {
+      returnError(w, r, dao.ErrBadParams)
+      return
+   }
+
+    var err error
+	invoice, _, err = dao.AddInvoice(r.Context(), invoice)
 	if err != nil {
 		returnError(w, r, err)
 		return
 	}
 
-	writeJSON(w, album)
+	writeJSON(w, invoice)
 }
+
 ```
 
 ## Update record
 ```go
 
-// UpdateAlbum Update a single record from albums table in the main database
-// @Summary Update an record in table albums
-// @Description Update a single record from albums table in the main database
-// @Tags Album
+// UpdateInvoice Update a single record from invoices table in the main database
+// @Summary Update an record in table invoices
+// @Description Update a single record from invoices table in the main database
+// @Tags Invoice
 // @Accept  json
 // @Produce  json
-// @Param  argAlbumID path int true "AlbumId"
-// @Param  Album body models.Album true "Update Album record"
-// @Success 200 {object} models.Album
-// @Failure 400 {object} apis.HTTPError
-// @Failure 404 {object} apis.HTTPError
-// @Router /albums/{argAlbumID} [patch]
-// echo '{"title": "FBQslWHyXcrTdtrEZpqMgCklk","artist_id": 8,"album_id": 8}' | http PATCH http://localhost:8080/albums/1
-func UpdateAlbum(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+// @Param  argInvoiceID path int true "InvoiceId"
+// @Param  Invoice body model.Invoice true "Update Invoice record"
+// @Success 200 {object} model.Invoice
+// @Failure 400 {object} api.HTTPError
+// @Failure 404 {object} api.HTTPError
+// @Router /invoices/{argInvoiceID} [patch]
+// echo '{"InvoiceDate": "2267-03-01T02:19:46.038795137-05:00","BillingAddress": "OOBZFjralhvNalrayDTpxLcng","BillingPostalCode": "MIwkbFlJzYyPluFcCWclsywtl","Total": 0.5147250309289902,"InvoiceId": 33,"CustomerId": 81,"BillingCity": "TPSJWkfdaEXTPLmPMwzolIXgU","BillingState": "iWADrSmLOTOxVgBZqfVwLxCeS","BillingCountry": "VhPnkGyZbuNryrFvEQLhWudTd"}' | http PUT "http://127.0.0.1:8080/invoices/1"
+func UpdateInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
-	argAlbumID, err := parseInt(ps, "argAlbumID")
+
+
+	argInvoiceID, err := parseInt(ps, "argInvoiceID")
 	if err != nil {
 		returnError(w, r, err)
 		return
 	}
 
-	album := &models.Album{}
-	if err := readJSON(r, album); err != nil {
-		returnError(w, r, daos.ErrBadParams)
+
+
+
+
+
+
+
+
+
+	invoice := &model.Invoice{}
+	if err := readJSON(r, invoice); err != nil {
+		returnError(w, r, dao.ErrBadParams)
 		return
 	}
 
-	if err := album.BeforeSave(); err != nil {
-		returnError(w, r, daos.ErrBadParams)
-	}
+   if err := invoice.BeforeSave(); err != nil {
+      returnError(w, r, dao.ErrBadParams)
+   }
 
-	album.Prepare()
+   invoice.Prepare()
 
-	if err := album.Validate(models.Update); err != nil {
-		returnError(w, r, daos.ErrBadParams)
-		return
-	}
+   if err := invoice.Validate( model.Update); err != nil {
+      returnError(w, r, dao.ErrBadParams)
+      return
+   }
 
-	album, _, err = daos.UpdateAlbum(r.Context(),
-		argAlbumID,
-		album)
+	invoice, _, err = dao.UpdateInvoice(r.Context(),
+	  argInvoiceID,        
+	invoice)
 	if err != nil {
-		returnError(w, r, err)
-		return
+	    returnError(w, r, err)
+   	    return
 	}
 
-	writeJSON(w, album)
+	writeJSON(w, invoice)
 }
+
 ```
 
 ## Delete record
 ```go
 
-// DeleteAlbum Delete a single record from albums table in the main database
-// @Summary Delete a record from albums
-// @Description Delete a single record from albums table in the main database
-// @Tags Album
+// DeleteInvoice Delete a single record from invoices table in the main database
+// @Summary Delete a record from invoices
+// @Description Delete a single record from invoices table in the main database
+// @Tags Invoice
 // @Accept  json
 // @Produce  json
-// @Param  argAlbumID path int true "AlbumId"
-// @Success 204 {object} models.Album
-// @Failure 400 {object} apis.HTTPError
-// @Failure 500 {object} apis.HTTPError
-// @Router /albums/{argAlbumID} [delete]
-// http DELETE http://localhost:8080/albums/1
-func DeleteAlbum(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+// @Param  argInvoiceID path int true "InvoiceId"
+// @Success 204 {object} model.Invoice
+// @Failure 400 {object} api.HTTPError
+// @Failure 500 {object} api.HTTPError
+// @Router /invoices/{argInvoiceID} [delete]
+// http DELETE "http://127.0.0.1:8080/invoices/1"
+func DeleteInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
-	argAlbumID, err := parseInt(ps, "argAlbumID")
+
+	argInvoiceID, err := parseInt(ps, "argInvoiceID")
 	if err != nil {
 		returnError(w, r, err)
 		return
 	}
 
-	rowsAffected, err := daos.DeleteAlbum(r.Context(), argAlbumID)
+
+
+
+
+
+
+
+
+
+	rowsAffected, err := dao.DeleteInvoice(r.Context(),  argInvoiceID,        )
 	if err != nil {
-		returnError(w, r, err)
-		return
+	    returnError(w, r, err)
+	    return
 	}
 
-	writeRowsAffected(w, rowsAffected)
+	writeRowsAffected(w, rowsAffected )
 }
 
 ```

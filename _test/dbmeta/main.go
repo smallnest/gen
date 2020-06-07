@@ -30,7 +30,7 @@ func init() {
 	goopt.Description = func() string {
 		return "ORM and RESTful meta data viewer for SQl databases"
 	}
-	goopt.Version = "0.9.5 (05/15/2020)"
+	goopt.Version = "0.9.6 (06/06/2020)"
 	goopt.Summary = `dbmeta [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> 
 
            sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
@@ -53,7 +53,7 @@ func main() {
 		return
 	}
 
-	err = dbmeta.ProcessMappings(content)
+	err = dbmeta.ProcessMappings(content, false)
 	if err != nil {
 		fmt.Printf("Error processing default mapping file error: %v\n", err)
 		return
@@ -88,12 +88,14 @@ func main() {
 
 	var dbTables []string
 	// parse or read tables
-	if *sqlTable != "" {
+	if *sqlTable != "" && *sqlTable != "all" {
 		dbTables = strings.Split(*sqlTable, ",")
+		fmt.Printf("showing meta for table(s): %s\n", *sqlTable)
 	} else {
+		fmt.Printf("showing meta for all tables\n")
 		dbTables, err = schema.TableNames(db)
 		if err != nil {
-			fmt.Printf("Error in fetching tables information from mysql information schema\n")
+			fmt.Printf("Error in fetching tables information from %s information schema from %s\n", *sqlType, *sqlConnStr)
 			return
 		}
 	}
@@ -117,7 +119,17 @@ func main() {
 
 		for _, col := range tableInfo.Columns() {
 			fmt.Printf("%s\n", col.String())
+
+			colMapping, err := dbmeta.SQLTypeToMapping(strings.ToLower(col.DatabaseTypeName()))
+			if err != nil { // unknown type
+				fmt.Printf("unable to find mapping for db type: %s\n", col.DatabaseTypeName())
+				continue
+			}
+			fmt.Printf("     %s\n", colMapping.String())
 		}
+
+		primaryCnt := dbmeta.PrimaryKeyCount(tableInfo)
+		fmt.Printf("primaryCnt: %d\n", primaryCnt)
 
 		fmt.Printf("\n\n")
 		delSql, err := dbmeta.GenerateDeleteSql(tableInfo)

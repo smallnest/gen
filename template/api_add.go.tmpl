@@ -1,0 +1,43 @@
+{{define "add"}}
+// Add{{.StructName}} add to add a single record to {{.TableName}} table in the {{.DatabaseName}} database
+// @Summary Add an record to {{.TableName}} table
+// @Description add to add a single record to {{.TableName}} table in the {{.DatabaseName}} database
+// @Tags {{.StructName}}
+// @Accept  json
+// @Produce  json
+// @Param {{.StructName}} body {{.modelPackageName}}.{{.StructName}} true "Add {{.StructName}}"
+// @Success 200 {object} {{.modelPackageName}}.{{.StructName}}
+// @Failure 400 {object} {{.apiPackageName}}.HTTPError
+// @Failure 404 {object} {{.apiPackageName}}.HTTPError
+// @Router /{{pluralize .StructName | toLower}} [post]
+// echo '{{ToJSON .TableInfo.Instance 0}}' | http POST "http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize .StructName | toLower}}"
+func Add{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	{{.StructName | toLower}} := &{{.modelPackageName}}.{{.StructName}}{}
+
+	if err := readJSON(r, {{.StructName | toLower}}); err != nil {
+		returnError(w, r, {{.daoPackageName}}.ErrBadParams)
+		return
+	}
+
+
+   if err := {{.StructName | toLower}}.BeforeSave(); err != nil {
+      returnError(w, r, {{.daoPackageName}}.ErrBadParams)
+   }
+
+   {{.StructName | toLower}}.Prepare()
+
+   if err := {{.StructName | toLower}}.Validate({{.modelPackageName}}.Create); err != nil {
+      returnError(w, r, {{.daoPackageName}}.ErrBadParams)
+      return
+   }
+
+    var err error
+	{{.StructName | toLower}}, _, err = {{.daoPackageName}}.Add{{.StructName}}(r.Context(), {{.StructName | toLower}})
+	if err != nil {
+		returnError(w, r, err)
+		return
+	}
+
+	writeJSON(w, {{.StructName | toLower}})
+}
+{{end}}

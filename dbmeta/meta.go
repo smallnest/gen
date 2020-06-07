@@ -12,6 +12,7 @@ import (
 
 	"github.com/bxcodec/faker/v3"
 	"github.com/iancoleman/strcase"
+	"github.com/jinzhu/inflection"
 	"github.com/ompluscator/dynamic-struct"
 )
 
@@ -53,11 +54,26 @@ type SQLMapping struct {
 
 	// GoNullableType mapped go type using nullable
 	GoNullableType string `json:"go_nullable_type"`
+
+	// SwaggerType mapped type
+	SwaggerType string `json:"swagger_type"`
+}
+
+func (m *SQLMapping) String() interface{} {
+	return fmt.Sprintf("SQLType: %-15s  GoType: %-15s GureguType: %-15s GoNullableType: %-15s JSONType: %-15s ProtobufType: %-15s",
+		m.SQLType,
+		m.GoType, m.GureguType, m.GoNullableType,
+		m.JSONType, m.ProtobufType)
 }
 
 // IsAutoIncrement return is column is a primary key column
 func (ci *columnMeta) IsPrimaryKey() bool {
 	return ci.isPrimaryKey
+}
+
+// IsArray return is column is an array type
+func (ci *columnMeta) IsArray() bool {
+	return ci.isArray
 }
 
 // IsAutoIncrement return is column is an auto increment column
@@ -71,6 +87,7 @@ type columnMeta struct {
 	nullable        bool
 	isPrimaryKey    bool
 	isAutoIncrement bool
+	isArray         bool
 	colDDL          string
 	columnType      string
 	columnLen       int64
@@ -110,9 +127,9 @@ func (ci *columnMeta) Index() int {
 
 // String friendly string for columnMeta
 func (ci *columnMeta) String() string {
-	return fmt.Sprintf("[%2d] %-45s  %-20s null: %-6t primary: %-6t auto: %-6t col: %-15s len: %-7d default: [%s]",
+	return fmt.Sprintf("[%2d] %-45s  %-20s null: %-6t primary: %-6t isArray: %-6t auto: %-6t col: %-15s len: %-7d default: [%s]",
 		ci.index, ci.ct.Name(), ci.DatabaseTypePretty(),
-		ci.nullable, ci.isPrimaryKey,
+		ci.nullable, ci.isPrimaryKey, ci.isArray,
 		ci.isAutoIncrement, ci.columnType, ci.columnLen, ci.defaultVal)
 }
 
@@ -164,6 +181,7 @@ type ColumnMeta interface {
 	Index() int
 	IsPrimaryKey() bool
 	IsAutoIncrement() bool
+	IsArray() bool
 	ColumnType() string
 	Notes() string
 	ColumnLength() int64
@@ -264,6 +282,7 @@ type FieldInfo struct {
 	ColumnMeta            ColumnMeta
 	PrimaryKeyFieldParser string
 	PrimaryKeyArgName     string
+	SqlMapping            *SQLMapping
 }
 
 // LoadMeta loads the DbTableMeta data from the db connection for the table
@@ -275,89 +294,6 @@ func LoadMeta(sqlType string, db *sql.DB, sqlDatabase, tableName string) (DbTabl
 
 	dbMeta, err := dbMetaFunc(db, sqlType, sqlDatabase, tableName)
 	return dbMeta, err
-}
-
-// GenerateStruct generates a struct for the given table.
-func GenerateStruct(sqlType string,
-	db *sql.DB,
-	sqlDatabase,
-	tableName string,
-	structName string,
-	pkgName string,
-	addJSONAnnotation bool,
-	addGormAnnotation bool,
-	addDBAnnotation bool,
-	addProtobufAnnotation bool,
-	gureguTypes bool,
-	jsonNameFormat string,
-	protobufNameFormat string,
-	verbose bool) (*ModelInfo, error) {
-
-	jsonNameFormat = strings.ToLower(jsonNameFormat)
-
-	dbMeta, err := LoadMeta(sqlType, db, sqlDatabase, tableName)
-	if err != nil {
-		return nil, err
-	}
-
-	fields, err := generateFieldsTypes(dbMeta, addJSONAnnotation, addGormAnnotation, addDBAnnotation, addProtobufAnnotation, gureguTypes, jsonNameFormat, protobufNameFormat, verbose)
-	if err != nil {
-		return nil, err
-	}
-
-	if verbose {
-		fmt.Printf("tableName: %s\n", tableName)
-		for _, c := range dbMeta.Columns() {
-			fmt.Printf("    %s\n", c.String())
-		}
-	}
-
-	generator := dynamicstruct.NewStruct()
-
-	noOfPrimaryKeys := 0
-	for i, c := range fields {
-		meta := dbMeta.Columns()[i]
-		jsonName := formatFieldName(jsonNameFormat, meta)
-		tag := fmt.Sprintf(`json:"%s"`, jsonName)
-		fakeData := c.FakeData
-		generator = generator.AddField(c.GoFieldName, fakeData, tag)
-		if meta.IsPrimaryKey() {
-			//c.PrimaryKeyArgName = RenameReservedName(strcase.ToLowerCamel(c.GoFieldName))
-			c.PrimaryKeyArgName = fmt.Sprintf("arg%s", strcase.ToCamel(c.GoFieldName))
-			noOfPrimaryKeys++
-		}
-	}
-
-	instance := generator.Build().New()
-
-	err = faker.FakeData(&instance)
-	if err != nil {
-		fmt.Println(err)
-	}
-	// fmt.Printf("%+v", instance)
-
-	var code []string
-	for _, f := range fields {
-
-		if f.PrimaryKeyFieldParser == "unsupported" {
-			return nil, fmt.Errorf("unable to generate code for table: %s, primary key column: [%d] %s has unsupported type: %s / %s",
-				dbMeta.TableName(), f.ColumnMeta.Index(), f.ColumnMeta.Name(), f.ColumnMeta.DatabaseTypeName(), f.GoFieldType)
-		}
-		code = append(code, f.Code)
-	}
-
-	var modelInfo = &ModelInfo{
-		PackageName:     pkgName,
-		StructName:      structName,
-		TableName:       tableName,
-		ShortStructName: strings.ToLower(string(structName[0])),
-		Fields:          code,
-		CodeFields:      fields,
-		DBMeta:          dbMeta,
-		Instance:        instance,
-	}
-
-	return modelInfo, nil
 }
 
 func checkDupeFieldName(fields []*FieldInfo, fieldName string) string {
@@ -377,24 +313,16 @@ func checkDupeFieldName(fields []*FieldInfo, fieldName string) string {
 }
 
 // Generate fields string
-func generateFieldsTypes(dbMeta DbTableMeta,
-	addJSONAnnotation bool,
-	addGormAnnotation bool,
-	addDBAnnotation bool,
-	addProtobufAnnotation bool,
-	gureguTypes bool,
-	jsonNameFormat string,
-	protobufNameFormat string,
-	verbose bool) ([]*FieldInfo, error) {
+func (c *Config) GenerateFieldsTypes(dbMeta DbTableMeta) ([]*FieldInfo, error) {
 
 	var fields []*FieldInfo
 	field := ""
-	for i, c := range dbMeta.Columns() {
-		name := c.Name()
+	for i, col := range dbMeta.Columns() {
+		name := col.Name()
 
-		valueType, err := SQLTypeToGoType(strings.ToLower(c.DatabaseTypeName()), c.Nullable(), gureguTypes)
+		valueType, err := SQLTypeToGoType(strings.ToLower(col.DatabaseTypeName()), col.Nullable(), c.UseGureguTypes)
 		if err != nil { // unknown type
-			fmt.Printf("table: %s unable to generate struct field: %s type: %s error: %v\n", dbMeta.TableName(), name, c.DatabaseTypeName(), err)
+			fmt.Printf("table: %s unable to generate struct field: %s type: %s error: %v\n", dbMeta.TableName(), name, col.DatabaseTypeName(), err)
 			continue
 		}
 
@@ -402,20 +330,20 @@ func generateFieldsTypes(dbMeta DbTableMeta,
 		fieldName = checkDupeFieldName(fields, fieldName)
 
 		var annotations []string
-		if addGormAnnotation {
-			annotations = append(annotations, createGormAnnotation(c))
+		if c.AddGormAnnotation {
+			annotations = append(annotations, createGormAnnotation(col))
 		}
 
-		if addJSONAnnotation {
-			annotations = append(annotations, createJSONAnnotation(jsonNameFormat, c))
+		if c.AddJSONAnnotation {
+			annotations = append(annotations, createJSONAnnotation(c.JsonNameFormat, col))
 		}
 
-		if addDBAnnotation {
-			annotations = append(annotations, createDBAnnotation(c))
+		if c.AddDBAnnotation {
+			annotations = append(annotations, createDBAnnotation(col))
 		}
 
-		if addProtobufAnnotation {
-			annnotation, err := createProtobufAnnotation(protobufNameFormat, c)
+		if c.AddProtobufAnnotation {
+			annnotation, err := createProtobufAnnotation(c.ProtobufNameFormat, col)
 			if err == nil {
 				annotations = append(annotations, annnotation)
 			}
@@ -430,14 +358,22 @@ func generateFieldsTypes(dbMeta DbTableMeta,
 			field = fmt.Sprintf("%s %s", fieldName, valueType)
 		}
 
-		field = fmt.Sprintf("//%s\n    %s", c.String(), field)
+		field = fmt.Sprintf("//%s\n    %s", col.String(), field)
 
-		goType, _ := SQLTypeToGoType(strings.ToLower(c.DatabaseTypeName()), false, false)
-		protobufType, _ := SQLTypeToProtobufType(c.DatabaseTypeName())
+		sqlMapping, _ := SQLTypeToMapping(strings.ToLower(col.DatabaseTypeName()))
+		goType, _ := SQLTypeToGoType(strings.ToLower(col.DatabaseTypeName()), false, false)
+		protobufType, _ := SQLTypeToProtobufType(col.DatabaseTypeName())
 		fakeData := createFakeData(goType, fieldName)
 
+		//if c.Verbose {
+		//	fmt.Printf("table: %-10s type: %-10s fieldname: %-20s val: %v\n", c.DatabaseTypeName(), goType, fieldName, fakeData)
+		//	spew.Dump(fakeData)
+		//}
+
+
+		//fmt.Printf("%+v", fakeData)
 		primaryKeyFieldParser := ""
-		if c.IsPrimaryKey() {
+		if col.IsPrimaryKey() {
 			var ok bool
 			primaryKeyFieldParser, ok = parsePrimaryKeys[goType]
 			if !ok {
@@ -452,13 +388,14 @@ func generateFieldsTypes(dbMeta DbTableMeta,
 			GoFieldType:           valueType,
 			GoAnnotations:         annotations,
 			FakeData:              fakeData,
-			Comment:               c.String(),
-			JSONFieldName:         formatFieldName(jsonNameFormat, c),
-			ProtobufFieldName:     formatFieldName(protobufNameFormat, c),
+			Comment:               col.String(),
+			JSONFieldName:         formatFieldName(c.JsonNameFormat, col),
+			ProtobufFieldName:     formatFieldName(c.ProtobufNameFormat, col),
 			ProtobufType:          protobufType,
 			ProtobufPos:           i + 1,
-			ColumnMeta:            c,
+			ColumnMeta:            col,
 			PrimaryKeyFieldParser: primaryKeyFieldParser,
+			SqlMapping:            sqlMapping,
 		}
 
 		fields = append(fields, fi)
@@ -565,7 +502,7 @@ func BuildDefaultTableDDL(tableName string, cols []*columnMeta) string {
 }
 
 // ProcessMappings process the json for mappings to load sql mappings
-func ProcessMappings(mappingJsonstring []byte) error {
+func ProcessMappings(mappingJsonstring []byte, verbose bool) error {
 	var mappings = &SQLMappings{}
 	err := json.Unmarshal(mappingJsonstring, mappings)
 	if err != nil {
@@ -573,16 +510,21 @@ func ProcessMappings(mappingJsonstring []byte) error {
 		return err
 	}
 
-	fmt.Printf("Loaded %d mappings\n", len(mappings.SQLMappings))
+	if verbose {
+		fmt.Printf("Loaded %d mappings\n", len(mappings.SQLMappings))
+	}
 	for i, value := range mappings.SQLMappings {
-		fmt.Printf("    Mapping:[%2d] -> %s\n", i, value.SQLType)
+		if verbose {
+			fmt.Printf("    Mapping:[%2d] -> %s\n", i, value.SQLType)
+		}
+
 		sqlMappings[value.SQLType] = value
 	}
 	return nil
 }
 
 // LoadMappings load sql mappings to load mapping json file
-func LoadMappings(mappingFileName string) error {
+func LoadMappings(mappingFileName string, verbose bool) error {
 	mappingFile, err := os.Open(mappingFileName)
 	if err != nil {
 		fmt.Printf("Error loading mapping file %s error: %v\n", mappingFileName, err)
@@ -597,7 +539,7 @@ func LoadMappings(mappingFileName string) error {
 		fmt.Printf("Error loading mapping file %s error: %v\n", mappingFileName, err)
 		return err
 	}
-	return ProcessMappings(byteValue)
+	return ProcessMappings(byteValue, verbose)
 }
 
 // SQLTypeToGoType map a sql type to a go type
@@ -677,4 +619,114 @@ func createFakeData(valueType string, name string) interface{} {
 		return 1
 	}
 
+}
+
+func LoadTableInfo(db *sql.DB, dbTables []string, conf *Config) map[string]*ModelInfo {
+
+	tableInfos := make(map[string]*ModelInfo)
+
+	// generate go files for each table
+	var tableIdx = 0
+	for i, tableName := range dbTables {
+		if strings.HasPrefix(tableName, "[") && strings.HasSuffix(tableName, "]") {
+			tableName = tableName[1 : len(tableName)-1]
+		}
+
+		dbMeta, err := LoadMeta(conf.SqlType, db, conf.SqlDatabase, tableName)
+		if err != nil {
+			fmt.Printf("Error getting table info for %s error: %v\n", tableName, err)
+			continue
+		}
+
+		modelInfo, err := GenerateModelInfo(dbMeta, tableName, conf)
+		if err != nil {
+			fmt.Printf("Error getting table info for %s error: %v\n", tableName, err)
+			continue
+		}
+
+		if len(modelInfo.Fields) == 0 {
+			if conf.Verbose {
+				fmt.Printf("[%d] Table: %s - No Fields Available\n", i, tableName)
+			}
+			continue
+		}
+
+		modelInfo.Index = tableIdx
+		modelInfo.IndexPlus1 = tableIdx + 1
+		tableIdx++
+
+		tableInfos[tableName] = modelInfo
+	}
+
+	return tableInfos
+}
+
+// GenerateModelInfo generates a struct for the given table.
+func GenerateModelInfo(dbMeta DbTableMeta,
+	tableName string,
+	conf *Config) (*ModelInfo, error) {
+
+	structName := FmtFieldName(tableName)
+	structName = inflection.Singular(structName)
+
+	conf.JsonNameFormat = strings.ToLower(conf.JsonNameFormat)
+
+	fields, err := conf.GenerateFieldsTypes(dbMeta)
+	if err != nil {
+		return nil, err
+	}
+
+	if conf.Verbose {
+		fmt.Printf("tableName: %s\n", tableName)
+		for _, c := range dbMeta.Columns() {
+			fmt.Printf("    %s\n", c.String())
+		}
+	}
+
+	generator := dynamicstruct.NewStruct()
+
+	noOfPrimaryKeys := 0
+	for i, c := range fields {
+		meta := dbMeta.Columns()[i]
+		jsonName := formatFieldName(conf.JsonNameFormat, meta)
+		tag := fmt.Sprintf(`json:"%s"`, jsonName)
+		fakeData := c.FakeData
+		generator = generator.AddField(c.GoFieldName, fakeData, tag)
+		if meta.IsPrimaryKey() {
+			//c.PrimaryKeyArgName = RenameReservedName(strcase.ToLowerCamel(c.GoFieldName))
+			c.PrimaryKeyArgName = fmt.Sprintf("arg%s", strcase.ToCamel(c.GoFieldName))
+			noOfPrimaryKeys++
+		}
+	}
+
+	instance := generator.Build().New()
+
+	err = faker.FakeData(&instance)
+	if err != nil {
+		fmt.Println(err)
+	}
+	// fmt.Printf("%+v", instance)
+
+	var code []string
+	for _, f := range fields {
+
+		if f.PrimaryKeyFieldParser == "unsupported" {
+			return nil, fmt.Errorf("unable to generate code for table: %s, primary key column: [%d] %s has unsupported type: %s / %s",
+				dbMeta.TableName(), f.ColumnMeta.Index(), f.ColumnMeta.Name(), f.ColumnMeta.DatabaseTypeName(), f.GoFieldType)
+		}
+		code = append(code, f.Code)
+	}
+
+	var modelInfo = &ModelInfo{
+		PackageName:     conf.ModelPackageName,
+		StructName:      structName,
+		TableName:       tableName,
+		ShortStructName: strings.ToLower(string(structName[0])),
+		Fields:          code,
+		CodeFields:      fields,
+		DBMeta:          dbMeta,
+		Instance:        instance,
+	}
+
+	return modelInfo, nil
 }

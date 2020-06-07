@@ -1,0 +1,20 @@
+{{define "delete"}}
+// Delete{{.StructName}} is a function to delete a single record from {{.TableName}} table in the {{.DatabaseName}} database
+// error - ErrNotFound, db Find error
+// error - ErrDeleteFailed, db Delete failed error
+func Delete{{.StructName}}(ctx context.Context,{{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}} {{$field.GoFieldType}},{{end}}{{end -}}) (rowsAffected int64, err error) {
+
+    record := &{{.modelPackageName}}.{{.StructName}}{}
+    db := DB.First(record, {{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName -}},{{end}}{{end}})
+    if db.Error != nil {
+        return -1, ErrNotFound
+    }
+
+    db = db.Delete(record)
+    if err = db.Error; err != nil {
+        return -1, ErrDeleteFailed
+    }
+
+   return db.RowsAffected, nil
+}
+{{end}}

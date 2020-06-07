@@ -170,7 +170,8 @@ The generated project will contain the following code under the `./example` dire
 
 
 #### Generated Samples
-* [DAO CRUD Functions](./code_dao.md)
+* [GORM DAO CRUD Functions](./code_dao_gorm.md)
+* [SQLX DAO CRUD Functions](./code_dao_sqlx.md)
 * [Http CRUD Handlers](./code_http.md)
 * [Model](./code_model.md)
 * [Protobuf Definition](./code_protobuf.md)
@@ -282,6 +283,8 @@ The following info is available within use of the exec template.
 |ms sql   |y   | y  | y  | y  | y | y| n
 
 ## Version History
+- v0.9.6 (06/06/2020)
+    - Updated SQLX codegen 
 - v0.9.5 (05/16/2020)
     - Added SQLX codegen by default, split dao templates. 
     - Renamed templates
