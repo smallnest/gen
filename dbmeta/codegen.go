@@ -329,7 +329,7 @@ type Config struct {
 	TemplateLoader        TemplateLoader
 }
 
-func NewConfig(	templateLoader  TemplateLoader) *Config {
+func NewConfig(templateLoader TemplateLoader) *Config {
 	conf := &Config{
 		Swagger: &SwaggerInfoDetails{
 			Version:      "1.0",

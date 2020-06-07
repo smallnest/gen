@@ -123,7 +123,7 @@ func GetInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 // @Failure 400 {object} api.HTTPError
 // @Failure 404 {object} api.HTTPError
 // @Router /invoices [post]
-// echo '{"InvoiceDate": "2267-03-01T02:19:46.038795137-05:00","BillingAddress": "OOBZFjralhvNalrayDTpxLcng","BillingPostalCode": "MIwkbFlJzYyPluFcCWclsywtl","Total": 0.5147250309289902,"InvoiceId": 33,"CustomerId": 81,"BillingCity": "TPSJWkfdaEXTPLmPMwzolIXgU","BillingState": "iWADrSmLOTOxVgBZqfVwLxCeS","BillingCountry": "VhPnkGyZbuNryrFvEQLhWudTd"}' | http POST "http://127.0.0.1:8080/invoices"
+// echo '{"InvoiceDate": "2096-08-18T15:36:46.665362453-05:00","BillingCity": "tccGaCqzNaGpQgGmtuEIuUUsw","BillingState": "DevVKaTFaUAmLSHexTVUngAas","Total": 0.45603704963202996,"InvoiceId": 68,"CustomerId": 60,"BillingAddress": "iRYBTnkXCLcDOsoxwKsbcOPQo","BillingCountry": "qakSPflxPOaeJcogiraKlTUMh","BillingPostalCode": "eyjkZPwhsBCyfyPASQcedECIS"}' | http POST "http://127.0.0.1:8080/invoices"
 func AddInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	invoice := &model.Invoice{}
 
@@ -171,7 +171,7 @@ func AddInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 // @Failure 400 {object} api.HTTPError
 // @Failure 404 {object} api.HTTPError
 // @Router /invoices/{argInvoiceID} [patch]
-// echo '{"InvoiceDate": "2267-03-01T02:19:46.038795137-05:00","BillingAddress": "OOBZFjralhvNalrayDTpxLcng","BillingPostalCode": "MIwkbFlJzYyPluFcCWclsywtl","Total": 0.5147250309289902,"InvoiceId": 33,"CustomerId": 81,"BillingCity": "TPSJWkfdaEXTPLmPMwzolIXgU","BillingState": "iWADrSmLOTOxVgBZqfVwLxCeS","BillingCountry": "VhPnkGyZbuNryrFvEQLhWudTd"}' | http PUT "http://127.0.0.1:8080/invoices/1"
+// echo '{"InvoiceDate": "2096-08-18T15:36:46.665362453-05:00","BillingCity": "tccGaCqzNaGpQgGmtuEIuUUsw","BillingState": "DevVKaTFaUAmLSHexTVUngAas","Total": 0.45603704963202996,"InvoiceId": 68,"CustomerId": 60,"BillingAddress": "iRYBTnkXCLcDOsoxwKsbcOPQo","BillingCountry": "qakSPflxPOaeJcogiraKlTUMh","BillingPostalCode": "eyjkZPwhsBCyfyPASQcedECIS"}' | http PUT "http://127.0.0.1:8080/invoices/1"
 func UpdateInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 

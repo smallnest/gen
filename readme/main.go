@@ -87,7 +87,7 @@ func main() {
 	}
 }
 
-func genreadme(conf *dbmeta.Config, templateName, outputFile string, ctx map[string]interface{}){
+func genreadme(conf *dbmeta.Config, templateName, outputFile string, ctx map[string]interface{}) {
 	template, err := LoadTemplate(templateName)
 	if err != nil {
 		fmt.Printf("Error loading template %v\n", err)
@@ -104,8 +104,6 @@ func genreadme(conf *dbmeta.Config, templateName, outputFile string, ctx map[str
 		conf.WriteTemplate(templateName, template, ctx, outputFile, false)
 	}
 }
-
-
 
 func initialize(conf *dbmeta.Config) {
 	outDir := "."

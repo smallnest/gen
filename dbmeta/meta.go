@@ -370,7 +370,6 @@ func (c *Config) GenerateFieldsTypes(dbMeta DbTableMeta) ([]*FieldInfo, error) {
 		//	spew.Dump(fakeData)
 		//}
 
-
 		//fmt.Printf("%+v", fakeData)
 		primaryKeyFieldParser := ""
 		if col.IsPrimaryKey() {
