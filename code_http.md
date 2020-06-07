@@ -1,3 +1,7 @@
+[comment]: <> (This is a generated file please edit source in ./templates)
+[comment]: <> (All modification will be lost, you have been warned)
+[comment]: <> ()
+
 ## CRUD Http Handlers
 `gen` will generate http handlers if the `--rest` is used. The code can be customized with the `--api=api` flag to set the name of the api package.
 
@@ -123,7 +127,7 @@ func GetInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 // @Failure 400 {object} api.HTTPError
 // @Failure 404 {object} api.HTTPError
 // @Router /invoices [post]
-// echo '{"InvoiceDate": "2096-08-18T15:36:46.665362453-05:00","BillingCity": "tccGaCqzNaGpQgGmtuEIuUUsw","BillingState": "DevVKaTFaUAmLSHexTVUngAas","Total": 0.45603704963202996,"InvoiceId": 68,"CustomerId": 60,"BillingAddress": "iRYBTnkXCLcDOsoxwKsbcOPQo","BillingCountry": "qakSPflxPOaeJcogiraKlTUMh","BillingPostalCode": "eyjkZPwhsBCyfyPASQcedECIS"}' | http POST "http://127.0.0.1:8080/invoices"
+// echo '{"BillingAddress": "zmPuoQcAoOZhYKalXSoalqMDI","BillingCity": "RnAutzqbnuOpKukphicvvwaEA","BillingPostalCode": "QKnHMLsZJuDJwmWGrXtHgKXum","InvoiceId": 69,"InvoiceDate": "2148-08-17T19:22:19.901074007-05:00","BillingState": "XFarWhNSSREocbGLgojgQfAbG","BillingCountry": "CPMBYDYsKnAeSzccAzGPqJIPE","Total": 0.9421466848814889,"CustomerId": 67}' | http POST "http://127.0.0.1:8080/invoices"
 func AddInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	invoice := &model.Invoice{}
 
@@ -171,7 +175,7 @@ func AddInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 // @Failure 400 {object} api.HTTPError
 // @Failure 404 {object} api.HTTPError
 // @Router /invoices/{argInvoiceID} [patch]
-// echo '{"InvoiceDate": "2096-08-18T15:36:46.665362453-05:00","BillingCity": "tccGaCqzNaGpQgGmtuEIuUUsw","BillingState": "DevVKaTFaUAmLSHexTVUngAas","Total": 0.45603704963202996,"InvoiceId": 68,"CustomerId": 60,"BillingAddress": "iRYBTnkXCLcDOsoxwKsbcOPQo","BillingCountry": "qakSPflxPOaeJcogiraKlTUMh","BillingPostalCode": "eyjkZPwhsBCyfyPASQcedECIS"}' | http PUT "http://127.0.0.1:8080/invoices/1"
+// echo '{"BillingAddress": "zmPuoQcAoOZhYKalXSoalqMDI","BillingCity": "RnAutzqbnuOpKukphicvvwaEA","BillingPostalCode": "QKnHMLsZJuDJwmWGrXtHgKXum","InvoiceId": 69,"InvoiceDate": "2148-08-17T19:22:19.901074007-05:00","BillingState": "XFarWhNSSREocbGLgojgQfAbG","BillingCountry": "CPMBYDYsKnAeSzccAzGPqJIPE","Total": 0.9421466848814889,"CustomerId": 67}' | http PUT "http://127.0.0.1:8080/invoices/1"
 func UpdateInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 

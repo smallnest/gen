@@ -1,3 +1,7 @@
+[comment]: <> (This is a generated file please edit source in ./templates)
+[comment]: <> (All modification will be lost, you have been warned)
+[comment]: <> ()
+
 ## CRUD DAO Functions
 `gen` will generate dao functions if the `--generate-dao` is passed to `gen`. The code can be customized with the `--dao=dao` flag to set the name of the dao package.
 

@@ -4,6 +4,8 @@ import (
 	"database/sql"
 	"fmt"
 	"io/ioutil"
+	"log"
+	"os/exec"
 	"path/filepath"
 
 	_ "github.com/denisenkom/go-mssqldb"
@@ -38,6 +40,17 @@ func init() {
 `
 	//Parse options
 	goopt.Parse(nil)
+}
+
+func GenHelp() string {
+	cmd := exec.Command("./gen", "-h")
+	stdoutStderr, err := cmd.CombinedOutput()
+	if err != nil {
+		log.Fatal(err)
+	}
+
+	//fmt.Printf("%s\n", stdoutStderr)
+	return string(stdoutStderr)
 }
 
 func main() {
@@ -84,7 +97,12 @@ func main() {
 		genreadme(conf, "code_dao_gorm.md.tmpl", "./code_dao_gorm.md", ctx)
 		genreadme(conf, "code_dao_sqlx.md.tmpl", "./code_dao_sqlx.md", ctx)
 		genreadme(conf, "code_http.md.tmpl", "./code_http.md", ctx)
+
+		help := GenHelp()
+		conf.ContextMap["GenHelp"] = help
+		genreadme(conf, "GEN_README.md.tmpl", "./README.md", ctx)
 	}
+
 }
 
 func genreadme(conf *dbmeta.Config, templateName, outputFile string, ctx map[string]interface{}) {
@@ -94,13 +112,28 @@ func genreadme(conf *dbmeta.Config, templateName, outputFile string, ctx map[str
 		return
 	}
 
-	// code_dao_gorm.md.tmpl
-	// code_dao_sqlx.md.tmpl
-	// code_http.md.tmpl
+	sample := `
+{{ range $i, $table := .tables }}
+    {{$singular   := singular $table -}}
+    {{$plural     := pluralize $table -}}
+    {{$title      := title $table -}}
+    {{$lower      := toLower $table -}}
+    {{$lowerCamel := toLowerCamelCase $table -}}
+    {{$snakeCase  := toSnakeCase $table -}}
+    {{ printf "[%-2d] %-20s %-20s %-20s %-20s %-20s %-20s %-20s" $i $table $singular $plural $title $lower $lowerCamel $snakeCase}}{{- end }}
+
+
+{{ range $i, $table := .tables }}
+   {{$name := toUpper $table -}}
+   {{$filename  := printf "My%s" $name -}}
+   {{ printf "[%-2d] %-20s %-20s" $i $table $filename}}
+   {{ GenerateTableFile $table  "custom.go.tmpl" "test" $filename true}}
+{{- end }}
+`
+	ctx["AdvancesSample"] = sample
 
 	if template != "" {
 		// fmt.Printf("%s\n", template)
-
 		conf.WriteTemplate(templateName, template, ctx, outputFile, false)
 	}
 }

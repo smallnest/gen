@@ -1,0 +1,250 @@
+[comment]: <> (This is a generated file please edit source in ./templates)
+[comment]: <> (All modification will be lost, you have been warned)
+[comment]: <> ()
+## gen
+
+[![License](https://img.shields.io/badge/License-Apache%203.0-blue.svg)](https://opensource.org/licenses/Apache-3.0) [![GoDoc](https://godoc.org/github.com/smallnest/gen?status.png)](http://godoc.org/github.com/smallnest/gen)  [![travis](https://travis-ci.org/smallnest/gen.svg?branch=master)](https://travis-ci.org/smallnest/gen) [![Go Report Card](https://goreportcard.com/badge/github.com/smallnest/gen)](https://goreportcard.com/report/github.com/smallnest/gen)
+
+The gen tool produces a CRUD (Create, read, update and delete) REST api project template from a given database. The gen tool will
+connect to the db connection string analyze the database and generate the code based on the flags provided.
+
+By reading details from the database about the column structure, gen generates a go compatible struct type
+with the required column names, data types, and annotations.
+
+It supports [gorm](https://github.com/jinzhu/gorm) tags and implements some usable methods. Generated data types include support for nullable columns [sql.NullX types](https://golang.org/pkg/database/sql/#NullBool) or [guregu null.X types](https://github.com/guregu/null)
+and the expected basic built in go types.
+
+`gen` is based / inspired by the work of Seth Shelnutt's [db2struct](https://github.com/Shelnutt2/db2struct), and Db2Struct is based/inspired by the work of ChimeraCoder's gojson package [gojson](https://github.com/ChimeraCoder/gojson).
+
+
+
+## CRUD Generation
+This is a sample table contained within the ./example/sample.db Sqlite3 database. Using `gen` will generate the following struct.
+```sql
+CREATE TABLE "albums"
+(
+    [AlbumId]  INTEGER PRIMARY KEY AUTOINCREMENT NOT NULL,
+    [Title]    NVARCHAR(160) NOT NULL,
+    [ArtistId] INTEGER NOT NULL,
+    FOREIGN KEY ([ArtistId]) REFERENCES "artists" ([ArtistId])
+		ON DELETE NO ACTION ON UPDATE NO ACTION
+)
+```
+#### Transforms into
+```go
+type Album struct {
+	//[ 0] AlbumId                                        integer              null: false  primary: true   auto: true   col: integer         len: -1      default: []
+	AlbumID int `gorm:"primary_key;AUTO_INCREMENT;column:AlbumId;type:INTEGER;" json:"album_id" db:"AlbumId" protobuf:"int32,0,opt,name=album_id"`
+	//[ 1] Title                                          nvarchar(160)        null: false  primary: false  auto: false  col: nvarchar        len: 160     default: []
+	Title string `gorm:"column:Title;type:NVARCHAR(160);size:160;" json:"title" db:"Title" protobuf:"string,1,opt,name=title"`
+	//[ 2] ArtistId                                       integer              null: false  primary: false  auto: false  col: integer         len: -1      default: []
+	ArtistID int `gorm:"column:ArtistId;type:INTEGER;" json:"artist_id" db:"ArtistId" protobuf:"int32,2,opt,name=artist_id"`
+}
+```
+Code generation for a complete CRUD rest project is possible with DAO crud functions, http handlers, makefile, sample server are available. Check out some of the [code generated samples](#Generated-Samples).
+
+
+
+## Binary Installation
+```BASH
+## install gen tool (should be installed to ~/go/bin, make sure ~/go/bin is in your path.
+$ go get -u github.com/smallnest/gen
+
+## download sample sqlite database
+$ wget https://github.com/smallnest/gen/raw/master/example/sample.db
+
+## generate code based on the sqlite database (project will be contained within the ./example dir)
+$ gen --sqltype=sqlite3 \
+   	--connstr "./sample.db" \
+   	--database main  \
+   	--json \
+   	--gorm \
+   	--guregu \
+   	--rest \
+   	--out ./example \
+   	--module example.com/rest/example \
+   	--mod \
+   	--server \
+   	--makefile \
+   	--json-fmt=snake \
+   	--generate-dao \
+   	--generate-proj \
+   	--overwrite
+
+## build example code (build process will install packr2 if not installed)
+$ cd ./example
+$ make example
+
+## binary will be located at ./bin/example
+## when launching make sure that the SQLite file sample.db is located in the same dir as the binary
+$ cp ../../sample.db  .
+$ ./example
+
+
+## Open a browser to http://localhost:8080/swagger/index.html
+
+## Use wget/curl/httpie to fetch via command line
+http http://localhost:8080/albums
+curl http://localhost:8080/artists
+
+```
+
+
+## Usage
+```console
+{{.GenHelp}}
+```
+
+## Building
+The project contains a makefile for easy building and common tasks.
+* `make help` - list available targets
+* `make build` - generate the binary `./gen`
+* `make example` - run the gen process on the example SqlLite db located in ./examples place the sources in ./example
+Other targets exist for dev tasks.
+
+## Example
+The project provides a sample SQLite database in the `./example` directory. From the project `Makefile` can be used to generate the example code.
+```.bash
+make example
+```
+
+The generated project will contain the following code under the `./example` directory.
+* Makefile
+  * useful Makefile for installing tools building project etc. Issue `make` to display help output.
+* .gitignore
+  * git ignore for go project
+* go.mod
+  * go module setup, pass `--module` flag for setting the project module default `example.com/example`
+* README.md
+  * Project readme
+* app/server/main.go
+  * Sample Gin Server, with swagger init and comments
+* api/<table name>.go
+  * REST crud controllers
+* dao/<table name>.go
+  * DAO functions providing CRUD access to database
+* model/<table name>.go
+  * Structs representing a row for each database table
+
+
+#### Generated Samples
+* [GORM DAO CRUD Functions](./code_dao_gorm.md)
+* [SQLX DAO CRUD Functions](./code_dao_sqlx.md)
+* [Http CRUD Handlers](./code_http.md)
+* [Model](./code_model.md)
+* [Protobuf Definition](./code_protobuf.md)
+
+
+The REST api server utilizes the Gin framework, GORM db api and Swag for providing swagger documentation
+* [Gin](https://github.com/gin-gonic/gin)
+* [Swaggo](https://github.com/swaggo/swag)
+* [Gorm](https://github.com/jinzhu/gorm)
+* [packr2](https://github.com/gobuffalo/packr)
+
+
+
+## Supported Databases
+Currently Supported,
+- MariaDB
+- MySQL
+- PostgreSQL
+- Microsoft SQL Server
+- SQLite
+
+Planned Support
+- Oracle
+
+## Supported Data Types
+
+Most data types are supported, for Mysql, Postgres, SQLite and MS SQL. `gen` uses a mapping json file that can be used to add mapping types. By default, the internal mapping file is loaded and processed. If can be overwritten or additional types added by using the `--mapping=extra.json` command line option.
+
+The default `mapping.json` file is located within the ./templates dir. Use `gen --save=./templates` to save the contents of the templates to `./templates`.
+Below is a portion of the mapping file, showing the mapping for `varchar`.
+
+```json
+    {
+      "sql_type": "varchar",
+      "go_type": "string",
+      "protobuf_type": "bytes",
+      "guregu_type": "null.String",
+      "go_nullable_type": "sql.NullString"
+    }
+```
+
+
+## Advanced
+The `gen` tool provides functionality to layout your own project format. Users have 2 options.
+* Provide local templates with the `--templateDir=` option - this will generate code using the local templates. Templates can either be exported from `gen`
+via the command `gen --save ./mytemplates`. This will save the embedded templates for local editing. Then you would specify the `--templateDir=` option when generating a project.
+
+* Passing `--exec=../sample.gen` on the command line will load the `sample.gen` script and execute it. The script has access to the table information and other info passed to `gen`. This allows developers to customize the generation of code. You could loop through the list of tables and invoke
+`GenerateTableFile` or  `GenerateFile`.
+
+You can also populate the context used by templates with extra data by passing the `--contect=<json file>` option. The json file will be used to populate the context used when parsing templates.
+
+
+
+```gotemplate
+// Loop through tables and print out table name and various forms of the table name
+{{.AdvancesSample}}
+
+// GenerateTableFile(tableName, templateFilename, outputDirectory, outputFileName string, formatOutput bool)
+// GenerateFile(templateFilename, outputDirectory, outputFileName string, formatOutput bool) string
+
+The following info is available within use of the exec template.
+
+{{ range $key, $value := . }}
+   {{ printf "%#-25v" $key }}   {{ printf "%-30T %#v" $value $value }}{{ end }}
+
+
+```
+
+## Notes
+- MySql, Mssql, Postgres and Sqlite have a database metadata fetcher that will query the db, and update the auto increment, primary key and nullable info for the gorm annotation.
+- Tables that have a non-standard primary key (NON integer based or String) the table will be ignored.
+
+## DB Meta Data Loading
+| DB   | Type  | Nullable  | Primary Key  | Auto Increment  | Column Len | default Value| create ddl
+|---|---|---|---|---|---|---|---|
+|sqlite   |y   | y  | y  | y  | y | y| y
+|postgres   |y   | y  | y  | y  | y | y| n
+|mysql   |y   | y  | y  | y  | y | y| y
+|ms sql   |y   | y  | y  | y  | y | y| n
+
+## Version History
+- v0.9.6 (06/08/2020)
+    - Updated SQLX codegen
+    - Updated templates to split code gen functions into seperate files
+    - Added code_dao_gorm, code_dao_sqlx to be generated from templates
+- v0.9.5 (05/16/2020)
+    - Added SQLX codegen by default, split dao templates.
+    - Renamed templates
+- v0.9.4 (05/15/2020)
+    - Documentation updates, samples etc.
+- v0.9.3 (05/14/2020)
+    - Template bug fixes, when using custom api, dao and model package.
+    - Set primary key if not set to the first column
+    - Skip code gen if primary key column is not int or string
+    - validated codegen for mysql, mssql, postgres and sqlite3
+    - Fixed file naming if table ends with _test.go renames to _tst.go
+    - Fix for duplicate field names in struct due to renaming
+    - Added Notes for columns and tables for situations where a primary key is set since not defined in db
+    - Fixed issue when model contained field that had were named the same as funcs within model.
+
+- v0.9.2 (05/12/2020)
+    - Code cleanup gofmt, etc.
+- v0.9.1 (05/12/2020)
+- v0.9 (05/12/2020)
+    - updated db meta data loading fetching default values
+    - added default value to GORM tags
+    - Added protobuf .proto generation
+    - Added test app to display meta data
+    - Cleanup DDL generation
+    - Added support for varchar2, datetime2, float8, USER_DEFINED
+- v0.5
+
+
+## Contributors
+- [alexj212](https://github.com/alexj212) -  a big thanks to alexj212 for his contributions
+
+See more contributors: [contributors](https://github.com/smallnest/gen/graphs/contributors)
