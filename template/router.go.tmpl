@@ -7,12 +7,14 @@ import (
 	"strconv"
 	"time"
 	"unsafe"
+	_ "github.com/satori/go.uuid"
 
 	"{{.daoFQPN}}"
 
 	"github.com/gin-gonic/gin"
 	"github.com/julienschmidt/httprouter"
 )
+
 var (
     _ = time.Second
 )
@@ -30,19 +32,12 @@ type HTTPError struct {
 	Code    int    `json:"code" example:"400"`
 	Message string `json:"message" example:"status bad request"`
 }
-// example for init the database:
-//
-//  DB, err := gorm.Open("mysql", "root@tcp(127.0.0.1:3306)/employees?charset=utf8&parseTime=true")
-//  if err != nil {
-//  	panic("failed to connect database: " + err.Error())
-//  }
-//  defer db.Close()
 
 
 // ConfigRouter configure http.Handler router
 func ConfigRouter() http.Handler {
 	router := httprouter.New()
-    {{range .structs}}config{{pluralize .}}Router(router)
+	{{range $tableName, $codeInfo := .tableInfos}}config{{pluralize $codeInfo.StructName}}Router(router)
     {{end}}
 
 	return router
@@ -51,7 +46,7 @@ func ConfigRouter() http.Handler {
 
 // ConfigGinRouter configure gin router
 func ConfigGinRouter(router gin.IRoutes) {
-    {{range .structs}}configGin{{pluralize .}}Router(router)
+	{{range $tableName, $codeInfo := .tableInfos}}configGin{{pluralize $codeInfo.StructName}}Router(router)
 	{{end}}
 
 	return
@@ -218,6 +213,10 @@ func parseInt64(ps httprouter.Params, key string) (int64, error) {
 	return id, err
 }
 func parseString(ps httprouter.Params, key string) (string, error) {
+	idStr := ps.ByName(key)
+	return idStr, nil
+}
+func parseUUID(ps httprouter.Params, key string) (string, error) {
 	idStr := ps.ByName(key)
 	return idStr, nil
 }

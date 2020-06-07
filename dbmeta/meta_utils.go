@@ -105,7 +105,7 @@ ORDER BY table_name, ordinal_position;
 
 	res, err := db.Query(identitySQL)
 	if err != nil {
-		return nil, fmt.Errorf("unable to load ddl from postgres: %v", err)
+		return nil, fmt.Errorf("unable to load ddl from %s: %v", tableName, err)
 	}
 
 	for res.Next() {
@@ -149,7 +149,7 @@ ORDER BY table_name, ordinal_position;
 
 	res, err := db.Query(identitySQL)
 	if err != nil {
-		return nil, fmt.Errorf("unable to load ddl from postgres: %v", err)
+		return nil, fmt.Errorf("unable to load ddl from information_schema: %v", err)
 	}
 
 	for res.Next() {
@@ -158,7 +158,7 @@ ORDER BY table_name, ordinal_position;
 			&ci.ColumnDefault, &ci.IsNullable)
 
 		if err != nil {
-			return nil, fmt.Errorf("unable to load identity info from postgres Scan: %v", err)
+			return nil, fmt.Errorf("unable to load identity info from information_schema Scan: %v", err)
 		}
 
 		colInfo[ci.ColumnName] = ci

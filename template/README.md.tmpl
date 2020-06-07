@@ -44,8 +44,9 @@ The swagger web ui contains the documentation for the http server, it also provi
 http://{{.serverHost}}:{{.serverPort}}/swagger/index.html
 
 ## REST urls for fetching data
-{{ range $i, $value := .structs }}
-* http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize $value | toLower}}{{ end }}
+
+{{range $tableName, $codeInfo := .tableInfos}}
+* http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize $codeInfo.StructName | toLower}}{{ end }}
 
 ## Project Generated Details
 {{markdownCodeBlock ".bash" (wrapBash .CommandLine)}}

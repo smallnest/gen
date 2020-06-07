@@ -1,0 +1,44 @@
+## CRUD Http Handlers
+`gen` will generate http handlers if the `--rest` is used. The code can be customized with the `--api=api` flag to set the name of the api package.
+
+- [Retrieving records with paging](#Retrieve-Paged-Records)
+- [Retrieve a specific record](#Retrieve-record)
+- [Create a record](#Create-record)
+- [Update a record](#Update-record)
+- [Delete a record](#Delete-record)
+
+`gen` will add swagger comments to the source generated, this too can be customized with the following.
+```bash
+  --swagger_version=1.0                           swagger version
+  --swagger_path=/                                swagger base path
+  --swagger_tos=                                  swagger tos url
+  --swagger_contact_name=Me                       swagger contact name
+  --swagger_contact_url=http://me.com/terms.html  swagger contact url
+  --swagger_contact_email=me@me.com               swagger contact email
+```
+
+
+## Retrieve Paged Records
+```go
+{{template "getall" .}}
+```
+
+## Retrieve record
+```go
+{{template "get" .}}
+```
+
+## Create record
+```go
+{{template "add" .}}
+```
+
+## Update record
+```go
+{{template "update" .}}
+```
+
+## Delete record
+```go
+{{template "delete" .}}
+```

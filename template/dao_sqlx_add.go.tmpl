@@ -1,0 +1,41 @@
+{{define "add"}}
+// Add{{.StructName}} is a function to add a single record to {{.TableName}} table in the {{.DatabaseName}} database
+// error - ErrInsertFailed, db save call failed
+func Add{{.StructName}}(ctx context.Context, record *{{.modelPackageName}}.{{.StructName}}) (result *{{.modelPackageName}}.{{.StructName}}, RowsAffected int64, err error) {
+	if DB.DriverName() == "postgres" {
+		return add{{.StructName}}Postgres( ctx, record)
+	} else {
+		return add{{.StructName}}( ctx, record)
+	}
+}
+
+// add{{.StructName}}Postgres is a function to add a single record to {{.TableName}} table in the {{.DatabaseName}} database
+// error - ErrInsertFailed, db save call failed
+func add{{.StructName}}Postgres(ctx context.Context, record *{{.modelPackageName}}.{{.StructName}}) (result *{{.modelPackageName}}.{{.StructName}}, RowsAffected int64, err error) {
+    sql := "{{.insertSql}}"
+
+    rows := int64(1)
+    sql = fmt.Sprintf("%s returning %s", sql, "{{.PrimaryKeysJoined}}")
+    dbResult := DB.QueryRowContext(ctx, sql, {{range $field := .TableInfo.CodeFields}} {{ if not $field.ColumnMeta.IsAutoIncrement }} record.{{$field.GoFieldName}},{{end}}{{end -}} )
+    err = dbResult.Scan(record.UUID)
+
+    return record, rows, err
+}
+
+// add{{.StructName}}Postgres is a function to add a single record to {{.TableName}} table in the {{.DatabaseName}} database
+// error - ErrInsertFailed, db save call failed
+func add{{.StructName}}(ctx context.Context, record *{{.modelPackageName}}.{{.StructName}}) (result *{{.modelPackageName}}.{{.StructName}}, RowsAffected int64, err error) {
+    sql := "{{.insertSql}}"
+
+    rows := int64(0)
+
+    dbResult := DB.MustExecContext(ctx, sql, {{range $field := .TableInfo.CodeFields}} {{ if not $field.ColumnMeta.IsAutoIncrement }} record.{{$field.GoFieldName}},{{end}}{{end -}} )
+    id, err := dbResult.LastInsertId()
+    rows, err = dbResult.RowsAffected()
+
+    {{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName }} record.{{$field.GoFieldName}} = {{$field.GoFieldType}}(id){{print "\n"}}{{end}}{{end}}
+
+
+    return record, rows, err
+}
+{{end}}

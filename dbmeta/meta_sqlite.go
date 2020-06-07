@@ -100,7 +100,7 @@ func sqliteLoadPragma(db *sql.DB, tableName string) (colsInfos map[string]*sqlit
 		ci := &sqliteColumnInfo{}
 		err = res.Scan(&ci.cid, &ci.name, &ci.dataType, &ci.notnull, &ci.dfltValue, &ci.primaryKey)
 		if err != nil {
-			return nil, fmt.Errorf("unable to load identity info from postgres Scan: %v", err)
+			return nil, fmt.Errorf("unable to load identity info from sqlite Scan: %v", err)
 		}
 		colsInfos[ci.name] = ci
 

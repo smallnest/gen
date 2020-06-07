@@ -1,0 +1,33 @@
+{{define "get"}}
+// Get{{.StructName}} is a function to get a single record from the {{.TableName}} table in the {{.DatabaseName}} database
+// @Summary Get record from table {{.StructName}} by {{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}} {{ $field.PrimaryKeyArgName }} {{end}}{{end}}
+// @Tags {{.StructName}}
+{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}// @ID {{ $field.PrimaryKeyArgName }}{{print "\n"}}{{end}}{{end}} // @Description Get{{.StructName}} is a function to get a single record from the {{.TableName}} table in the {{.DatabaseName}} database
+// @Accept  json
+// @Produce  json
+{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}// @Param  {{ $field.PrimaryKeyArgName }} path {{ $field.SqlMapping.SwaggerType }} true "{{ $field.ColumnMeta.Name }}"{{print "\n"}}{{end}}{{end}} // @Success 200 {object} {{.modelPackageName}}.{{.StructName}}
+// @Failure 400 {object} {{.apiPackageName}}.HTTPError
+// @Failure 404 {object} {{.apiPackageName}}.HTTPError "ErrNotFound, db record for id not found - returns NotFound HTTP 404 not found error"
+// @Router /{{pluralize .StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/{ {{- $field.PrimaryKeyArgName -}} }{{end}}{{end}} [get]
+// http "http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize .StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/{{ $field.FakeData }}{{end}}{{end}}"
+func Get{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+
+{{range $field := .TableInfo.CodeFields}}
+{{ if $field.PrimaryKeyArgName }}
+
+	{{$field.PrimaryKeyArgName}}, err := {{$field.PrimaryKeyFieldParser}}(ps, "{{$field.PrimaryKeyArgName}}")
+	if err != nil {
+		returnError(w, r, err)
+		return
+	}
+{{end}}{{end}}
+
+	record, err := {{.daoPackageName}}.Get{{.StructName}}(r.Context(),{{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}},{{end}}{{end -}})
+	if err != nil {
+		returnError(w, r, err)
+		return
+	}
+
+	writeJSON(w, record)
+}
+{{end}}

@@ -160,3 +160,14 @@ test_mssql: ## test mssql code generation
 test_sqlite3: ## test sqlite3 code generation
 	test.sh sqlite3  gen_sqlx && cd ./tests/sqlite3_sqlx && make example
 	test.sh sqlite3  gen_gorm && cd ./tests/sqlite3_gorm && make example
+
+
+
+
+
+gen_readme: ## generate readme file
+	go run github.com/smallnest/gen/readme \
+		--sqltype=sqlite3 \
+		--connstr "./example/sample.db" \
+		--database main \
+		--table invoices

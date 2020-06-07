@@ -4,6 +4,7 @@ go 1.12
 
 require (
 	github.com/bxcodec/faker/v3 v3.3.1
+	github.com/davecgh/go-spew v1.1.1
 	github.com/denisenkom/go-mssqldb v0.0.0-20191128021309-1d7a30a10f73
 	github.com/droundy/goopt v0.0.0-20170604162106-0b8effe182da
 	github.com/fzipp/gocyclo v0.0.0-20150627053110-6acd4345c835 // indirect

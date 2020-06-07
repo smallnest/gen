@@ -47,7 +47,7 @@ var (
 )
 
 // GinServer launch gin server
-func GinServer() {
+func GinServer() (err error){
 	url := ginSwagger.URL("http://{{.serverHost}}:{{.serverPort}}/swagger/doc.json") // The url pointing to API definition
 
 	router := gin.Default()
@@ -55,6 +55,11 @@ func GinServer() {
 
 	{{.apiPackageName}}.ConfigGinRouter(router)
 	router.Run(":{{.serverPort}}")
+	if err != nil {
+		log.Fatalf("Error starting server, the error is '%v'", err)
+	}
+
+	return
 }
 
 
@@ -86,12 +91,14 @@ func main() {
 
     {{ $modelPackage := .modelPackageName }}
 	db.AutoMigrate(
-        {{range .structs}} &{{ $modelPackage}}.{{.}}{},
+        {{range $tableName, $codeInfo := .tableInfos}} &{{ $modelPackage}}.{{$codeInfo.StructName}}{},
         {{end}} )
 
 	go GinServer()
     LoopForever()
 }
+
+
 
 // LoopForever on signal processing
 func LoopForever() {

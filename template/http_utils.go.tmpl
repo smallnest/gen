@@ -27,7 +27,6 @@ func SendJSON(w http.ResponseWriter, r *http.Request, code int, val interface{})
 	w.Header().Set("Pragma", "no-cache")
 	w.Header().Set("Expires", "0")
 
-
 	w.Header().Set("Content-Type", "text/plain; charset=utf-8")
 	w.Header().Set("X-Content-Type-Options", "nosniff")
 	w.WriteHeader(code)
@@ -48,7 +47,6 @@ func InternalServerError(w http.ResponseWriter, r *http.Request, err error) {
 	w.Header().Set("Expires", "0")
 	http.Error(w, "Internal server error", 500)
 }
-
 
 // AddHeadersHandler will take a map of string/string and use it to set the key and value as the header name and value respectively.
 func AddHeadersHandler(addHeaders map[string]string, h http.Handler) http.Handler {
@@ -78,27 +76,27 @@ func inRange(r ipRange, ipAddress net.IP) bool {
 }
 
 var privateRanges = []ipRange{
-	ipRange{
+	{
 		start: net.ParseIP("10.0.0.0"),
 		end:   net.ParseIP("10.255.255.255"),
 	},
-	ipRange{
+	{
 		start: net.ParseIP("100.64.0.0"),
 		end:   net.ParseIP("100.127.255.255"),
 	},
-	ipRange{
+	{
 		start: net.ParseIP("172.16.0.0"),
 		end:   net.ParseIP("172.31.255.255"),
 	},
-	ipRange{
+	{
 		start: net.ParseIP("192.0.0.0"),
 		end:   net.ParseIP("192.0.0.255"),
 	},
-	ipRange{
+	{
 		start: net.ParseIP("192.168.0.0"),
 		end:   net.ParseIP("192.168.255.255"),
 	},
-	ipRange{
+	{
 		start: net.ParseIP("198.18.0.0"),
 		end:   net.ParseIP("198.19.255.255"),
 	},
@@ -121,7 +119,7 @@ func IsPrivateSubnet(ipAddress net.IP) bool {
 
 // GetIPAddress will take a http request and check headers if it has been proxied to extract what the server believes to be the client ip address.
 func GetIPAddress(r *http.Request) string {
-	var ip = ""
+	ip := ""
 	for _, h := range []string{"X-Forwarded-For", "X-Real-Ip"} {
 		addresses := strings.Split(r.Header.Get(h), ",")
 		// march from right to left until we get a public address

@@ -3,6 +3,7 @@ package dbmeta
 import (
 	"database/sql"
 	"fmt"
+	"strings"
 
 	"github.com/jimsmart/schema"
 )
@@ -47,6 +48,7 @@ func LoadPostgresMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTab
 			nullable = colInfo.IsNullable == "YES"
 			isAutoIncrement = colInfo.IsIdentity == "YES"
 			isPrimaryKey = colInfo.PrimaryKey
+
 			if colInfo.ColumnDefault != nil {
 				defaultVal = cleanupDefault(fmt.Sprintf("%v", colInfo.ColumnDefault))
 			}
@@ -82,6 +84,20 @@ func LoadPostgresMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTab
 
 	m.ddl = BuildDefaultTableDDL(tableName, m.columns)
 	m = updateDefaultPrimaryKey(m)
+
+	for _, v := range m.columns {
+		if !v.isAutoIncrement && v.isPrimaryKey {
+			val := fmt.Sprintf("%v", v.defaultVal)
+			if strings.Index(val, "()") > -1 {
+				v.isAutoIncrement = true
+			}
+		}
+	}
+	for _, v := range m.columns {
+		if strings.HasPrefix(v.DatabaseTypeName(), "_") {
+			v.isArray = true
+		}
+	}
 	return m, nil
 }
 
