@@ -68,15 +68,16 @@ func LoadPostgresMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTab
 		colDDL := v.DatabaseTypeName()
 
 		colMeta := &columnMeta{
-			index:           i,
-			ct:              v,
-			nullable:        nullable,
-			isPrimaryKey:    isPrimaryKey,
-			isAutoIncrement: isAutoIncrement,
-			colDDL:          colDDL,
-			columnLen:       maxLen,
-			columnType:      definedType,
-			defaultVal:      defaultVal,
+			index:            i,
+			name:             v.Name(),
+			databaseTypeName: colDDL,
+			nullable:         nullable,
+			isPrimaryKey:     isPrimaryKey,
+			isAutoIncrement:  isAutoIncrement,
+			colDDL:           colDDL,
+			columnLen:        maxLen,
+			columnType:       definedType,
+			defaultVal:       defaultVal,
 		}
 
 		m.columns[i] = colMeta

@@ -70,15 +70,16 @@ func LoadSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTable
 		// fmt.Printf("%s: notNull: %v isPrimaryKey: %v isAutoIncrement: %v\n",colDDL, notNull, isPrimaryKey, isAutoIncrement)
 
 		colMeta := &columnMeta{
-			index:           i,
-			ct:              v,
-			nullable:        !notNull,
-			isPrimaryKey:    isPrimaryKey,
-			isAutoIncrement: isAutoIncrement,
-			colDDL:          colDDL,
-			defaultVal:      defaultVal,
-			columnType:      columnType,
-			columnLen:       columnLen,
+			index:            i,
+			name:             v.Name(),
+			databaseTypeName: columnType,
+			nullable:         !notNull,
+			isPrimaryKey:     isPrimaryKey,
+			isAutoIncrement:  isAutoIncrement,
+			colDDL:           colDDL,
+			defaultVal:       defaultVal,
+			columnType:       columnType,
+			columnLen:        columnLen,
 		}
 
 		m.columns[i] = colMeta

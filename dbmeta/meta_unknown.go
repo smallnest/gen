@@ -69,15 +69,16 @@ func LoadUnknownMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTabl
 		}
 
 		colMeta := &columnMeta{
-			index:           i,
-			ct:              v,
-			nullable:        nullable,
-			isPrimaryKey:    isPrimaryKey,
-			isAutoIncrement: isAutoIncrement,
-			colDDL:          colDDL,
-			defaultVal:      defaultVal,
-			columnType:      columnType,
-			columnLen:       columnLen,
+			index:            i,
+			name:             v.Name(),
+			databaseTypeName: columnType,
+			nullable:         nullable,
+			isPrimaryKey:     isPrimaryKey,
+			isAutoIncrement:  isAutoIncrement,
+			colDDL:           colDDL,
+			defaultVal:       defaultVal,
+			columnType:       columnType,
+			columnLen:        columnLen,
 		}
 
 		m.columns[i] = colMeta

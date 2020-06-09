@@ -210,7 +210,7 @@ func loadDefaultDBMappings() error {
 		return err
 	}
 
-	err = dbmeta.ProcessMappings(content, false)
+	err = dbmeta.ProcessMappings("internal", content, false)
 	if err != nil {
 		return err
 	}

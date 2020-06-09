@@ -33,6 +33,7 @@ func_gen_gorm() {
       --port=8080
       --db
       --protobuf
+      --mapping ./template/mapping.json
       --templateDir=./template
       --gorm
       --verbose"
@@ -80,6 +81,7 @@ func_gen_sqlx() {
       --copy-templates
       --host=localhost
       --port=8080
+      --mapping ./template/mapping.json
       --templateDir=./template
       --verbose"
 

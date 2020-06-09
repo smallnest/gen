@@ -37,7 +37,7 @@ func LoadMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 	m.columns = make([]*columnMeta, len(cols))
 
 	for i, v := range cols {
-
+		notes := ""
 		nullable, ok := v.Nullable()
 		if !ok {
 			nullable = false
@@ -45,10 +45,16 @@ func LoadMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 
 		colDDL := colsDDL[v.Name()]
 		isAutoIncrement := strings.Index(colDDL, "AUTO_INCREMENT") > -1
+		isUnsigned := strings.Index(colDDL, " unsigned ") > -1 || strings.Index(colDDL, " UNSIGNED ") > -1
 
 		isPrimaryKey := v.Name() == primaryKey
 		defaultVal := ""
 		columnType, columnLen := ParseSQLType(v.DatabaseTypeName())
+
+		if isUnsigned {
+			notes = notes + " column is set for unsigned"
+			columnType = "u" + columnType
+		}
 
 		if infoSchema != nil {
 			infoSchemaColInfo, ok := infoSchema[v.Name()]
@@ -61,15 +67,17 @@ func LoadMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 		}
 
 		colMeta := &columnMeta{
-			index:           i,
-			ct:              v,
-			nullable:        nullable,
-			isPrimaryKey:    isPrimaryKey,
-			isAutoIncrement: isAutoIncrement,
-			colDDL:          colDDL,
-			defaultVal:      defaultVal,
-			columnType:      columnType,
-			columnLen:       columnLen,
+			index:            i,
+			name:             v.Name(),
+			databaseTypeName: columnType,
+			nullable:         nullable,
+			isPrimaryKey:     isPrimaryKey,
+			isAutoIncrement:  isAutoIncrement,
+			colDDL:           colDDL,
+			defaultVal:       defaultVal,
+			columnType:       columnType,
+			columnLen:        columnLen,
+			notes:            strings.Trim(notes, " "),
 		}
 
 		dbType := strings.ToLower(colMeta.DatabaseTypeName())

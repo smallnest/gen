@@ -211,7 +211,7 @@ func main() {
 
 	tableInfos = dbmeta.LoadTableInfo(db, dbTables, conf)
 
-	if len(tableInfos)== 0{
+	if len(tableInfos) == 0 {
 		fmt.Printf("No tables loaded\n")
 		os.Exit(1)
 	}
@@ -322,7 +322,7 @@ func loadDefaultDBMappings(conf *dbmeta.Config) error {
 		return err
 	}
 
-	err = dbmeta.ProcessMappings(content, conf.Verbose)
+	err = dbmeta.ProcessMappings("internal", content, conf.Verbose)
 	if err != nil {
 		return err
 	}
@@ -647,7 +647,7 @@ func CompileProtoC(protoBufDir, protoBufOutDir, protoBufFile string) (string, er
 		fmt.Sprintf("--gogo_out=plugins=grpc:%s", protoBufOutDir),
 		fmt.Sprintf("%s", protoBufFile)}
 
-	cmd := exec.Command("protoc",args...)
+	cmd := exec.Command("protoc", args...)
 
 	cmdLineArgs := strings.Join(args, " ")
 	fmt.Printf("protoc %s\n", cmdLineArgs)

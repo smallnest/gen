@@ -82,17 +82,19 @@ func (ci *columnMeta) IsAutoIncrement() bool {
 }
 
 type columnMeta struct {
-	index           int
-	ct              *sql.ColumnType
-	nullable        bool
-	isPrimaryKey    bool
-	isAutoIncrement bool
-	isArray         bool
-	colDDL          string
-	columnType      string
-	columnLen       int64
-	defaultVal      string
-	notes           string
+	index int
+	// ct              *sql.ColumnType
+	nullable         bool
+	isPrimaryKey     bool
+	isAutoIncrement  bool
+	isArray          bool
+	colDDL           string
+	columnType       string
+	columnLen        int64
+	defaultVal       string
+	notes            string
+	databaseTypeName string
+	name             string
 }
 
 // ColumnType column type
@@ -117,7 +119,7 @@ func (ci *columnMeta) DefaultValue() string {
 
 // Name name of column
 func (ci *columnMeta) Name() string {
-	return ci.ct.Name()
+	return ci.name
 }
 
 // Index index of column in db
@@ -128,7 +130,7 @@ func (ci *columnMeta) Index() int {
 // String friendly string for columnMeta
 func (ci *columnMeta) String() string {
 	return fmt.Sprintf("[%2d] %-45s  %-20s null: %-6t primary: %-6t isArray: %-6t auto: %-6t col: %-15s len: %-7d default: [%s]",
-		ci.index, ci.ct.Name(), ci.DatabaseTypePretty(),
+		ci.index, ci.name, ci.DatabaseTypePretty(),
 		ci.nullable, ci.isPrimaryKey, ci.isArray,
 		ci.isAutoIncrement, ci.columnType, ci.columnLen, ci.defaultVal)
 }
@@ -150,7 +152,7 @@ func (ci *columnMeta) ColDDL() string {
 // are not included.
 // Common type include "VARCHAR", "TEXT", "NVARCHAR", "DECIMAL", "BOOL", "INT", "BIGINT".
 func (ci *columnMeta) DatabaseTypeName() string {
-	return ci.ct.DatabaseTypeName()
+	return ci.databaseTypeName
 }
 
 // DatabaseTypePretty string of the db type
@@ -317,7 +319,6 @@ func checkDupeFieldName(fields []*FieldInfo, fieldName string) string {
 	return fieldName
 }
 
-
 func checkDupeJSONFieldName(fields []*FieldInfo, fieldName string) string {
 	var match bool
 	for _, field := range fields {
@@ -349,7 +350,6 @@ func checkDupeProtoBufFieldName(fields []*FieldInfo, fieldName string) string {
 
 	return fieldName
 }
-
 
 // Generate fields string
 func (c *Config) GenerateFieldsTypes(dbMeta DbTableMeta) ([]*FieldInfo, error) {
@@ -418,6 +418,9 @@ func (c *Config) GenerateFieldsTypes(dbMeta DbTableMeta) ([]*FieldInfo, error) {
 		sqlMapping, _ := SQLTypeToMapping(strings.ToLower(col.DatabaseTypeName()))
 		goType, _ := SQLTypeToGoType(strings.ToLower(col.DatabaseTypeName()), false, false)
 		protobufType, _ := SQLTypeToProtobufType(col.DatabaseTypeName())
+
+		fmt.Printf("protobufType: %v  DatabaseTypeName: %v\n", protobufType, col.DatabaseTypeName())
+
 		fakeData := createFakeData(goType, fieldName)
 
 		//if c.Verbose {
@@ -452,7 +455,6 @@ func (c *Config) GenerateFieldsTypes(dbMeta DbTableMeta) ([]*FieldInfo, error) {
 
 		fi.JSONFieldName = checkDupeJSONFieldName(fields, fi.JSONFieldName)
 		fi.ProtobufFieldName = checkDupeProtoBufFieldName(fields, fi.ProtobufFieldName)
-
 
 		fields = append(fields, fi)
 	}
@@ -562,7 +564,7 @@ func BuildDefaultTableDDL(tableName string, cols []*columnMeta) string {
 }
 
 // ProcessMappings process the json for mappings to load sql mappings
-func ProcessMappings(mappingJsonstring []byte, verbose bool) error {
+func ProcessMappings(source string, mappingJsonstring []byte, verbose bool) error {
 	var mappings = &SQLMappings{}
 	err := json.Unmarshal(mappingJsonstring, mappings)
 	if err != nil {
@@ -571,7 +573,7 @@ func ProcessMappings(mappingJsonstring []byte, verbose bool) error {
 	}
 
 	if verbose {
-		fmt.Printf("Loaded %d mappings\n", len(mappings.SQLMappings))
+		fmt.Printf("Loaded %d mappings from: %s\n", len(mappings.SQLMappings), source)
 	}
 	for i, value := range mappings.SQLMappings {
 		if verbose {
@@ -599,7 +601,7 @@ func LoadMappings(mappingFileName string, verbose bool) error {
 		fmt.Printf("Error loading mapping file %s error: %v\n", mappingFileName, err)
 		return err
 	}
-	return ProcessMappings(byteValue, verbose)
+	return ProcessMappings(mappingFileName, byteValue, verbose)
 }
 
 // SQLTypeToGoType map a sql type to a go type
