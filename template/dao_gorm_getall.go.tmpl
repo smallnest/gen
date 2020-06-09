@@ -1,32 +1,32 @@
 {{define "getall"}}
-// GetAll{{pluralize .StructName}} is a function to get a slice of record(s) from {{.TableName}} table in the {{.DatabaseName}} database
+// GetAll{{.StructName}} is a function to get a slice of record(s) from {{.TableName}} table in the {{.DatabaseName}} database
 // params - page     - page requested (defaults to 0)
 // params - pagesize - number of records in a page  (defaults to 20)
 // params - order    - db sort order column
 // error - ErrNotFound, db Find error
-func GetAll{{pluralize .StructName}}(ctx context.Context, page, pagesize int64, order string) ({{pluralize .StructName | toLower}} []*{{.modelPackageName}}.{{.StructName}}, totalRows int, err error) {
+func GetAll{{.StructName}}(ctx context.Context, page, pagesize int64, order string) ({{.StructName | toLower}} []*{{.modelPackageName}}.{{.StructName}}, totalRows int, err error) {
 
-	{{pluralize .StructName | toLower}} = []*{{.modelPackageName}}.{{.StructName}}{}
+	{{.StructName | toLower}} = []*{{.modelPackageName}}.{{.StructName}}{}
 
-	{{pluralize .StructName | toLower}}Orm := DB.Model(&{{.modelPackageName}}.{{.StructName}}{})
-    {{pluralize .StructName | toLower}}Orm.Count(&totalRows)
+	{{.StructName | toLower}}Orm := DB.Model(&{{.modelPackageName}}.{{.StructName}}{})
+    {{.StructName | toLower}}Orm.Count(&totalRows)
 
 	if page > 0 {
 		offset := (page - 1) * pagesize
-		{{pluralize .StructName | toLower}}Orm = {{pluralize .StructName | toLower}}Orm.Offset(offset).Limit(pagesize)
+		{{.StructName | toLower}}Orm = {{.StructName | toLower}}Orm.Offset(offset).Limit(pagesize)
 	} else {
-		{{pluralize .StructName | toLower}}Orm = {{pluralize .StructName | toLower}}Orm.Limit(pagesize)
+		{{.StructName | toLower}}Orm = {{.StructName | toLower}}Orm.Limit(pagesize)
     }
 
 	if order != "" {
-		{{pluralize .StructName | toLower}}Orm = {{pluralize .StructName | toLower}}Orm.Order(order)
+		{{.StructName | toLower}}Orm = {{.StructName | toLower}}Orm.Order(order)
 	}
 
-	if err = {{pluralize .StructName | toLower}}Orm.Find(&{{pluralize .StructName | toLower}}).Error; err != nil {
+	if err = {{.StructName | toLower}}Orm.Find(&{{.StructName | toLower}}).Error; err != nil {
 	    err = ErrNotFound
 		return nil, -1, err
 	}
 
-	return {{pluralize .StructName | toLower}}, totalRows, nil
+	return {{.StructName | toLower}}, totalRows, nil
 }
 {{end}}

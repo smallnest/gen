@@ -11,6 +11,7 @@ import (
 	"strings"
 	"text/template"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/jinzhu/inflection"
 	"github.com/serenize/snaker"
 )
@@ -18,6 +19,7 @@ import (
 type TemplateLoader func(filename string) (content string, err error)
 
 func (c *Config) GetTemplate(name, t string) (*template.Template, error) {
+	var s State
 	var funcMap = template.FuncMap{
 		"FmtFieldName":      FmtFieldName,
 		"singular":          inflection.Singular,
@@ -26,12 +28,17 @@ func (c *Config) GetTemplate(name, t string) (*template.Template, error) {
 		"toLower":           strings.ToLower,
 		"toUpper":           strings.ToUpper,
 		"toLowerCamelCase":  camelToLowerCamel,
+		"FormatSource":      FormatSource,
 		"toSnakeCase":       snaker.CamelToSnake,
 		"markdownCodeBlock": markdownCodeBlock,
 		"wrapBash":          wrapBash,
+		"escape":            escape,
 		"GenerateTableFile": c.GenerateTableFile,
 		"GenerateFile":      c.GenerateFile,
 		"ToJSON":            ToJSON,
+		"spew":              Spew,
+		"set":               s.Set,
+		"inc":               s.Inc,
 		"StringsJoin":       strings.Join,
 	}
 
@@ -71,8 +78,7 @@ func (c *Config) GetTemplate(name, t string) (*template.Template, error) {
 				return nil, err
 			}
 
-			fmt.Printf("loading sub template %v\n", filename)
-
+			//fmt.Printf("loading sub template %v\n", filename)
 			tmpl.Parse(subTemplate)
 		}
 	}
@@ -90,11 +96,38 @@ func ToJSON(val interface{}, indent int) string {
 	return response
 }
 
+// Spew func to return spewed string representation of struct
+func Spew(val interface{}) string {
+	return spew.Sdump(val)
+}
+
+type State struct {
+	n int
+}
+
+func (s *State) Set(n int) int {
+	s.n = n
+	return n
+}
+
+func (s *State) Inc() int {
+	s.n++
+	return s.n
+}
+
 func camelToLowerCamel(s string) string {
 	ss := strings.Split(s, "")
 	ss[0] = strings.ToLower(ss[0])
 
 	return strings.Join(ss, "")
+}
+
+func FormatSource(s string) string {
+	formattedSource, err := format.Source([]byte(s))
+	if err != nil {
+		return fmt.Sprintf("Error in formatting source: %s\n", err.Error())
+	}
+	return string(formattedSource)
 }
 
 func markdownCodeBlock(contentType, content string) string {
@@ -106,6 +139,11 @@ func wrapBash(content string) string {
 	// fmt.Printf("wrapBash - %s\n",  content)
 	parts := strings.Split(content, " ")
 	return strings.Join(parts, " \\\n    ")
+}
+func escape(content string) string {
+	content = strings.Replace(content, "\"", "\\\"", -1)
+	content = strings.Replace(content, "'", "\\'", -1)
+	return content
 }
 
 // GenerateTableFile generate file from template using specific table used within templates
@@ -310,14 +348,18 @@ type Config struct {
 	AddJSONAnnotation     bool
 	AddGormAnnotation     bool
 	AddProtobufAnnotation bool
+	AddXMLAnnotation      bool
 	AddDBAnnotation       bool
 	UseGureguTypes        bool
 	JsonNameFormat        string
+	XMLNameFormat         string
 	ProtobufNameFormat    string
 	DaoPackageName        string
 	DaoFQPN               string
 	ApiPackageName        string
 	ApiFQPN               string
+	GrpcPackageName       string
+	GrpcFQPN              string
 	Swagger               *SwaggerInfoDetails
 	ServerPort            int
 	ServerHost            string

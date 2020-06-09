@@ -9,8 +9,8 @@
 // @Success 204 {object} {{.modelPackageName}}.{{.StructName}}
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
 // @Failure 500 {object} {{.apiPackageName}}.HTTPError
-// @Router /{{pluralize .StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/{ {{- $field.PrimaryKeyArgName -}} }{{end}}{{end}} [delete]
-// http DELETE "http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize .StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/{{ $field.FakeData }}{{end}}{{end}}"
+// @Router /{{.StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/{ {{- $field.PrimaryKeyArgName -}} }{{end}}{{end}} [delete]
+// http DELETE "http://{{$.serverHost}}:{{$.serverPort}}/{{.StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/{{ $field.FakeData }}{{end}}{{end}}"
 func Delete{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 {{range $field := .TableInfo.CodeFields}}
 {{ if $field.PrimaryKeyArgName }}

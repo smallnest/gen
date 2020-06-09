@@ -11,7 +11,10 @@ require (
 	github.com/gin-gonic/gin v1.6.2 // indirect
 	github.com/gobuffalo/packd v1.0.0
 	github.com/gobuffalo/packr/v2 v2.8.0
+	github.com/gogo/protobuf v1.3.1 // indirect
+	github.com/golang/protobuf v1.4.2 // indirect
 	github.com/gordonklaus/ineffassign v0.0.0-20200309095847-7953dde2c7bf // indirect
+	github.com/grpc-ecosystem/grpc-gateway v1.14.6 // indirect
 	github.com/guregu/null v3.4.0+incompatible // indirect
 	github.com/iancoleman/strcase v0.0.0-20191112232945-16388991a334
 	github.com/jimsmart/schema v0.0.4
@@ -21,10 +24,13 @@ require (
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/lib/pq v1.3.0
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
+	github.com/mwitkow/go-proto-validators v0.3.0 // indirect
 	github.com/ompluscator/dynamic-struct v1.2.0
 	github.com/serenize/snaker v0.0.0-20171204205717-a683aaf2d516
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
 	golang.org/x/tools v0.0.0-20200512131952-2bc93b1c0c88 // indirect
 	google.golang.org/appengine v1.6.5 // indirect
+	google.golang.org/genproto v0.0.0-20200608115520-7c474a2e3482 // indirect
+	gopkg.in/yaml.v2 v2.3.0 // indirect
 	honnef.co/go/tools v0.0.1-2020.1.3 // indirect
 )

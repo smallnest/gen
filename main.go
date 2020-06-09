@@ -8,6 +8,7 @@ import (
 	"io"
 	"io/ioutil"
 	"os"
+	"os/exec"
 	"path/filepath"
 	"strings"
 
@@ -35,15 +36,20 @@ var (
 	modelPackageName = goopt.String([]string{"--model"}, "model", "name to set for model package")
 	daoPackageName   = goopt.String([]string{"--dao"}, "dao", "name to set for dao package")
 	apiPackageName   = goopt.String([]string{"--api"}, "api", "name to set for api package")
+	grpcPackageName  = goopt.String([]string{"--grpc"}, "grpc", "name to set for grpc package")
 	outDir           = goopt.String([]string{"--out"}, ".", "output dir")
 	module           = goopt.String([]string{"--module"}, "example.com/example", "module path")
 	overwrite        = goopt.Flag([]string{"--overwrite"}, []string{"--no-overwrite"}, "Overwrite existing files (default)", "disable overwriting files")
 	contextFileName  = goopt.String([]string{"--context"}, "", "context file (json) to populate context with")
 	mappingFileName  = goopt.String([]string{"--mapping"}, "", "mapping file (json) to map sql types to golang/protobuf etc")
-	exec             = goopt.String([]string{"--exec"}, "", "execute script for custom code generation")
+	execCustomScript = goopt.String([]string{"--exec"}, "", "execute script for custom code generation")
 
-	AddJSONAnnotation     = goopt.Flag([]string{"--json"}, []string{"--no-json"}, "Add json annotations (default)", "Disable json annotations")
-	jsonNameFormat        = goopt.String([]string{"--json-fmt"}, "snake", "json name format [snake | camel | lower_camel | none]")
+	AddJSONAnnotation = goopt.Flag([]string{"--json"}, []string{"--no-json"}, "Add json annotations (default)", "Disable json annotations")
+	jsonNameFormat    = goopt.String([]string{"--json-fmt"}, "snake", "json name format [snake | camel | lower_camel | none]")
+
+	AddXMLAnnotation = goopt.Flag([]string{"--xml"}, []string{"--no-xml"}, "Add xml annotations (default)", "Disable xml annotations")
+	xmlNameFormat    = goopt.String([]string{"--xml-fmt"}, "snake", "xml name format [snake | camel | lower_camel | none]")
+
 	AddGormAnnotation     = goopt.Flag([]string{"--gorm"}, []string{}, "Add gorm annotations (tags)", "")
 	AddProtobufAnnotation = goopt.Flag([]string{"--protobuf"}, []string{}, "Add protobuf annotations (tags)", "")
 	protoNameFormat       = goopt.String([]string{"--proto-fmt"}, "snake", "proto name format [snake | camel | lower_camel | none]")
@@ -155,6 +161,8 @@ func main() {
 
 	db, err := initializeDB()
 	if err != nil {
+		fmt.Printf("Error in initializing db %v\n", err)
+		os.Exit(1)
 		return
 	}
 
@@ -168,6 +176,7 @@ func main() {
 		dbTables, err = schema.TableNames(db)
 		if err != nil {
 			fmt.Printf("Error in fetching tables information from %s information schema from %s\n", *sqlType, *sqlConnStr)
+			os.Exit(1)
 			return
 		}
 	}
@@ -183,6 +192,7 @@ func main() {
 	err = loadDefaultDBMappings(conf)
 	if err != nil {
 		fmt.Printf("Error processing default mapping file error: %v\n", err)
+		os.Exit(1)
 		return
 	}
 
@@ -190,6 +200,7 @@ func main() {
 		err := dbmeta.LoadMappings(*mappingFileName, *verbose)
 		if err != nil {
 			fmt.Printf("Error loading mappings file %s error: %v\n", *mappingFileName, err)
+			os.Exit(1)
 			return
 		}
 	}
@@ -199,14 +210,31 @@ func main() {
 	}
 
 	tableInfos = dbmeta.LoadTableInfo(db, dbTables, conf)
+
+	if len(tableInfos)== 0{
+		fmt.Printf("No tables loaded\n")
+		os.Exit(1)
+	}
+
 	conf.ContextMap["tableInfos"] = tableInfos
 
-	if *exec != "" {
-		executeCustomScript(conf)
+	if *execCustomScript != "" {
+		err = executeCustomScript(conf)
+		if err != nil {
+			fmt.Printf("Error in executing custom script %v\n", err)
+			os.Exit(1)
+		}
+		os.Exit(0)
 		return
 	}
 
-	generate(conf)
+	err = generate(conf)
+	if err != nil {
+		fmt.Printf("Error in executing generate %v\n", err)
+		os.Exit(1)
+	}
+
+	os.Exit(0)
 }
 
 func initializeDB() (db *sql.DB, err error) {
@@ -244,11 +272,9 @@ func initialize(conf *dbmeta.Config) {
 
 	conf.SqlType = *sqlType
 	conf.SqlDatabase = *sqlDatabase
-	conf.ModelPackageName = *modelPackageName
-	conf.DaoPackageName = *daoPackageName
-	conf.ApiPackageName = *apiPackageName
 
 	conf.AddJSONAnnotation = *AddJSONAnnotation
+	conf.AddXMLAnnotation = *AddXMLAnnotation
 	conf.AddGormAnnotation = *AddGormAnnotation
 	conf.AddProtobufAnnotation = *AddProtobufAnnotation
 	conf.AddDBAnnotation = *AddDBAnnotation
@@ -265,9 +291,17 @@ func initialize(conf *dbmeta.Config) {
 	conf.Overwrite = *overwrite
 
 	conf.Module = *module
+	conf.ModelPackageName = *modelPackageName
 	conf.ModelFQPN = *module + "/" + *modelPackageName
+
+	conf.DaoPackageName = *daoPackageName
 	conf.DaoFQPN = *module + "/" + *daoPackageName
+
+	conf.ApiPackageName = *apiPackageName
 	conf.ApiFQPN = *module + "/" + *apiPackageName
+
+	conf.GrpcPackageName = *grpcPackageName
+	conf.GrpcFQPN = *module + "/" + *grpcPackageName
 
 	conf.Swagger.Version = *swaggerVersion
 	conf.Swagger.BasePath = *swaggerBasePath
@@ -295,20 +329,26 @@ func loadDefaultDBMappings(conf *dbmeta.Config) error {
 	return nil
 }
 
-func executeCustomScript(conf *dbmeta.Config) {
-	fmt.Printf("Executing script %s\n", *exec)
+func executeCustomScript(conf *dbmeta.Config) error {
+	fmt.Printf("Executing script %s\n", *execCustomScript)
 
-	b, err := ioutil.ReadFile(*exec)
+	b, err := ioutil.ReadFile(*execCustomScript)
 	if err != nil {
-		fmt.Printf("Error Loading exec script: %s, error: %v\n", *exec, err)
-		return
+		fmt.Printf("Error Loading exec script: %s, error: %v\n", *execCustomScript, err)
+		return err
 	}
 	content := string(b)
 	data := map[string]interface{}{}
-	execTemplate(conf, "exec", content, data)
+	err = execTemplate(conf, "exec", content, data)
+	if err != nil {
+		fmt.Printf("Error Loading exec script: %s, error: %v\n", *execCustomScript, err)
+		return err
+	}
+
+	return nil
 }
 
-func execTemplate(conf *dbmeta.Config, name, templateStr string, data map[string]interface{}) {
+func execTemplate(conf *dbmeta.Config, name, templateStr string, data map[string]interface{}) error {
 
 	data["DatabaseName"] = *sqlDatabase
 	data["module"] = *module
@@ -330,22 +370,24 @@ func execTemplate(conf *dbmeta.Config, name, templateStr string, data map[string
 	rt, err := conf.GetTemplate(name, templateStr)
 	if err != nil {
 		fmt.Printf("Error in loading %s template, error: %v\n", name, err)
-		return
+		return err
 	}
 	var buf bytes.Buffer
 	err = rt.Execute(&buf, data)
 	if err != nil {
 		fmt.Printf("Error in rendering %s: %s\n", name, err.Error())
-		return
+		return err
 	}
 
 	fmt.Printf("%s\n", buf.String())
+	return nil
 }
 
-func generate(conf *dbmeta.Config) {
+func generate(conf *dbmeta.Config) error {
 	var err error
 
 	*jsonNameFormat = strings.ToLower(*jsonNameFormat)
+	*xmlNameFormat = strings.ToLower(*xmlNameFormat)
 	modelDir := filepath.Join(*outDir, *modelPackageName)
 	apiDir := filepath.Join(*outDir, *apiPackageName)
 	daoDir := filepath.Join(*outDir, *daoPackageName)
@@ -353,20 +395,20 @@ func generate(conf *dbmeta.Config) {
 	err = os.MkdirAll(*outDir, 0777)
 	if err != nil && !*overwrite {
 		fmt.Printf("unable to create outDir: %s error: %v\n", *outDir, err)
-		return
+		return err
 	}
 
 	err = os.MkdirAll(modelDir, 0777)
 	if err != nil && !*overwrite {
 		fmt.Printf("unable to create modelDir: %s error: %v\n", modelDir, err)
-		return
+		return err
 	}
 
 	if *daoGenerate {
 		err = os.MkdirAll(daoDir, 0777)
 		if err != nil && !*overwrite {
 			fmt.Printf("unable to create daoDir: %s error: %v\n", daoDir, err)
-			return
+			return err
 		}
 	}
 
@@ -374,7 +416,7 @@ func generate(conf *dbmeta.Config) {
 		err = os.MkdirAll(apiDir, 0777)
 		if err != nil && !*overwrite {
 			fmt.Printf("unable to create apiDir: %s error: %v\n", apiDir, err)
-			return
+			return err
 		}
 	}
 	var ModelTmpl string
@@ -388,46 +430,47 @@ func generate(conf *dbmeta.Config) {
 
 	if ControllerTmpl, err = LoadTemplate("api.go.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
-		return
+		return err
 	}
 
 	if *AddGormAnnotation {
 		DaoFileName = "dao_gorm.go.tmpl"
 		if DaoTmpl, err = LoadTemplate(DaoFileName); err != nil {
 			fmt.Printf("Error loading template %v\n", err)
-			return
+			return err
 		}
 		if DaoInitTmpl, err = LoadTemplate("dao_gorm_init.go.tmpl"); err != nil {
 			fmt.Printf("Error loading template %v\n", err)
-			return
+			return err
 		}
 	} else {
 		DaoFileName = "dao_sqlx.go.tmpl"
 		if DaoTmpl, err = LoadTemplate(DaoFileName); err != nil {
 			fmt.Printf("Error loading template %v\n", err)
-			return
+			return err
 		}
 		if DaoInitTmpl, err = LoadTemplate("dao_sqlx_init.go.tmpl"); err != nil {
 			fmt.Printf("Error loading template %v\n", err)
-			return
+			return err
 		}
 	}
 
 	if GoModuleTmpl, err = LoadTemplate("gomod.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
-		return
+		return err
 	}
 
 	if ModelTmpl, err = LoadTemplate("model.go.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
-		return
+		return err
 	}
 	if ModelBaseTmpl, err = LoadTemplate("model_base.go.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
-		return
+		return err
 	}
 
 	*jsonNameFormat = strings.ToLower(*jsonNameFormat)
+	*xmlNameFormat = strings.ToLower(*xmlNameFormat)
 
 	// generate go files for each table
 	for tableName, tableInfo := range tableInfos {
@@ -461,7 +504,7 @@ func generate(conf *dbmeta.Config) {
 
 	if *restAPIGenerate {
 		if err = generateRestBaseFiles(conf, apiDir); err != nil {
-			return
+			return err
 		}
 	}
 
@@ -477,13 +520,13 @@ func generate(conf *dbmeta.Config) {
 
 	if *makefileGenerate {
 		if err = generateMakefile(conf); err != nil {
-			return
+			return err
 		}
 	}
 
 	if *AddProtobufAnnotation {
 		if err = generateProtobufDefinitionFile(conf, data); err != nil {
-			return
+			return err
 		}
 	}
 
@@ -494,21 +537,23 @@ func generate(conf *dbmeta.Config) {
 
 	if *projectGenerate {
 		if err = generateProjectFiles(conf, data); err != nil {
-			return
+			return err
 		}
 	}
 
 	if *serverGenerate {
 		if err = generateServerCode(conf); err != nil {
-			return
+			return err
 		}
 	}
 
 	if *copyTemplates {
 		if err = copyTemplatesToTarget(); err != nil {
-			return
+			return err
 		}
 	}
+
+	return nil
 }
 
 func generateRestBaseFiles(conf *dbmeta.Config, apiDir string) (err error) {
@@ -548,6 +593,15 @@ func generateMakefile(conf *dbmeta.Config) (err error) {
 }
 
 func generateProtobufDefinitionFile(conf *dbmeta.Config, data map[string]interface{}) (err error) {
+
+	moduleDir := filepath.Join(*outDir, conf.ModelPackageName)
+	serverDir := filepath.Join(*outDir, conf.GrpcPackageName)
+	err = os.MkdirAll(serverDir, 0777)
+	if err != nil {
+		fmt.Printf("unable to create serverDir: %s error: %v\n", serverDir, err)
+		return
+	}
+
 	var ProtobufTmpl string
 
 	if ProtobufTmpl, err = LoadTemplate("protobuf.tmpl"); err != nil {
@@ -557,7 +611,55 @@ func generateProtobufDefinitionFile(conf *dbmeta.Config, data map[string]interfa
 
 	protofile := fmt.Sprintf("%s.proto", *sqlDatabase)
 	conf.WriteTemplate("protobuf", ProtobufTmpl, data, filepath.Join(*outDir, protofile), false)
+
+	compileOutput, err := CompileProtoC(*outDir, moduleDir, filepath.Join(*outDir, protofile))
+	if err != nil {
+		fmt.Printf("Error compiling proto file %v\n", err)
+		return err
+	}
+	fmt.Printf("----------------------------\n")
+	fmt.Printf("protoc: %s\n", compileOutput)
+	fmt.Printf("----------------------------\n")
+	// protoc -I./  --go_out=plugins=grpc:./   ./dvdrental.proto
+
+	if ProtobufTmpl, err = LoadTemplate("protomain.go.tmpl"); err != nil {
+		fmt.Printf("Error loading template %v\n", err)
+		return err
+	}
+
+	conf.WriteTemplate("protobuf", ProtobufTmpl, data, filepath.Join(serverDir, "main.go"), true)
+
+	if ProtobufTmpl, err = LoadTemplate("protoserver.go.tmpl"); err != nil {
+		fmt.Printf("Error loading template %v\n", err)
+		return err
+	}
+
+	conf.WriteTemplate("protobuf", ProtobufTmpl, data, filepath.Join(serverDir, "protoserver.go"), true)
+
 	return nil
+}
+func CompileProtoC(protoBufDir, protoBufOutDir, protoBufFile string) (string, error) {
+
+	fmt.Printf("----------------------------\n")
+
+	args := []string{fmt.Sprintf("-I%s", "/home/alexj/go/src"),
+		fmt.Sprintf("-I%s", protoBufDir),
+		fmt.Sprintf("--gogo_out=plugins=grpc:%s", protoBufOutDir),
+		fmt.Sprintf("%s", protoBufFile)}
+
+	cmd := exec.Command("protoc",args...)
+
+	cmdLineArgs := strings.Join(args, " ")
+	fmt.Printf("protoc %s\n", cmdLineArgs)
+
+	stdoutStderr, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Printf("error calling protoc: %T %v\n", err, err)
+		fmt.Printf("%s\n", stdoutStderr)
+		return "", err
+	}
+
+	return string(stdoutStderr), nil
 }
 
 func generateProjectFiles(conf *dbmeta.Config, data map[string]interface{}) (err error) {
@@ -641,6 +743,10 @@ func regenCmdLine() string {
 	if *AddJSONAnnotation {
 		buf.WriteString(fmt.Sprintf(" --json"))
 		buf.WriteString(fmt.Sprintf(" --json-fmt=%s", *jsonNameFormat))
+	}
+	if *AddXMLAnnotation {
+		buf.WriteString(fmt.Sprintf(" --xml"))
+		buf.WriteString(fmt.Sprintf(" --xml-fmt=%s", *xmlNameFormat))
 	}
 	if *AddGormAnnotation {
 		buf.WriteString(fmt.Sprintf(" --gorm"))
@@ -776,7 +882,7 @@ func LoadTemplate(filename string) (content string, err error) {
 		var b []byte
 		b, err = ioutil.ReadFile(fpath)
 		if err == nil {
-			fmt.Printf("Loaded template from file: %s\n", fpath)
+			// fmt.Printf("Loaded template from file: %s\n", fpath)
 			content = string(b)
 			return content, nil
 		}

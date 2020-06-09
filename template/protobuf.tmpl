@@ -1,20 +1,109 @@
 syntax = "proto3";
 
 package {{.DatabaseName}};
+import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
+option (gogoproto.populate_all) = true;
+option go_package = "{{.Config.ModelPackageName}}";
+option (gogoproto.equal_all) = true;
+option (gogoproto.gostring_all) = true;
+
+message Result {
+    enum result_type {
+        Error = 0;
+        Success = 1;
+    }
+
+    result_type code = 1 [(gogoproto.customname) = 'Code', (gogoproto.moretags) = 'json:"code" xml:"code" db:"code"'];
+    string message = 2 [(gogoproto.customname) = 'Message', (gogoproto.moretags) = 'json:"message" xml:"message" db:"message"'];
+}
+
 
 message packet {
-    enum packet_type_t { {{ range $tableName, $tableInfo := .tableInfos }}
-        Pkt{{ $tableInfo.StructName }} = {{$tableInfo.Index}};{{- end}}
+    enum packet_type_t {
+        Error = 0;
+         {{ range $tableName, $tableInfo := .tableInfos }}
+        //Pkt{{ $tableInfo.StructName }} = {{$tableInfo.Index}};{{- end}}
     }
 
     packet_type_t id = 2;
     bytes data = 3;
 }
-
+service Backend {
+{{ range $tableName, $tableInfo := .tableInfos }}
+    rpc GetAll{{ $tableInfo.StructName }}(GetAll{{ $tableInfo.StructName }}Request) returns (GetAll{{ $tableInfo.StructName }}Response);
+    rpc Get{{ $tableInfo.StructName }}(Get{{ $tableInfo.StructName }}Request) returns (Get{{ $tableInfo.StructName }}Response);
+    rpc Add{{ $tableInfo.StructName }}(Add{{ $tableInfo.StructName }}Request) returns (Add{{ $tableInfo.StructName }}Response);
+    rpc Update{{ $tableInfo.StructName }}(Update{{ $tableInfo.StructName }}Request) returns (Update{{ $tableInfo.StructName }}Response);
+    rpc Delete{{ $tableInfo.StructName }}(Delete{{ $tableInfo.StructName }}Request) returns (Delete{{ $tableInfo.StructName }}Response);
+{{- end}}
+}
 
 {{ range $tableName, $tableInfo := .tableInfos }}
-message {{ $tableInfo.StructName }} { {{ range $i, $field := $tableInfo.CodeFields }}
-    {{  $field.ProtobufType}} {{  $field.ProtobufFieldName}} = {{  $field.ProtobufPos}};{{- end}}
+// table: {{$tableName}}
+message {{ $tableInfo.StructName }} {
+    option (gogoproto.goproto_unrecognized) = false;
+    option (gogoproto.goproto_unkeyed) = false;
+    option (gogoproto.goproto_sizecache) = false;
+
+{{ range $i, $field := $tableInfo.CodeFields }}
+    // Column: {{$field.ColumnMeta.String}}
+    {{ $field.ProtobufType}} {{ $field.ProtobufFieldName}} = {{  $field.ProtobufPos}} [(gogoproto.customname) = '{{ $field.GoFieldName}}', (gogoproto.moretags) = '{{ escape $field.GoGoMoreTags}}'];{{- end}}
+}
+
+
+message GetAll{{ $tableInfo.StructName }}Request {
+    int64 page = 1;
+    int64 page_size = 2;
+    string order = 3;
+}
+
+message GetAll{{ $tableInfo.StructName }}Response {
+    Result result = 1;
+    repeated {{$tableInfo.StructName}} data = 2;
+    int64 page = 3;
+    int64 page_size = 4;
+    int64 total_records = 5;
+}
+
+
+message Get{{ $tableInfo.StructName }}Request {
+{{ $fieldPos := set 0 }}{{ range $i, $field := $tableInfo.CodeFields }}{{ if $field.ColumnMeta.IsPrimaryKey }}{{ $fieldPos := inc}}
+    {{ $field.ProtobufType}} {{ $field.ProtobufFieldName}} = {{ $fieldPos}} [(gogoproto.customname) = "{{ $field.GoFieldName}}"];{{- end }}{{- end}}
+}
+
+message Get{{ $tableInfo.StructName }}Response {
+    Result result = 1;
+    {{$tableInfo.StructName}} data = 2;
+}
+message Add{{ $tableInfo.StructName }}Request {
+    {{$tableInfo.StructName}} data = 1;
+}
+
+message Add{{ $tableInfo.StructName }}Response {
+    Result result = 1;
+    {{$tableInfo.StructName}} data = 2;
+    int64 rowsAffected = 3;
+}
+
+message Update{{ $tableInfo.StructName }}Request {
+    {{$tableInfo.StructName}} data = 1;
+}
+
+message Update{{ $tableInfo.StructName }}Response {
+    Result result = 1;
+    {{$tableInfo.StructName}} data = 2;
+    int64 rowsAffected = 3;
+}
+
+message Delete{{ $tableInfo.StructName }}Request {
+{{ $fieldPos := set 0 }}{{ range $i, $field := $tableInfo.CodeFields }}{{ if $field.ColumnMeta.IsPrimaryKey }}{{ $fieldPos := inc}}
+    {{ $field.ProtobufType}} {{ $field.ProtobufFieldName}} = {{ $fieldPos}} [(gogoproto.customname) = "{{ $field.GoFieldName}}"];{{- end }}{{- end}}
+}
+
+message Delete{{ $tableInfo.StructName }}Response {
+    Result result = 1;
+    int64 rows_affected = 2;
 }
 
 {{ end}}
