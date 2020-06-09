@@ -744,6 +744,10 @@ func regenCmdLine() string {
 		buf.WriteString(fmt.Sprintf(" --table=%s", *sqlTable))
 	}
 
+	if *excludeSqlTables != "" {
+		buf.WriteString(fmt.Sprintf(" --exclude=%s", *excludeSqlTables))
+	}
+
 	buf.WriteString(fmt.Sprintf(" --model=%s", *modelPackageName))
 	buf.WriteString(fmt.Sprintf(" --dao=%s", *daoPackageName))
 	buf.WriteString(fmt.Sprintf(" --api=%s", *apiPackageName))
