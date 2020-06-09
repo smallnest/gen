@@ -177,7 +177,6 @@ func main() {
 		dbTables, err = schema.TableNames(db)
 		if err != nil {
 			fmt.Printf("Error in fetching tables information from %s information schema from %s\n", *sqlType, *sqlConnStr)
-			fmt.Printf("Error in fetching tables information from %s information schema from %s\n", *sqlType, *sqlConnStr)
 			os.Exit(1)
 			return
 		}
