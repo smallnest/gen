@@ -432,6 +432,51 @@
       "guregu_type": "interface{}",
       "go_nullable_type": "interface{}",
       "swagger_type": "string"
+    },
+    {
+      "sql_type": "utinyint",
+      "go_type": "uint32",
+      "json_type": "Integer",
+      "protobuf_type": "uint32",
+      "guregu_type": "null.Int",
+      "go_nullable_type": "sql.NullInt64",
+      "swagger_type": "int"
+    },
+    {
+      "sql_type": "usmallint",
+      "go_type": "uint32",
+      "json_type": "Integer",
+      "protobuf_type": "uint32",
+      "guregu_type": "null.Int",
+      "go_nullable_type": "sql.NullInt64",
+      "swagger_type": "int"
+    },
+    {
+      "sql_type": "umediumint",
+      "go_type": "uint32",
+      "json_type": "Integer",
+      "protobuf_type": "uint32",
+      "guregu_type": "null.Int",
+      "go_nullable_type": "sql.NullInt64",
+      "swagger_type": "int"
+    },
+    {
+      "sql_type": "uint",
+      "go_type": "uint32",
+      "json_type": "Integer",
+      "protobuf_type": "uint32",
+      "guregu_type": "null.Int",
+      "go_nullable_type": "sql.NullInt64",
+      "swagger_type": "int"
+    },
+    {
+      "sql_type": "ubigint",
+      "go_type": "uint64",
+      "json_type": "Integer",
+      "protobuf_type": "uint64",
+      "guregu_type": "null.Int",
+      "go_nullable_type": "sql.NullInt64",
+      "swagger_type": "int64"
     }
   ]
 }

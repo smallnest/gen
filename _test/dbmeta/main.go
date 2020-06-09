@@ -53,7 +53,7 @@ func main() {
 		return
 	}
 
-	err = dbmeta.ProcessMappings(content, false)
+	err = dbmeta.ProcessMappings("internal", content, false)
 	if err != nil {
 		fmt.Printf("Error processing default mapping file error: %v\n", err)
 		return
