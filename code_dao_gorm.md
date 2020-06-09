@@ -18,35 +18,35 @@ The code generation, will generate functions for
 ## Retrieve Paged Records
 ```go
 
-// GetAllInvoices is a function to get a slice of record(s) from invoices table in the main database
+// GetAllInvoice is a function to get a slice of record(s) from invoices table in the main database
 // params - page     - page requested (defaults to 0)
 // params - pagesize - number of records in a page  (defaults to 20)
 // params - order    - db sort order column
 // error - ErrNotFound, db Find error
-func GetAllInvoices(ctx context.Context, page, pagesize int64, order string) (invoices []*model.Invoice, totalRows int, err error) {
+func GetAllInvoice(ctx context.Context, page, pagesize int64, order string) (invoice []*model.Invoice, totalRows int, err error) {
 
-	invoices = []*model.Invoice{}
+	invoice = []*model.Invoice{}
 
-	invoicesOrm := DB.Model(&model.Invoice{})
-    invoicesOrm.Count(&totalRows)
+	invoiceOrm := DB.Model(&model.Invoice{})
+    invoiceOrm.Count(&totalRows)
 
 	if page > 0 {
 		offset := (page - 1) * pagesize
-		invoicesOrm = invoicesOrm.Offset(offset).Limit(pagesize)
+		invoiceOrm = invoiceOrm.Offset(offset).Limit(pagesize)
 	} else {
-		invoicesOrm = invoicesOrm.Limit(pagesize)
+		invoiceOrm = invoiceOrm.Limit(pagesize)
     }
 
 	if order != "" {
-		invoicesOrm = invoicesOrm.Order(order)
+		invoiceOrm = invoiceOrm.Order(order)
 	}
 
-	if err = invoicesOrm.Find(&invoices).Error; err != nil {
+	if err = invoiceOrm.Find(&invoice).Error; err != nil {
 	    err = ErrNotFound
 		return nil, -1, err
 	}
 
-	return invoices, totalRows, nil
+	return invoice, totalRows, nil
 }
 
 ```
@@ -56,7 +56,7 @@ func GetAllInvoices(ctx context.Context, page, pagesize int64, order string) (in
 
 // GetInvoice is a function to get a single record from the invoices table in the main database
 // error - ErrNotFound, db Find error
-func GetInvoice(ctx context.Context,  argInvoiceID int,        ) (record *model.Invoice, err error) {
+func GetInvoice(ctx context.Context,  argInvoiceID int32,        ) (record *model.Invoice, err error) {
 	if err = DB.First(&record,   argInvoiceID,        ).Error; err != nil {
 	    err = ErrNotFound
 		return record, err
@@ -89,7 +89,7 @@ func AddInvoice(ctx context.Context, record *model.Invoice) (result *model.Invoi
 // UpdateInvoice is a function to update a single record from invoices table in the main database
 // error - ErrNotFound, db record for id not found
 // error - ErrUpdateFailed, db meta data copy failed or db.Save call failed
-func UpdateInvoice(ctx context.Context,   argInvoiceID int,        updated *model.Invoice) (result *model.Invoice, RowsAffected int64, err error) {
+func UpdateInvoice(ctx context.Context,   argInvoiceID int32,        updated *model.Invoice) (result *model.Invoice, RowsAffected int64, err error) {
 
    result = &model.Invoice{}
    db := DB.First(result,  argInvoiceID,        )
@@ -117,7 +117,7 @@ func UpdateInvoice(ctx context.Context,   argInvoiceID int,        updated *mode
 // DeleteInvoice is a function to delete a single record from invoices table in the main database
 // error - ErrNotFound, db Find error
 // error - ErrDeleteFailed, db Delete failed error
-func DeleteInvoice(ctx context.Context,  argInvoiceID int,        ) (rowsAffected int64, err error) {
+func DeleteInvoice(ctx context.Context,  argInvoiceID int32,        ) (rowsAffected int64, err error) {
 
     record := &model.Invoice{}
     db := DB.First(record,   argInvoiceID,        )

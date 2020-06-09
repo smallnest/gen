@@ -18,12 +18,12 @@ The code generation, will generate functions for
 ## Retrieve Paged Records
 ```go
 
-// GetAllInvoices is a function to get a slice of record(s) from invoices table in the main database
+// GetAllInvoice is a function to get a slice of record(s) from invoices table in the main database
 // params - page     - page requested (defaults to 0)
 // params - pagesize - number of records in a page  (defaults to 20)
 // params - order    - db sort order column
 // error - ErrNotFound, db Find error
-func GetAllInvoices(ctx context.Context, page, pagesize int64, order string) (invoices []*model.Invoice, totalRows int, err error) {
+func GetAllInvoice(ctx context.Context, page, pagesize int64, order string) (invoice []*model.Invoice, totalRows int, err error) {
 	sql := "SELECT * FROM invoices"
 
 	if order == "" {
@@ -38,8 +38,8 @@ func GetAllInvoices(ctx context.Context, page, pagesize int64, order string) (in
 		sql = fmt.Sprintf("%s order by %s LIMIT %d, %d", sql, order, page, pagesize)
 	}
 
-	err = DB.SelectContext(ctx, &invoices, sql)
-	return invoices, len(invoices), err
+	err = DB.SelectContext(ctx, &invoice, sql)
+	return invoice, len(invoice), err
 }
 
 ```
@@ -49,7 +49,7 @@ func GetAllInvoices(ctx context.Context, page, pagesize int64, order string) (in
 
 // GetInvoice is a function to get a single record from the invoices table in the main database
 // error - ErrNotFound, db Find error
-func GetInvoice(ctx context.Context,  argInvoiceID int,        ) (record *model.Invoice, err error) {
+func GetInvoice(ctx context.Context,  argInvoiceID int32,        ) (record *model.Invoice, err error) {
 	sql := "SELECT * FROM invoices WHERE InvoiceId = $1"
 	record = &model.Invoice{}
 	err = DB.GetContext(ctx, record, sql,   argInvoiceID,        )
@@ -82,7 +82,7 @@ func addInvoicePostgres(ctx context.Context, record *model.Invoice) (result *mod
     rows := int64(1)
     sql = fmt.Sprintf("%s returning %s", sql, "InvoiceId")
     dbResult := DB.QueryRowContext(ctx, sql,    record.CustomerID,  record.InvoiceDate,  record.BillingAddress,  record.BillingCity,  record.BillingState,  record.BillingCountry,  record.BillingPostalCode,  record.Total,)
-    err = dbResult.Scan(record.UUID)
+    err = dbResult.Scan(   record.CustomerID,  record.InvoiceDate,  record.BillingAddress,  record.BillingCity,  record.BillingState,  record.BillingCountry,  record.BillingPostalCode,  record.Total,)
 
     return record, rows, err
 }
@@ -98,7 +98,7 @@ func addInvoice(ctx context.Context, record *model.Invoice) (result *model.Invoi
     id, err := dbResult.LastInsertId()
     rows, err = dbResult.RowsAffected()
 
-     record.InvoiceID = int(id)
+     record.InvoiceID = int32(id)
 
 
 
@@ -113,7 +113,7 @@ func addInvoice(ctx context.Context, record *model.Invoice) (result *model.Invoi
 // UpdateInvoice is a function to update a single record from invoices table in the main database
 // error - ErrNotFound, db record for id not found
 // error - ErrUpdateFailed, db meta data copy failed or db.Save call failed
-func UpdateInvoice(ctx context.Context,   argInvoiceID int,        updated *model.Invoice) (result *model.Invoice, RowsAffected int64, err error) {
+func UpdateInvoice(ctx context.Context,   argInvoiceID int32,        updated *model.Invoice) (result *model.Invoice, RowsAffected int64, err error) {
 	sql := "UPDATE invoices set CustomerId = $1, InvoiceDate = $2, BillingAddress = $3, BillingCity = $4, BillingState = $5, BillingCountry = $6, BillingPostalCode = $7, Total = $8 WHERE InvoiceId = $9"
 	dbResult := DB.MustExecContext(ctx, sql,    updated.CustomerID,  updated.InvoiceDate,  updated.BillingAddress,  updated.BillingCity,  updated.BillingState,  updated.BillingCountry,  updated.BillingPostalCode,  updated.Total,  argInvoiceID,        )
 	rows, err := dbResult.RowsAffected()
@@ -130,7 +130,7 @@ func UpdateInvoice(ctx context.Context,   argInvoiceID int,        updated *mode
 // DeleteInvoice is a function to delete a single record from invoices table in the main database
 // error - ErrNotFound, db Find error
 // error - ErrDeleteFailed, db Delete failed error
-func DeleteInvoice(ctx context.Context,  argInvoiceID int,        ) (rowsAffected int64, err error) {
+func DeleteInvoice(ctx context.Context,  argInvoiceID int32,        ) (rowsAffected int64, err error) {
 	sql := "DELETE FROM invoices where InvoiceId = $1"
 	result := DB.MustExecContext(ctx, sql,   argInvoiceID,        )
 	return result.RowsAffected()

@@ -419,7 +419,7 @@ func (c *Config) GenerateFieldsTypes(dbMeta DbTableMeta) ([]*FieldInfo, error) {
 		goType, _ := SQLTypeToGoType(strings.ToLower(col.DatabaseTypeName()), false, false)
 		protobufType, _ := SQLTypeToProtobufType(col.DatabaseTypeName())
 
-		fmt.Printf("protobufType: %v  DatabaseTypeName: %v\n", protobufType, col.DatabaseTypeName())
+		// fmt.Printf("protobufType: %v  DatabaseTypeName: %v\n", protobufType, col.DatabaseTypeName())
 
 		fakeData := createFakeData(goType, fieldName)
 
@@ -683,13 +683,31 @@ func createFakeData(valueType string, name string) interface{} {
 
 }
 
-func LoadTableInfo(db *sql.DB, dbTables []string, conf *Config) map[string]*ModelInfo {
+// FindInSlice takes a slice and looks for an element in it. If found it will
+// return it's key, otherwise it will return -1 and a bool of false.
+func FindInSlice(slice []string, val string) (int, bool) {
+	for i, item := range slice {
+		if item == val {
+			return i, true
+		}
+	}
+	return -1, false
+}
+
+func LoadTableInfo(db *sql.DB, dbTables []string, excludeDbTables []string, conf *Config) map[string]*ModelInfo {
 
 	tableInfos := make(map[string]*ModelInfo)
 
 	// generate go files for each table
 	var tableIdx = 0
 	for i, tableName := range dbTables {
+
+		_, ok := FindInSlice(excludeDbTables, tableName)
+		if ok {
+			fmt.Printf("Skipping excluded table %s\n", tableName)
+			continue
+		}
+
 		if strings.HasPrefix(tableName, "[") && strings.HasSuffix(tableName, "]") {
 			tableName = tableName[1 : len(tableName)-1]
 		}
