@@ -25,7 +25,7 @@
 ## Retrieve Paged Records
 ```go
 
-// GetAllInvoices is a function to get a slice of record(s) from invoices table in the main database
+// GetAllInvoice is a function to get a slice of record(s) from invoices table in the main database
 // @Summary Get list of Invoice
 // @Tags Invoice
 // @Description GetAllInvoice is a handler to get a slice of record(s) from invoices table in the main database
@@ -37,9 +37,9 @@
 // @Success 200 {object} api.PagedResults{data=[]model.Invoice}
 // @Failure 400 {object} api.HTTPError
 // @Failure 404 {object} api.HTTPError
-// @Router /invoices [get]
-// http "http://127.0.0.1:8080/invoices?page=0&pagesize=20"
-func GetAllInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+// @Router /invoice [get]
+// http "http://127.0.0.1:8080/invoice?page=0&pagesize=20"
+func GetAllInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     page, err := readInt(r, "page", 0)
 	if err != nil || page < 0 {
 		returnError(w, r, dao.ErrBadParams)
@@ -54,7 +54,7 @@ func GetAllInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 
 	order := r.FormValue("order")
 
-    records, totalRows, err :=  dao.GetAllInvoices(r.Context(), page, pagesize, order)
+    records, totalRows, err :=  dao.GetAllInvoice(r.Context(), page, pagesize, order)
 	if err != nil {
 	    returnError(w, r, err)
 		return
@@ -80,14 +80,14 @@ func GetAllInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params
  // @Success 200 {object} model.Invoice
 // @Failure 400 {object} api.HTTPError
 // @Failure 404 {object} api.HTTPError "ErrNotFound, db record for id not found - returns NotFound HTTP 404 not found error"
-// @Router /invoices/{argInvoiceID} [get]
-// http "http://127.0.0.1:8080/invoices/1"
+// @Router /invoice/{argInvoiceID} [get]
+// http "http://127.0.0.1:8080/invoice/1"
 func GetInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 
 
 
-	argInvoiceID, err := parseInt(ps, "argInvoiceID")
+	argInvoiceID, err := parseInt32(ps, "argInvoiceID")
 	if err != nil {
 		returnError(w, r, err)
 		return
@@ -126,8 +126,8 @@ func GetInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 // @Success 200 {object} model.Invoice
 // @Failure 400 {object} api.HTTPError
 // @Failure 404 {object} api.HTTPError
-// @Router /invoices [post]
-// echo '{"BillingCountry": "eDaxqYMqgrwMPuPuaIglofPdS","BillingPostalCode": "WmPIqUBuUzHpzOMbPwNAFARXB","Total": 0.036411063672822035,"InvoiceId": 69,"CustomerId": 76,"InvoiceDate": "2179-12-15T00:13:32.091585687-05:00","BillingAddress": "KyEaQaltlSutNljamErgSMUuu","BillingCity": "UJsFGVFNvWYGwrOdbnIjiCoCj","BillingState": "EWOyCaFHTKTGDHPExPfWAnvWN"}' | http POST "http://127.0.0.1:8080/invoices"
+// @Router /invoice [post]
+// echo '{"invoice_id": 28,"customer_id": 99,"billing_address": "YVHKEdyIkDoKDYgULmDTrhrQm","billing_city": "qDkPPCByeaNwtZaddCowKibOn","billing_state": "VxFRgqsGoDqeJqTYbuuvKIVvg","invoice_date": "2169-09-05T13:26:52.638701216-05:00","billing_country": "qmtHxxPRKhtSDIfvKBnccWLwU","billing_postal_code": "CtKOdjDOZLixZvkUBwfuQLAEs","total": 0.7432727370271754}' | http POST "http://127.0.0.1:8080/invoice"
 func AddInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	invoice := &model.Invoice{}
 
@@ -174,13 +174,13 @@ func AddInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 // @Success 200 {object} model.Invoice
 // @Failure 400 {object} api.HTTPError
 // @Failure 404 {object} api.HTTPError
-// @Router /invoices/{argInvoiceID} [patch]
-// echo '{"BillingCountry": "eDaxqYMqgrwMPuPuaIglofPdS","BillingPostalCode": "WmPIqUBuUzHpzOMbPwNAFARXB","Total": 0.036411063672822035,"InvoiceId": 69,"CustomerId": 76,"InvoiceDate": "2179-12-15T00:13:32.091585687-05:00","BillingAddress": "KyEaQaltlSutNljamErgSMUuu","BillingCity": "UJsFGVFNvWYGwrOdbnIjiCoCj","BillingState": "EWOyCaFHTKTGDHPExPfWAnvWN"}' | http PUT "http://127.0.0.1:8080/invoices/1"
+// @Router /invoice/{argInvoiceID} [patch]
+// echo '{"invoice_id": 28,"customer_id": 99,"billing_address": "YVHKEdyIkDoKDYgULmDTrhrQm","billing_city": "qDkPPCByeaNwtZaddCowKibOn","billing_state": "VxFRgqsGoDqeJqTYbuuvKIVvg","invoice_date": "2169-09-05T13:26:52.638701216-05:00","billing_country": "qmtHxxPRKhtSDIfvKBnccWLwU","billing_postal_code": "CtKOdjDOZLixZvkUBwfuQLAEs","total": 0.7432727370271754}' | http PUT "http://127.0.0.1:8080/invoice/1"
 func UpdateInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 
 
-	argInvoiceID, err := parseInt(ps, "argInvoiceID")
+	argInvoiceID, err := parseInt32(ps, "argInvoiceID")
 	if err != nil {
 		returnError(w, r, err)
 		return
@@ -238,12 +238,12 @@ func UpdateInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 // @Success 204 {object} model.Invoice
 // @Failure 400 {object} api.HTTPError
 // @Failure 500 {object} api.HTTPError
-// @Router /invoices/{argInvoiceID} [delete]
-// http DELETE "http://127.0.0.1:8080/invoices/1"
+// @Router /invoice/{argInvoiceID} [delete]
+// http DELETE "http://127.0.0.1:8080/invoice/1"
 func DeleteInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 
-	argInvoiceID, err := parseInt(ps, "argInvoiceID")
+	argInvoiceID, err := parseInt32(ps, "argInvoiceID")
 	if err != nil {
 		returnError(w, r, err)
 		return

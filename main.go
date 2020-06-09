@@ -26,12 +26,13 @@ import (
 )
 
 var (
-	sqlType         = goopt.String([]string{"--sqltype"}, "mysql", "sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]")
-	sqlConnStr      = goopt.String([]string{"-c", "--connstr"}, "nil", "database connection string")
-	sqlDatabase     = goopt.String([]string{"-d", "--database"}, "nil", "Database to for connection")
-	sqlTable        = goopt.String([]string{"-t", "--table"}, "", "Table to build struct from")
-	templateDir     = goopt.String([]string{"--templateDir"}, "", "Template Dir")
-	saveTemplateDir = goopt.String([]string{"--save"}, "", "Save templates to dir")
+	sqlType          = goopt.String([]string{"--sqltype"}, "mysql", "sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]")
+	sqlConnStr       = goopt.String([]string{"-c", "--connstr"}, "nil", "database connection string")
+	sqlDatabase      = goopt.String([]string{"-d", "--database"}, "nil", "Database to for connection")
+	sqlTable         = goopt.String([]string{"-t", "--table"}, "", "Table to build struct from")
+	excludeSqlTables = goopt.String([]string{"-x", "--exclude"}, "", "Table(s) to exclude")
+	templateDir      = goopt.String([]string{"--templateDir"}, "", "Template Dir")
+	saveTemplateDir  = goopt.String([]string{"--save"}, "", "Save templates to dir")
 
 	modelPackageName = goopt.String([]string{"--model"}, "model", "name to set for model package")
 	daoPackageName   = goopt.String([]string{"--dao"}, "dao", "name to set for dao package")
@@ -181,9 +182,10 @@ func main() {
 		}
 	}
 
-	fmt.Printf("Generating code for the following tables (%d)\n", len(dbTables))
-	for i, tableName := range dbTables {
-		fmt.Printf("[%d] %s\n", i, tableName)
+	var excludeDbTables []string
+
+	if *excludeSqlTables != "" {
+		excludeDbTables = strings.Split(*excludeSqlTables, ",")
 	}
 
 	conf := dbmeta.NewConfig(LoadTemplate)
@@ -209,11 +211,18 @@ func main() {
 		loadContextMapping(conf)
 	}
 
-	tableInfos = dbmeta.LoadTableInfo(db, dbTables, conf)
+	tableInfos = dbmeta.LoadTableInfo(db, dbTables, excludeDbTables, conf)
 
 	if len(tableInfos) == 0 {
 		fmt.Printf("No tables loaded\n")
 		os.Exit(1)
+	}
+
+	fmt.Printf("Generating code for the following tables (%d)\n", len(tableInfos))
+	i := 0
+	for tableName := range tableInfos {
+		fmt.Printf("[%d] %s\n", i, tableName)
+		i++
 	}
 
 	conf.ContextMap["tableInfos"] = tableInfos

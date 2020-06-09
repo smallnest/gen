@@ -87,7 +87,9 @@ func main() {
 	initialize(conf)
 
 	dbTables := []string{*sqlTable}
-	tableInfos := dbmeta.LoadTableInfo(db, dbTables, conf)
+	excludedDbTables := []string{}
+
+	tableInfos := dbmeta.LoadTableInfo(db, dbTables, excludedDbTables, conf)
 	conf.ContextMap["tableInfos"] = tableInfos
 
 	for tableName, modelInfo := range tableInfos {
