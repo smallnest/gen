@@ -127,17 +127,11 @@ lint: ## run lint on the project
 staticcheck: ## run staticcheck on the project
 	staticcheck -ignore "$(shell cat .checkignore)" .
 
-gosimple: ## run gosimple on the project
-	# gosimple -ignore "$(shell cat .gosimpleignore)" .
-	gosimple .
-
 vet: ## run go vet on the project
 	go vet .
 
 tools: ## install dependent tools for code analysis
 	go get -u honnef.co/go/tools/cmd/staticcheck
-	go get -u honnef.co/go/tools/cmd/gosimple
-	go get -u honnef.co/go/tools/cmd/unused
 	go get -u github.com/gordonklaus/ineffassign
 	go get -u github.com/fzipp/gocyclo
 	go get -u github.com/golang/lint/golint
