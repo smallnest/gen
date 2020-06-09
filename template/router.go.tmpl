@@ -37,7 +37,7 @@ type HTTPError struct {
 // ConfigRouter configure http.Handler router
 func ConfigRouter() http.Handler {
 	router := httprouter.New()
-	{{range $tableName, $codeInfo := .tableInfos}}config{{pluralize $codeInfo.StructName}}Router(router)
+	{{range $tableName, $codeInfo := .tableInfos}}config{{$codeInfo.StructName}}Router(router)
     {{end}}
 
 	return router
@@ -46,7 +46,7 @@ func ConfigRouter() http.Handler {
 
 // ConfigGinRouter configure gin router
 func ConfigGinRouter(router gin.IRoutes) {
-	{{range $tableName, $codeInfo := .tableInfos}}configGin{{pluralize $codeInfo.StructName}}Router(router)
+	{{range $tableName, $codeInfo := .tableInfos}}configGin{{$codeInfo.StructName}}Router(router)
 	{{end}}
 
 	return

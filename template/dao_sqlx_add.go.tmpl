@@ -17,7 +17,7 @@ func add{{.StructName}}Postgres(ctx context.Context, record *{{.modelPackageName
     rows := int64(1)
     sql = fmt.Sprintf("%s returning %s", sql, "{{.PrimaryKeysJoined}}")
     dbResult := DB.QueryRowContext(ctx, sql, {{range $field := .TableInfo.CodeFields}} {{ if not $field.ColumnMeta.IsAutoIncrement }} record.{{$field.GoFieldName}},{{end}}{{end -}} )
-    err = dbResult.Scan(record.UUID)
+    err = dbResult.Scan({{range $field := .TableInfo.CodeFields}} {{ if not $field.ColumnMeta.IsAutoIncrement }} record.{{$field.GoFieldName}},{{end}}{{end -}})
 
     return record, rows, err
 }

@@ -1,5 +1,5 @@
 {{define "getall"}}
-// GetAll{{pluralize .StructName}} is a function to get a slice of record(s) from {{.TableName}} table in the {{.DatabaseName}} database
+// GetAll{{.StructName}} is a function to get a slice of record(s) from {{.TableName}} table in the {{.DatabaseName}} database
 // @Summary Get list of {{.StructName}}
 // @Tags {{.StructName}}
 // @Description GetAll{{.StructName}} is a handler to get a slice of record(s) from {{.TableName}} table in the {{.DatabaseName}} database
@@ -11,9 +11,9 @@
 // @Success 200 {object} {{.apiPackageName}}.PagedResults{data=[]{{.modelPackageName}}.{{.StructName}}}
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
 // @Failure 404 {object} {{.apiPackageName}}.HTTPError
-// @Router /{{pluralize .StructName | toLower}} [get]
-// http "http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize .StructName | toLower}}?page=0&pagesize=20"
-func GetAll{{pluralize .StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+// @Router /{{.StructName | toLower}} [get]
+// http "http://{{$.serverHost}}:{{$.serverPort}}/{{.StructName | toLower}}?page=0&pagesize=20"
+func GetAll{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     page, err := readInt(r, "page", 0)
 	if err != nil || page < 0 {
 		returnError(w, r, {{.daoPackageName}}.ErrBadParams)
@@ -28,7 +28,7 @@ func GetAll{{pluralize .StructName}}(w http.ResponseWriter, r *http.Request, ps 
 
 	order := r.FormValue("order")
 
-    records, totalRows, err :=  {{.daoPackageName}}.GetAll{{pluralize .StructName}}(r.Context(), page, pagesize, order)
+    records, totalRows, err :=  {{.daoPackageName}}.GetAll{{.StructName}}(r.Context(), page, pagesize, order)
 	if err != nil {
 	    returnError(w, r, err)
 		return

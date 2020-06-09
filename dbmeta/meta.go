@@ -283,6 +283,11 @@ type FieldInfo struct {
 	PrimaryKeyFieldParser string
 	PrimaryKeyArgName     string
 	SqlMapping            *SQLMapping
+	GormAnnotation        string
+	JSONAnnotation        string
+	XMLAnnotation         string
+	DBAnnotation          string
+	GoGoMoreTags          string
 }
 
 // LoadMeta loads the DbTableMeta data from the db connection for the table
@@ -312,6 +317,40 @@ func checkDupeFieldName(fields []*FieldInfo, fieldName string) string {
 	return fieldName
 }
 
+
+func checkDupeJSONFieldName(fields []*FieldInfo, fieldName string) string {
+	var match bool
+	for _, field := range fields {
+		if fieldName == field.JSONFieldName {
+			match = true
+			break
+		}
+	}
+
+	if match {
+		return fmt.Sprintf("%s_", fieldName)
+	}
+
+	return fieldName
+}
+
+func checkDupeProtoBufFieldName(fields []*FieldInfo, fieldName string) string {
+	var match bool
+	for _, field := range fields {
+		if fieldName == field.ProtobufFieldName {
+			match = true
+			break
+		}
+	}
+
+	if match {
+		return fmt.Sprintf("%s_", fieldName)
+	}
+
+	return fieldName
+}
+
+
 // Generate fields string
 func (c *Config) GenerateFieldsTypes(dbMeta DbTableMeta) ([]*FieldInfo, error) {
 
@@ -319,6 +358,10 @@ func (c *Config) GenerateFieldsTypes(dbMeta DbTableMeta) ([]*FieldInfo, error) {
 	field := ""
 	for i, col := range dbMeta.Columns() {
 		name := col.Name()
+
+		fi := &FieldInfo{
+			Index: i,
+		}
 
 		valueType, err := SQLTypeToGoType(strings.ToLower(col.DatabaseTypeName()), col.Nullable(), c.UseGureguTypes)
 		if err != nil { // unknown type
@@ -329,23 +372,35 @@ func (c *Config) GenerateFieldsTypes(dbMeta DbTableMeta) ([]*FieldInfo, error) {
 		fieldName := FmtFieldName(stringifyFirstChar(name))
 		fieldName = checkDupeFieldName(fields, fieldName)
 
+		fi.GormAnnotation = createGormAnnotation(col)
+		fi.JSONAnnotation = createJSONAnnotation(c.JsonNameFormat, col)
+		fi.XMLAnnotation = createXMLAnnotation(c.XMLNameFormat, col)
+		fi.DBAnnotation = createDBAnnotation(col)
+
 		var annotations []string
 		if c.AddGormAnnotation {
-			annotations = append(annotations, createGormAnnotation(col))
+			annotations = append(annotations, fi.GormAnnotation)
 		}
 
 		if c.AddJSONAnnotation {
-			annotations = append(annotations, createJSONAnnotation(c.JsonNameFormat, col))
+			annotations = append(annotations, fi.JSONAnnotation)
+		}
+
+		if c.AddXMLAnnotation {
+			annotations = append(annotations, fi.XMLAnnotation)
 		}
 
 		if c.AddDBAnnotation {
-			annotations = append(annotations, createDBAnnotation(col))
+			annotations = append(annotations, fi.DBAnnotation)
 		}
 
+		gogoTags := []string{fi.GormAnnotation, fi.JSONAnnotation, fi.XMLAnnotation, fi.DBAnnotation}
+		GoGoMoreTags := strings.Join(gogoTags, " ")
+
 		if c.AddProtobufAnnotation {
-			annnotation, err := createProtobufAnnotation(c.ProtobufNameFormat, col)
+			annotation, err := createProtobufAnnotation(c.ProtobufNameFormat, col)
 			if err == nil {
-				annotations = append(annotations, annnotation)
+				annotations = append(annotations, annotation)
 			}
 		}
 
@@ -380,50 +435,56 @@ func (c *Config) GenerateFieldsTypes(dbMeta DbTableMeta) ([]*FieldInfo, error) {
 			}
 		}
 
-		fi := &FieldInfo{
-			Index:                 i,
-			Code:                  field,
-			GoFieldName:           fieldName,
-			GoFieldType:           valueType,
-			GoAnnotations:         annotations,
-			FakeData:              fakeData,
-			Comment:               col.String(),
-			JSONFieldName:         formatFieldName(c.JsonNameFormat, col),
-			ProtobufFieldName:     formatFieldName(c.ProtobufNameFormat, col),
-			ProtobufType:          protobufType,
-			ProtobufPos:           i + 1,
-			ColumnMeta:            col,
-			PrimaryKeyFieldParser: primaryKeyFieldParser,
-			SqlMapping:            sqlMapping,
-		}
+		fi.Code = field
+		fi.GoFieldName = fieldName
+		fi.GoFieldType = valueType
+		fi.GoAnnotations = annotations
+		fi.FakeData = fakeData
+		fi.Comment = col.String()
+		fi.JSONFieldName = formatFieldName(c.JsonNameFormat, col.Name())
+		fi.ProtobufFieldName = formatFieldName(c.ProtobufNameFormat, col.Name())
+		fi.ProtobufType = protobufType
+		fi.ProtobufPos = i + 1
+		fi.ColumnMeta = col
+		fi.PrimaryKeyFieldParser = primaryKeyFieldParser
+		fi.SqlMapping = sqlMapping
+		fi.GoGoMoreTags = GoGoMoreTags
+
+		fi.JSONFieldName = checkDupeJSONFieldName(fields, fi.JSONFieldName)
+		fi.ProtobufFieldName = checkDupeProtoBufFieldName(fields, fi.ProtobufFieldName)
+
 
 		fields = append(fields, fi)
 	}
 	return fields, nil
 }
 
-func formatFieldName(nameFormat string, c ColumnMeta) string {
+func formatFieldName(nameFormat string, name string) string {
 
 	var jsonName string
 	switch nameFormat {
 	case "snake":
-		jsonName = strcase.ToSnake(c.Name())
+		jsonName = strcase.ToSnake(name)
 	case "camel":
-		jsonName = strcase.ToCamel(c.Name())
+		jsonName = strcase.ToCamel(name)
 	case "lower_camel":
-		jsonName = strcase.ToLowerCamel(c.Name())
+		jsonName = strcase.ToLowerCamel(name)
 	case "none":
-		jsonName = c.Name()
+		jsonName = name
 	default:
-		jsonName = c.Name()
+		jsonName = name
 	}
 	return jsonName
 }
 
 func createJSONAnnotation(nameFormat string, c ColumnMeta) string {
-
-	name := formatFieldName(nameFormat, c)
+	name := formatFieldName(nameFormat, c.Name())
 	return fmt.Sprintf("json:\"%s\"", name)
+}
+
+func createXMLAnnotation(nameFormat string, c ColumnMeta) string {
+	name := formatFieldName(nameFormat, c.Name())
+	return fmt.Sprintf("xml:\"%s\"", name)
 }
 
 func createDBAnnotation(c ColumnMeta) string {
@@ -437,7 +498,7 @@ func createProtobufAnnotation(nameFormat string, c ColumnMeta) (string, error) {
 	}
 
 	if protoBufType != "" {
-		name := formatFieldName(nameFormat, c)
+		name := formatFieldName(nameFormat, c.Name())
 		return fmt.Sprintf("protobuf:\"%s,%d,opt,name=%s\"", protoBufType, c.Index(), name), nil
 	}
 
@@ -637,7 +698,7 @@ func LoadTableInfo(db *sql.DB, dbTables []string, conf *Config) map[string]*Mode
 			continue
 		}
 
-		modelInfo, err := GenerateModelInfo(dbMeta, tableName, conf)
+		modelInfo, err := GenerateModelInfo(tableInfos, dbMeta, tableName, conf)
 		if err != nil {
 			fmt.Printf("Error getting table info for %s error: %v\n", tableName, err)
 			continue
@@ -661,14 +722,16 @@ func LoadTableInfo(db *sql.DB, dbTables []string, conf *Config) map[string]*Mode
 }
 
 // GenerateModelInfo generates a struct for the given table.
-func GenerateModelInfo(dbMeta DbTableMeta,
+func GenerateModelInfo(tables map[string]*ModelInfo, dbMeta DbTableMeta,
 	tableName string,
 	conf *Config) (*ModelInfo, error) {
 
 	structName := FmtFieldName(tableName)
 	structName = inflection.Singular(structName)
+	structName = CheckForDupe(tables, structName)
 
 	conf.JsonNameFormat = strings.ToLower(conf.JsonNameFormat)
+	conf.XMLNameFormat = strings.ToLower(conf.XMLNameFormat)
 
 	fields, err := conf.GenerateFieldsTypes(dbMeta)
 	if err != nil {
@@ -687,7 +750,7 @@ func GenerateModelInfo(dbMeta DbTableMeta,
 	noOfPrimaryKeys := 0
 	for i, c := range fields {
 		meta := dbMeta.Columns()[i]
-		jsonName := formatFieldName(conf.JsonNameFormat, meta)
+		jsonName := formatFieldName(conf.JsonNameFormat, meta.Name())
 		tag := fmt.Sprintf(`json:"%s"`, jsonName)
 		fakeData := c.FakeData
 		generator = generator.AddField(c.GoFieldName, fakeData, tag)
@@ -728,4 +791,23 @@ func GenerateModelInfo(dbMeta DbTableMeta,
 	}
 
 	return modelInfo, nil
+}
+
+func CheckForDupe(tables map[string]*ModelInfo, name string) string {
+	found := false
+
+	for _, model := range tables {
+		if model.StructName == name {
+			found = true
+		}
+	}
+	if found {
+		name = CheckForDupe(tables, name+"_")
+	}
+
+	if name == "Result" {
+		name = "DBTableResult"
+	}
+
+	return name
 }

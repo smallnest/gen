@@ -1,0 +1,133 @@
+package {{.Config.GrpcPackageName}}
+
+
+import (
+    "context"
+    "fmt"
+    "io/ioutil"
+    "log"
+    "os"
+
+    "{{.daoFQPN}}"
+    "{{.modelFQPN}}"
+
+    "gopkg.in/yaml.v2"
+)
+
+type Server struct {
+}
+
+
+
+{{ range $tableName, $tableInfo := .tableInfos }}
+
+func (s *Server) GetAll{{ $tableInfo.StructName }}(context context.Context, request *{{$.modelPackageName}}.GetAll{{ $tableInfo.StructName }}Request) (*{{$.modelPackageName}}.GetAll{{ $tableInfo.StructName }}Response, error) {
+
+    result, totalRows, err :=  {{$.daoPackageName}}.GetAll{{$tableInfo.StructName}}(context, request.Page, request.PageSize, request.Order)
+    if err != nil {
+        response := &{{$.modelPackageName}}.GetAll{{ $tableInfo.StructName }}Response{Result: &{{$.modelPackageName}}.Result{Result: {{$.modelPackageName}}.Result_Error, Message_: fmt.Sprintf("%v", err)}}
+        return response, nil
+    }
+
+    response := &{{$.modelPackageName}}.GetAll{{ $tableInfo.StructName }}Response{Result: &{{$.modelPackageName}}.Result{Result: {{$.modelPackageName}}.Result_Success}, Page: request.Page, PageSize: request.PageSize, Data: result, TotalRecords: int64(totalRows) }
+    return response, nil
+}
+
+
+func (s *Server) Get{{ $tableInfo.StructName }}(context context.Context, request *{{$.modelPackageName}}.Get{{ $tableInfo.StructName }}Request) (*{{$.modelPackageName}}.Get{{ $tableInfo.StructName }}Response, error) {
+
+    result, err := {{$.daoPackageName}}.Get{{$tableInfo.StructName}}(context,{{range $field := .CodeFields}} {{ if $field.PrimaryKeyArgName }} request.{{$field.GoFieldName}},{{end}}{{end -}})
+    if err != nil {
+        response := &{{$.modelPackageName}}.Get{{ $tableInfo.StructName }}Response{Result: &{{$.modelPackageName}}.Result{Result: {{$.modelPackageName}}.Result_Error, Message_: fmt.Sprintf("%v", err)}}
+        return response, nil
+    }
+
+    response := &{{$.modelPackageName}}.Get{{ $tableInfo.StructName }}Response{}
+    response.Data = result
+    response.Result=&models.Result{Result: models.Result_Success}
+    return response, nil
+}
+func (s *Server) Add{{ $tableInfo.StructName }}(context context.Context, request *{{$.modelPackageName}}.Add{{ $tableInfo.StructName }}Request) (*{{$.modelPackageName}}.Add{{ $tableInfo.StructName }}Response, error) {
+
+    result, rowsAffected, err := {{$.daoPackageName}}.Add{{$tableInfo.StructName}}(context, request.Data)
+    if err != nil {
+        response := &{{$.modelPackageName}}.Add{{ $tableInfo.StructName }}Response{Result: &{{$.modelPackageName}}.Result{Result: {{$.modelPackageName}}.Result_Error, Message_: fmt.Sprintf("%v", err)}}
+        return response, nil
+    }
+
+    response := &{{$.modelPackageName}}.Add{{ $tableInfo.StructName }}Response{}
+    response.Data = result
+    response.Result = &models.Result{Result: models.Result_Success}
+    response.RowsAffected = rowsAffected
+    return response, nil
+}
+
+func (s *Server) Update{{ $tableInfo.StructName }}(context context.Context, request *{{$.modelPackageName}}.Update{{ $tableInfo.StructName }}Request) (*{{$.modelPackageName}}.Update{{ $tableInfo.StructName }}Response, error) {
+
+    result, rowsAffected, err := {{$.daoPackageName}}.Update{{$tableInfo.StructName}}(context,
+        {{range $field := .CodeFields}} {{ if $field.PrimaryKeyArgName }} request.Data.{{$field.GoFieldName}},{{end}}{{end}}
+        request.Data)
+    if err != nil {
+        response := &{{$.modelPackageName}}.Update{{ $tableInfo.StructName }}Response{Result: &{{$.modelPackageName}}.Result{Result: {{$.modelPackageName}}.Result_Error, Message_: fmt.Sprintf("%v", err)}}
+        return response, nil
+    }
+
+    response := &{{$.modelPackageName}}.Update{{ $tableInfo.StructName }}Response{}
+    response.Data = result
+    response.Result = &models.Result{Result: models.Result_Success}
+    response.RowsAffected = rowsAffected
+    return response, nil
+}
+
+func (s *Server) Delete{{ $tableInfo.StructName }}(context context.Context, request *{{$.modelPackageName}}.Delete{{ $tableInfo.StructName }}Request) (*{{$.modelPackageName}}.Delete{{ $tableInfo.StructName }}Response, error) {
+
+    rowsAffected, err := {{$.daoPackageName}}.Delete{{$tableInfo.StructName}}(context,{{range $field := .CodeFields}} {{ if $field.PrimaryKeyArgName }} request.{{$field.GoFieldName}},{{end}}{{end -}})
+    if err != nil {
+        response := &{{$.modelPackageName}}.Delete{{ $tableInfo.StructName }}Response{Result: &{{$.modelPackageName}}.Result{Result: {{$.modelPackageName}}.Result_Error, Message_: fmt.Sprintf("%v", err)}}
+        return response, nil
+    }
+
+    response := &{{$.modelPackageName}}.Delete{{ $tableInfo.StructName }}Response{RowsAffected: rowsAffected, Result: &{{$.modelPackageName}}.Result{Result:   {{$.modelPackageName}}.Result_Success}}
+    return response, nil
+}
+
+{{- end}}
+
+
+
+type ServerConfig struct {
+    ListenAddr  string `yaml:"listen_on"`
+    DatabaseURI string `yaml:"db_uri"`
+    MaxMessageSizeBytes int `yaml:"max_message_size_bytes"`
+    ServerCert string `yaml:"server_cert"`
+    ServerKey  string `yaml:"server_key"`
+    CACert     string `yaml:"ca_cert"`
+}
+
+func LoadConfig() ServerConfig {
+    configPath := os.Getenv("BACKEND_CONFIG")
+    content, err := ioutil.ReadFile(configPath)
+    if err != nil {
+        log.Fatalf(
+            "Error loading config from BACKEND_CONFIG=%s: %v",
+            configPath,
+            err,
+        )
+    }
+
+    config := ServerConfig{}
+    err = yaml.Unmarshal([]byte(content), &config)
+    if err != nil {
+        log.Fatalf("Error parsing config: %v", err)
+    }
+    return config
+}
+
+func NewServerFromConfig(cfg ServerConfig) *Server {
+
+    return &Server{
+    }
+}
+
+func (s *Server) Cleanup() {
+}

@@ -1,0 +1,136 @@
+package {{.Config.GrpcPackageName}}
+
+import (
+    "context"
+    "crypto/tls"
+    "crypto/x509"
+    "fmt"
+    "io/ioutil"
+    "log"
+    "net"
+    "os"
+    "runtime/debug"
+
+    "{{.daoFQPN}}"
+    "{{.modelFQPN}}"
+
+    "github.com/grpc-ecosystem/go-grpc-middleware"
+    "github.com/grpc-ecosystem/go-grpc-middleware/auth"
+    "github.com/grpc-ecosystem/go-grpc-middleware/logging/logrus"
+    "github.com/grpc-ecosystem/go-grpc-middleware/recovery"
+    "github.com/grpc-ecosystem/go-grpc-middleware/tags"
+    "github.com/sirupsen/logrus"
+    "google.golang.org/grpc"
+    "google.golang.org/grpc/codes"
+    "google.golang.org/grpc/credentials"
+    "google.golang.org/grpc/status"
+)
+
+
+func reportError(message string, err error) {
+    // sentry.CaptureException(fmt.Errorf("%s: %v", message, err))
+    log.Printf("🚨 %s – %v", message, err)
+}
+
+func (s *Server) AuthFuncOverride(ctx context.Context, fullMethodName string) (context.Context, error) {
+    // allowed_endpoints := map[string]bool{
+    // 	"/backend.Backend/CreateUser":   true,
+    // }
+
+    // if allow, ok := allowed_endpoints[fullMethodName]; allow && ok {
+    // 	return ctx, nil
+    // }
+    return ctx, nil
+
+}
+
+
+
+func panicRecover(p interface{}) error {
+    reportError(fmt.Sprintf("Panic happened: %s", p), nil)
+    log.Printf("Panic ouccred: %s", p)
+    log.Print("Stacktrace from panic: \n" + string(debug.Stack()))
+    return status.Errorf(codes.Internal, "Internal error")
+}
+
+func RunServer() {
+    config := LoadConfig()
+    server := NewServerFromConfig(config)
+    defer server.Cleanup()
+
+    // if config.SentryDSN != "" {
+    // 	sentry.Init(sentry.ClientOptions{Dsn: config.SentryDSN})
+    // }
+
+    grpcServer := grpc.NewServer(makeServerOptions(config)...)
+    {{.modelPackageName}}.RegisterBackendServer(grpcServer, server)
+
+    lis, err := net.Listen("tcp", config.ListenAddr)
+    if err != nil {
+        log.Fatalf("failed to listen: %v", err)
+    }
+
+    log.Printf("Server started on %s", config.ListenAddr)
+    if err := grpcServer.Serve(lis); err != nil {
+        log.Fatalf("failed to serve: %v", err)
+    }
+}
+
+func makeServerOptions(config ServerConfig) []grpc.ServerOption {
+    transportCredentials, err := getTransportCredentials(config)
+    if err != nil {
+        log.Fatalf("failed to get credentials: %v", err)
+    }
+
+    logger := &logrus.Logger{
+        Out:       os.Stdout,
+        Formatter: new(logrus.TextFormatter),
+        Hooks:     make(logrus.LevelHooks),
+        Level:     logrus.DebugLevel,
+    }
+    logrusEntry := logrus.NewEntry(logger)
+
+    recoverOptions := []grpc_recovery.Option{
+        grpc_recovery.WithRecoveryHandler(panicRecover),
+    }
+    unaryServerInterceptors := []grpc.UnaryServerInterceptor{
+        grpc_ctxtags.UnaryServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
+        grpc_logrus.UnaryServerInterceptor(logrusEntry),
+        grpc_auth.UnaryServerInterceptor(nil),
+        grpc_recovery.UnaryServerInterceptor(recoverOptions...),
+    }
+
+    return []grpc.ServerOption{
+        grpc.MaxRecvMsgSize(config.MaxMessageSizeBytes),
+        grpc.MaxSendMsgSize(config.MaxMessageSizeBytes),
+        grpc.Creds(*transportCredentials),
+        grpc_middleware.WithUnaryServerChain(unaryServerInterceptors...),
+        grpc_middleware.WithStreamServerChain(
+            grpc_ctxtags.StreamServerInterceptor(grpc_ctxtags.WithFieldExtractor(grpc_ctxtags.CodeGenRequestFieldExtractor)),
+            grpc_logrus.StreamServerInterceptor(logrusEntry),
+            grpc_auth.StreamServerInterceptor(nil),
+            grpc_recovery.StreamServerInterceptor(recoverOptions...),
+        ),
+    }
+}
+
+func getTransportCredentials(cfg ServerConfig) (*credentials.TransportCredentials, error) {
+    peerCert, err := tls.LoadX509KeyPair(cfg.ServerCert, cfg.ServerKey)
+    if err != nil {
+        return nil, err
+    }
+
+    caCert, err := ioutil.ReadFile(cfg.CACert)
+    if err != nil {
+        return nil, err
+    }
+
+    caCertPool := x509.NewCertPool()
+    caCertPool.AppendCertsFromPEM(caCert)
+    tc := credentials.NewTLS(&tls.Config{
+        Certificates: []tls.Certificate{peerCert},
+        ClientCAs:    caCertPool,
+    })
+
+    return &tc, nil
+}

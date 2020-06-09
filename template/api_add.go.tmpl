@@ -9,8 +9,8 @@
 // @Success 200 {object} {{.modelPackageName}}.{{.StructName}}
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
 // @Failure 404 {object} {{.apiPackageName}}.HTTPError
-// @Router /{{pluralize .StructName | toLower}} [post]
-// echo '{{ToJSON .TableInfo.Instance 0}}' | http POST "http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize .StructName | toLower}}"
+// @Router /{{.StructName | toLower}} [post]
+// echo '{{ToJSON .TableInfo.Instance 0}}' | http POST "http://{{$.serverHost}}:{{$.serverPort}}/{{.StructName | toLower}}"
 func Add{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	{{.StructName | toLower}} := &{{.modelPackageName}}.{{.StructName}}{}
 

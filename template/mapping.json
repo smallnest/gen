@@ -20,16 +20,16 @@
     },
     {
       "sql_type": "tinyint",
-      "go_type": "int",
+      "go_type": "int32",
       "json_type": "Integer",
-      "protobuf_type": "uint8",
+      "protobuf_type": "int32",
       "guregu_type": "null.Int",
       "go_nullable_type": "sql.NullInt64",
       "swagger_type": "int"
     },
     {
       "sql_type": "int",
-      "go_type": "int",
+      "go_type": "int32",
       "json_type": "Integer",
       "protobuf_type": "int32",
       "guregu_type": "null.Int",
@@ -38,16 +38,16 @@
     },
     {
       "sql_type": "smallint",
-      "go_type": "int",
+      "go_type": "int32",
       "json_type": "Integer",
-      "protobuf_type": "int16",
+      "protobuf_type": "int32",
       "guregu_type": "null.Int",
       "go_nullable_type": "sql.NullInt64",
       "swagger_type": "int"
     },
     {
       "sql_type": "mediumint",
-      "go_type": "int",
+      "go_type": "int32",
       "json_type": "Integer",
       "protobuf_type": "int32",
       "guregu_type": "null.Int",
@@ -56,7 +56,7 @@
     },
     {
       "sql_type": "int4",
-      "go_type": "int",
+      "go_type": "int32",
       "json_type": "Integer",
       "protobuf_type": "int32",
       "guregu_type": "null.Int",
@@ -65,7 +65,7 @@
     },
     {
       "sql_type": "int2",
-      "go_type": "int",
+      "go_type": "int32",
       "json_type": "Integer",
       "protobuf_type": "int32",
       "guregu_type": "null.Int",
@@ -74,7 +74,7 @@
     },
     {
       "sql_type": "integer",
-      "go_type": "int",
+      "go_type": "int32",
       "json_type": "Integer",
       "protobuf_type": "int32",
       "guregu_type": "null.Int",
@@ -94,7 +94,7 @@
       "sql_type": "int8",
       "go_type": "int64",
       "json_type": "Integer",
-      "protobuf_type": "int8",
+      "protobuf_type": "int32",
       "guregu_type": "null.Int",
       "go_nullable_type": "sql.NullInt64",
       "swagger_type": "int64"
@@ -410,7 +410,7 @@
       "sql_type": "USER_DEFINED",
       "go_type": "interface{}",
       "json_type": "Text",
-      "protobuf_type": "",
+      "protobuf_type": "bytes",
       "guregu_type": "interface{}",
       "go_nullable_type": "interface{}",
       "swagger_type": "string"
@@ -428,7 +428,7 @@
       "sql_type": "",
       "go_type": "interface{}",
       "json_type": "Text",
-      "protobuf_type": "",
+      "protobuf_type": "bytes",
       "guregu_type": "interface{}",
       "go_nullable_type": "interface{}",
       "swagger_type": "string"

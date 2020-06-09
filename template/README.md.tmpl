@@ -46,7 +46,7 @@ http://{{.serverHost}}:{{.serverPort}}/swagger/index.html
 ## REST urls for fetching data
 
 {{range $tableName, $codeInfo := .tableInfos}}
-* http://{{$.serverHost}}:{{$.serverPort}}/{{pluralize $codeInfo.StructName | toLower}}{{ end }}
+* http://{{$.serverHost}}:{{$.serverPort}}/{{$codeInfo.StructName | toLower}}{{ end }}
 
 ## Project Generated Details
 {{markdownCodeBlock ".bash" (wrapBash .CommandLine)}}
