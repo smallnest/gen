@@ -177,6 +177,7 @@ func main() {
 		dbTables, err = schema.TableNames(db)
 		if err != nil {
 			fmt.Printf("Error in fetching tables information from %s information schema from %s\n", *sqlType, *sqlConnStr)
+			fmt.Printf("Error in fetching tables information from %s information schema from %s\n", *sqlType, *sqlConnStr)
 			os.Exit(1)
 			return
 		}
@@ -742,6 +743,10 @@ func regenCmdLine() string {
 
 	if *sqlTable != "" {
 		buf.WriteString(fmt.Sprintf(" --table=%s", *sqlTable))
+	}
+
+	if *excludeSqlTables != "" {
+		buf.WriteString(fmt.Sprintf(" --exclude=%s", *excludeSqlTables))
 	}
 
 	buf.WriteString(fmt.Sprintf(" --model=%s", *modelPackageName))
