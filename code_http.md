@@ -25,21 +25,21 @@
 ## Retrieve Paged Records
 ```go
 
-// GetAllInvoice is a function to get a slice of record(s) from invoices table in the main database
-// @Summary Get list of Invoice
-// @Tags Invoice
-// @Description GetAllInvoice is a handler to get a slice of record(s) from invoices table in the main database
+// GetAllInvoices is a function to get a slice of record(s) from invoices table in the main database
+// @Summary Get list of Invoices
+// @Tags Invoices
+// @Description GetAllInvoices is a handler to get a slice of record(s) from invoices table in the main database
 // @Accept  json
 // @Produce  json
 // @Param   page     query    int     false        "page requested (defaults to 0)"
 // @Param   pagesize query    int     false        "number of records in a page  (defaults to 20)"
 // @Param   order    query    string  false        "db sort order column"
-// @Success 200 {object} api.PagedResults{data=[]model.Invoice}
+// @Success 200 {object} api.PagedResults{data=[]model.Invoices}
 // @Failure 400 {object} api.HTTPError
 // @Failure 404 {object} api.HTTPError
-// @Router /invoice [get]
-// http "http://127.0.0.1:8080/invoice?page=0&pagesize=20"
-func GetAllInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+// @Router /invoices [get]
+// http "http://127.0.0.1:8080/invoices?page=0&pagesize=20"
+func GetAllInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
     page, err := readInt(r, "page", 0)
 	if err != nil || page < 0 {
 		returnError(w, r, dao.ErrBadParams)
@@ -54,7 +54,7 @@ func GetAllInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 
 	order := r.FormValue("order")
 
-    records, totalRows, err :=  dao.GetAllInvoice(r.Context(), page, pagesize, order)
+    records, totalRows, err :=  dao.GetAllInvoices(r.Context(), page, pagesize, order)
 	if err != nil {
 	    returnError(w, r, err)
 		return
@@ -69,20 +69,20 @@ func GetAllInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 ## Retrieve record
 ```go
 
-// GetInvoice is a function to get a single record from the invoices table in the main database
-// @Summary Get record from table Invoice by  argInvoiceID 
-// @Tags Invoice
+// GetInvoices is a function to get a single record from the invoices table in the main database
+// @Summary Get record from table Invoices by  argInvoiceID 
+// @Tags Invoices
 // @ID argInvoiceID
- // @Description GetInvoice is a function to get a single record from the invoices table in the main database
+ // @Description GetInvoices is a function to get a single record from the invoices table in the main database
 // @Accept  json
 // @Produce  json
 // @Param  argInvoiceID path int true "InvoiceId"
- // @Success 200 {object} model.Invoice
+ // @Success 200 {object} model.Invoices
 // @Failure 400 {object} api.HTTPError
 // @Failure 404 {object} api.HTTPError "ErrNotFound, db record for id not found - returns NotFound HTTP 404 not found error"
-// @Router /invoice/{argInvoiceID} [get]
-// http "http://127.0.0.1:8080/invoice/1"
-func GetInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+// @Router /invoices/{argInvoiceID} [get]
+// http "http://127.0.0.1:8080/invoices/1"
+func GetInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 
 
@@ -102,7 +102,7 @@ func GetInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 
 
-	record, err := dao.GetInvoice(r.Context(),  argInvoiceID,        )
+	record, err := dao.GetInvoices(r.Context(),  argInvoiceID,        )
 	if err != nil {
 		returnError(w, r, err)
 		return
@@ -116,46 +116,46 @@ func GetInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 ## Create record
 ```go
 
-// AddInvoice add to add a single record to invoices table in the main database
+// AddInvoices add to add a single record to invoices table in the main database
 // @Summary Add an record to invoices table
 // @Description add to add a single record to invoices table in the main database
-// @Tags Invoice
+// @Tags Invoices
 // @Accept  json
 // @Produce  json
-// @Param Invoice body model.Invoice true "Add Invoice"
-// @Success 200 {object} model.Invoice
+// @Param Invoices body model.Invoices true "Add Invoices"
+// @Success 200 {object} model.Invoices
 // @Failure 400 {object} api.HTTPError
 // @Failure 404 {object} api.HTTPError
-// @Router /invoice [post]
-// echo '{"billing_address": "VHOzqJyUpRJidXMShKGKDDLJO","billing_postal_code": "lxjshanwhnvPdvmJXQgYIeLqY","invoice_date": "2139-12-30T11:18:29.345921313-05:00","customer_id": 53,"billing_city": "bKQoRTJSYVRkYaqoakibXMxmo","billing_state": "zAlFAlvfSrTAPsZIRFOSmDLCW","billing_country": "kalyvEcATcFaTFMYPIrciJwpv","total": 0.35419376113942896,"invoice_id": 91}' | http POST "http://127.0.0.1:8080/invoice"
-func AddInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-	invoice := &model.Invoice{}
+// @Router /invoices [post]
+// echo '{"billing_address": "PAbKboBarmimYZuhsEprsvfVS","billing_country": "ZlEGaFNWWTNFOVlSFAOgYSgDN","billing_postal_code": "wpdyOzdCejQAsVjUQTpcBpgrk","invoice_id": 90,"invoice_date": "2071-03-13T08:53:02.362038394-05:00","billing_city": "xBjWHtPBiaTGUPRuHjOFuibUw","billing_state": "vqxghyUlhMjmmZPBwyNIFEUgX","total": 0.46389071882464017,"customer_id": 40}' | http POST "http://127.0.0.1:8080/invoices"
+func AddInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	invoices := &model.Invoices{}
 
-	if err := readJSON(r, invoice); err != nil {
+	if err := readJSON(r, invoices); err != nil {
 		returnError(w, r, dao.ErrBadParams)
 		return
 	}
 
 
-   if err := invoice.BeforeSave(); err != nil {
+   if err := invoices.BeforeSave(); err != nil {
       returnError(w, r, dao.ErrBadParams)
    }
 
-   invoice.Prepare()
+   invoices.Prepare()
 
-   if err := invoice.Validate(model.Create); err != nil {
+   if err := invoices.Validate(model.Create); err != nil {
       returnError(w, r, dao.ErrBadParams)
       return
    }
 
     var err error
-	invoice, _, err = dao.AddInvoice(r.Context(), invoice)
+	invoices, _, err = dao.AddInvoices(r.Context(), invoices)
 	if err != nil {
 		returnError(w, r, err)
 		return
 	}
 
-	writeJSON(w, invoice)
+	writeJSON(w, invoices)
 }
 
 ```
@@ -163,20 +163,20 @@ func AddInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 ## Update record
 ```go
 
-// UpdateInvoice Update a single record from invoices table in the main database
+// UpdateInvoices Update a single record from invoices table in the main database
 // @Summary Update an record in table invoices
 // @Description Update a single record from invoices table in the main database
-// @Tags Invoice
+// @Tags Invoices
 // @Accept  json
 // @Produce  json
 // @Param  argInvoiceID path int true "InvoiceId"
-// @Param  Invoice body model.Invoice true "Update Invoice record"
-// @Success 200 {object} model.Invoice
+// @Param  Invoices body model.Invoices true "Update Invoices record"
+// @Success 200 {object} model.Invoices
 // @Failure 400 {object} api.HTTPError
 // @Failure 404 {object} api.HTTPError
-// @Router /invoice/{argInvoiceID} [patch]
-// echo '{"billing_address": "VHOzqJyUpRJidXMShKGKDDLJO","billing_postal_code": "lxjshanwhnvPdvmJXQgYIeLqY","invoice_date": "2139-12-30T11:18:29.345921313-05:00","customer_id": 53,"billing_city": "bKQoRTJSYVRkYaqoakibXMxmo","billing_state": "zAlFAlvfSrTAPsZIRFOSmDLCW","billing_country": "kalyvEcATcFaTFMYPIrciJwpv","total": 0.35419376113942896,"invoice_id": 91}' | http PUT "http://127.0.0.1:8080/invoice/1"
-func UpdateInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+// @Router /invoices/{argInvoiceID} [patch]
+// echo '{"billing_address": "PAbKboBarmimYZuhsEprsvfVS","billing_country": "ZlEGaFNWWTNFOVlSFAOgYSgDN","billing_postal_code": "wpdyOzdCejQAsVjUQTpcBpgrk","invoice_id": 90,"invoice_date": "2071-03-13T08:53:02.362038394-05:00","billing_city": "xBjWHtPBiaTGUPRuHjOFuibUw","billing_state": "vqxghyUlhMjmmZPBwyNIFEUgX","total": 0.46389071882464017,"customer_id": 40}' | http PUT "http://127.0.0.1:8080/invoices/1"
+func UpdateInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 
 
@@ -195,32 +195,32 @@ func UpdateInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 
 
 
-	invoice := &model.Invoice{}
-	if err := readJSON(r, invoice); err != nil {
+	invoices := &model.Invoices{}
+	if err := readJSON(r, invoices); err != nil {
 		returnError(w, r, dao.ErrBadParams)
 		return
 	}
 
-   if err := invoice.BeforeSave(); err != nil {
+   if err := invoices.BeforeSave(); err != nil {
       returnError(w, r, dao.ErrBadParams)
    }
 
-   invoice.Prepare()
+   invoices.Prepare()
 
-   if err := invoice.Validate( model.Update); err != nil {
+   if err := invoices.Validate( model.Update); err != nil {
       returnError(w, r, dao.ErrBadParams)
       return
    }
 
-	invoice, _, err = dao.UpdateInvoice(r.Context(),
+	invoices, _, err = dao.UpdateInvoices(r.Context(),
 	  argInvoiceID,        
-	invoice)
+	invoices)
 	if err != nil {
 	    returnError(w, r, err)
    	    return
 	}
 
-	writeJSON(w, invoice)
+	writeJSON(w, invoices)
 }
 
 ```
@@ -228,19 +228,19 @@ func UpdateInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 ## Delete record
 ```go
 
-// DeleteInvoice Delete a single record from invoices table in the main database
+// DeleteInvoices Delete a single record from invoices table in the main database
 // @Summary Delete a record from invoices
 // @Description Delete a single record from invoices table in the main database
-// @Tags Invoice
+// @Tags Invoices
 // @Accept  json
 // @Produce  json
 // @Param  argInvoiceID path int true "InvoiceId"
-// @Success 204 {object} model.Invoice
+// @Success 204 {object} model.Invoices
 // @Failure 400 {object} api.HTTPError
 // @Failure 500 {object} api.HTTPError
-// @Router /invoice/{argInvoiceID} [delete]
-// http DELETE "http://127.0.0.1:8080/invoice/1"
-func DeleteInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+// @Router /invoices/{argInvoiceID} [delete]
+// http DELETE "http://127.0.0.1:8080/invoices/1"
+func DeleteInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 
 	argInvoiceID, err := parseInt32(ps, "argInvoiceID")
@@ -258,7 +258,7 @@ func DeleteInvoice(w http.ResponseWriter, r *http.Request, ps httprouter.Params)
 
 
 
-	rowsAffected, err := dao.DeleteInvoice(r.Context(),  argInvoiceID,        )
+	rowsAffected, err := dao.DeleteInvoices(r.Context(),  argInvoiceID,        )
 	if err != nil {
 	    returnError(w, r, err)
 	    return

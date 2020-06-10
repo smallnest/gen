@@ -2,12 +2,14 @@ package dbmeta
 
 import (
 	"bytes"
+	"encoding/csv"
 	"encoding/json"
 	"fmt"
 	"go/format"
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"regexp"
 	"strings"
 	"text/template"
 
@@ -17,6 +19,38 @@ import (
 )
 
 type TemplateLoader func(filename string) (content string, err error)
+
+var replaceFuncMap = template.FuncMap{
+	"singular":         inflection.Singular,
+	"pluralize":        inflection.Plural,
+	"title":            strings.Title,
+	"toLower":          strings.ToLower,
+	"toUpper":          strings.ToUpper,
+	"toLowerCamelCase": camelToLowerCamel,
+	"toUpperCamelCase": camelToUpperCamel,
+	"toSnakeCase":      snaker.CamelToSnake,
+	"StringsJoin":      strings.Join,
+	"replace":          replace,
+}
+
+func replace(input, from, to string) string {
+	return strings.Replace(input, from, to, -1)
+}
+func Replace(nameFormat, name string) string {
+	var tpl bytes.Buffer
+	t := template.Must(template.New("t1").Funcs(replaceFuncMap).Parse(nameFormat))
+
+	if err := t.Execute(&tpl, name); err != nil {
+		fmt.Printf("Error creating name format: %s error: %v\n", nameFormat, err)
+		return name
+	}
+	result := tpl.String()
+
+	result = strings.Trim(result, " \t")
+	result = strings.Replace(result, " ", "_", -1)
+	result = strings.Replace(result, "\t", "_", -1)
+	return result
+}
 
 func (c *Config) GetTemplate(name, t string) (*template.Template, error) {
 	var s State
@@ -28,6 +62,7 @@ func (c *Config) GetTemplate(name, t string) (*template.Template, error) {
 		"toLower":           strings.ToLower,
 		"toUpper":           strings.ToUpper,
 		"toLowerCamelCase":  camelToLowerCamel,
+		"toUpperCamelCase": camelToUpperCamel,
 		"FormatSource":      FormatSource,
 		"toSnakeCase":       snaker.CamelToSnake,
 		"markdownCodeBlock": markdownCodeBlock,
@@ -40,6 +75,7 @@ func (c *Config) GetTemplate(name, t string) (*template.Template, error) {
 		"set":               s.Set,
 		"inc":               s.Inc,
 		"StringsJoin":       strings.Join,
+		"replace":          replace,
 	}
 
 	tmpl, err := template.New(name).Option("missingkey=error").Funcs(funcMap).Parse(t)
@@ -118,7 +154,12 @@ func (s *State) Inc() int {
 func camelToLowerCamel(s string) string {
 	ss := strings.Split(s, "")
 	ss[0] = strings.ToLower(ss[0])
+	return strings.Join(ss, "")
+}
 
+func camelToUpperCamel(s string) string {
+	ss := strings.Split(s, "")
+	ss[0] = strings.ToUpper(ss[0])
 	return strings.Join(ss, "")
 }
 
@@ -136,9 +177,119 @@ func markdownCodeBlock(contentType, content string) string {
 }
 
 func wrapBash(content string) string {
-	// fmt.Printf("wrapBash - %s\n",  content)
-	parts := strings.Split(content, " ")
-	return strings.Join(parts, " \\\n    ")
+
+	r := csv.NewReader(strings.NewReader(content))
+	r.Comma = ' '
+	record, err := r.Read()
+	if err != nil {
+		return content
+	}
+
+	fmt.Printf("[%s]\n", content)
+
+	for i, j := range record {
+		fmt.Printf("wrapBash [%d] %s\n", i, j)
+	}
+
+	out := strings.Join(record, " \\\n    ")
+	return out
+
+	//
+	//
+	//r := regexp.MustCompile(`[^\s"']+|"([^"]*)"|'([^']*)`)
+	//arr := r.FindAllString(content, -1)
+	//return strings.Join(arr, " \\\n    ")
+	//
+	//
+
+	//splitter := "[^\\s\"']+|\"[^\"]*\"|'[^']*'"
+	//result := RegSplit(content, splitter)
+	//return strings.Join(result, " \\\n    ")
+
+	//
+	//result, err := parseCommandLine(content)
+	//if err != nil {
+	//	return content
+	//}
+	//return strings.Join(result, " \\\n    ")
+}
+
+func RegSplit(text string, delimeter string) []string {
+	reg := regexp.MustCompile(delimeter)
+	indexes := reg.FindAllStringIndex(text, -1)
+	laststart := 0
+	result := make([]string, len(indexes)+1)
+	for i, element := range indexes {
+		result[i] = text[laststart:element[0]]
+		laststart = element[1]
+	}
+	result[len(indexes)] = text[laststart:len(text)]
+	return result
+}
+
+func parseCommandLine(command string) ([]string, error) {
+	var args []string
+	state := "start"
+	current := ""
+	quote := "\""
+	escapeNext := true
+	for i := 0; i < len(command); i++ {
+		c := command[i]
+
+		if state == "quotes" {
+			if string(c) != quote {
+				current += string(c)
+			} else {
+				args = append(args, current)
+				current = ""
+				state = "start"
+			}
+			continue
+		}
+
+		if escapeNext {
+			current += string(c)
+			escapeNext = false
+			continue
+		}
+
+		if c == '\\' {
+			escapeNext = true
+			continue
+		}
+
+		if c == '"' || c == '\'' {
+			state = "quotes"
+			quote = string(c)
+			continue
+		}
+
+		if state == "arg" {
+			if c == ' ' || c == '\t' {
+				args = append(args, current)
+				current = ""
+				state = "start"
+			} else {
+				current += string(c)
+			}
+			continue
+		}
+
+		if c != ' ' && c != '\t' {
+			state = "arg"
+			current += string(c)
+		}
+	}
+
+	if state == "quotes" {
+		return []string{}, fmt.Errorf("unclosed quote in command line: %s", command)
+	}
+
+	if current != "" {
+		args = append(args, current)
+	}
+
+	return args, nil
 }
 func escape(content string) string {
 	content = strings.Replace(content, "\"", "\\\"", -1)
@@ -255,7 +406,6 @@ func (c *Config) WriteTemplate(name, templateStr string, data map[string]interfa
 	data["serverHost"] = c.ServerHost
 	data["SwaggerInfo"] = c.Swagger
 	data["outDir"] = c.OutDir
-	data["CommandLine"] = c.CmdLine
 	data["Config"] = c
 
 	rt, err := c.GetTemplate(name, templateStr)
@@ -367,8 +517,13 @@ type Config struct {
 	OutDir                string
 	Overwrite             bool
 	CmdLine               string
-	ContextMap            map[string]interface{}
-	TemplateLoader        TemplateLoader
+	CmdLineWrapped        string
+	CmdLineArgs           []string
+	FileNamingTemplate    string
+	ModelNamingTemplate   string
+	string
+	ContextMap     map[string]interface{}
+	TemplateLoader TemplateLoader
 }
 
 func NewConfig(templateLoader TemplateLoader) *Config {
@@ -385,7 +540,13 @@ func NewConfig(templateLoader TemplateLoader) *Config {
 		},
 		TemplateLoader: templateLoader,
 	}
+	conf.CmdLineArgs = os.Args
+	conf.CmdLineWrapped = strings.Join(os.Args, " \\\n    ")
 	conf.CmdLine = strings.Join(os.Args, " ")
+
 	conf.ContextMap = make(map[string]interface{})
+
+	conf.FileNamingTemplate = "{{.}}"
+	conf.ModelNamingTemplate = "{{.}}"
 	return conf
 }

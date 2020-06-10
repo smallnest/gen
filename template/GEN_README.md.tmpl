@@ -199,6 +199,43 @@ The following info is available within use of the exec template.
 
 ```
 
+## Struct naming
+The ability exists to set a template that will be used for generating a struct name. By passing the flag `--model_naming={{"{{.}}"}}`
+The struct will be named the table name. Various functions can be used in the template to modify the name such as
+
+You can use the argument `--name_test=user` in conjunction with the `--model_naming` or `--file_name`, to view what the naming would be.
+
+| Function   | Table Name  | Output
+|---|---|---|
+|singular   |Users   | `{{singular "Users" }}`  |
+|pluralize   |Users   | `{{pluralize "Users" }}`  |
+|title   |Users   | `{{title "Users" }}`  |
+|toLower   |Users   | `{{toLower "Users" }}`  |
+|toUpper   |Users   | `{{toUpper "Users" }}`  |
+|toLowerCamelCase   |Users   | `{{toLowerCamelCase "Users" }}`  |
+|toUpperCamelCase   |Users   | `{{toUpperCamelCase "Users" }}`  |
+|toSnakeCase   |Users   | `{{toSnakeCase "Users" }}`  |
+
+
+
+
+### Struct naming Examples
+Table Name: registration_source
+
+| Model Naming Format  | Generated Struct Name
+|---|---|
+|`{{"{{"}}.{{"}}"}}`   | {{"registration_source"}}   |
+|`Struct{{"{{"}}.{{"}}"}}`   | Struct{{"registration_source"}}   |
+|`Struct{{"{{ singular "}}.{{"}}"}}`   | Struct{{ singular "registration_source"}}   |
+|`Struct{{"{{ toLowerCamelCase "}}.{{"}}"}}`   | Struct{{ toLowerCamelCase "registration_source"}}   |
+|`Struct{{"{{ toUpperCamelCase "}}.{{"}}"}}`   | Struct{{ toUpperCamelCase "registration_source"}}   |
+|`Struct{{"{{ toSnakeCase "}}.{{"}}"}}`   | Struct{{ toSnakeCase "registration_source"}}   |
+|`Struct{{"{{ toLowerCamelCase "}}.{{"}}"}}`   | Struct{{ toLowerCamelCase "table_registration_source"}}   |
+|`Struct{{"{{ toUpperCamelCase "}}.{{"}}"}}`   | Struct{{ toUpperCamelCase "table_registration_source"}}   |
+|`Struct{{"{{ toSnakeCase "}}.{{"}}"}}`   | Struct{{ toSnakeCase "table_registration_source"}}   |
+|`Struct{{"{{ toSnakeCase ( replace . \"table_\" \"\") }}`"}}   | Struct{{ toSnakeCase ( replace "table_registration_source" "table_" "") }}   |
+
+
 ## Notes
 - MySql, Mssql, Postgres and Sqlite have a database metadata fetcher that will query the db, and update the auto increment, primary key and nullable info for the gorm annotation.
 - Tables that have a non-standard primary key (NON integer based or String) the table will be ignored.
@@ -212,6 +249,10 @@ The following info is available within use of the exec template.
 |ms sql   |y   | y  | y  | y  | y | y| n
 
 ## Version History
+- v0.9.8 (06/10/2020)
+    - Added ability to set file naming convention for models, dao, apis and grpc  `--file_naming={{"{{.}}"}}`
+    - Added ability to set struct naming convention `--model_naming={{"{{.}}"}}`
+    - Fixed bug with Makefile generation removing quoted conn string in `make regen`
 - v0.9.7 (06/09/2020)
     - Added grpc server generation - WIP (looking for code improvements)
     - Added ability to exclude tables
