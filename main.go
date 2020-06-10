@@ -770,7 +770,7 @@ func copyTemplatesToTarget() (err error) {
 func regenCmdLine() []string {
 	cmdLine := []string{"gen",
 		fmt.Sprintf(" --sqltype=%s", *sqlType),
-		fmt.Sprintf(" --connstr=\"%s\"", *sqlConnStr),
+		fmt.Sprintf(" --connstr='%s'", *sqlConnStr),
 		fmt.Sprintf(" --database=%s", *sqlDatabase),
 		fmt.Sprintf(" --templateDir=%s", "./templates"),
 	}
@@ -839,8 +839,8 @@ func regenCmdLine() []string {
 		cmdLine = append(cmdLine, fmt.Sprintf(" --generate-proj"))
 	}
 
-	cmdLine = append(cmdLine, fmt.Sprintf(" --file_naming=\"%s\"", *fileNamingTemplate))
-	cmdLine = append(cmdLine, fmt.Sprintf(" --model_naming=\"%s\"", *modelNamingTemplate))
+	cmdLine = append(cmdLine, fmt.Sprintf(" --file_naming='%s'", *fileNamingTemplate))
+	cmdLine = append(cmdLine, fmt.Sprintf(" --model_naming='%s'", *modelNamingTemplate))
 
 	if *verbose {
 		cmdLine = append(cmdLine, fmt.Sprintf(" --verbose"))

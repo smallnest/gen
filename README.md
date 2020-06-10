@@ -355,9 +355,9 @@ Table Name: registration_source
 
 ## Version History
 - v0.9.8 (06/10/2020)
-    - Added ability to set file naming convention for models, dao, apis and grpc  `--file_naming={{.}}`
+``    - Added ability to set file naming convention for models, dao, apis and grpc  `--file_naming={{.}}`
     - Added ability to set struct naming convention `--model_naming={{.}}`
-    - Fixed bug with Makefile generation removing quoted conn string in `make regen`
+``    - Fixed bug with Makefile generation removing quoted conn string in `make regen`
 - v0.9.7 (06/09/2020)
     - Added grpc server generation - WIP (looking for code improvements)
     - Added ability to exclude tables
