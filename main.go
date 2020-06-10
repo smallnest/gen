@@ -18,7 +18,6 @@ import (
 	"github.com/gobuffalo/packr/v2"
 	"github.com/jimsmart/schema"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
-	"github.com/jinzhu/inflection"
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 
@@ -34,16 +33,18 @@ var (
 	templateDir      = goopt.String([]string{"--templateDir"}, "", "Template Dir")
 	saveTemplateDir  = goopt.String([]string{"--save"}, "", "Save templates to dir")
 
-	modelPackageName = goopt.String([]string{"--model"}, "model", "name to set for model package")
-	daoPackageName   = goopt.String([]string{"--dao"}, "dao", "name to set for dao package")
-	apiPackageName   = goopt.String([]string{"--api"}, "api", "name to set for api package")
-	grpcPackageName  = goopt.String([]string{"--grpc"}, "grpc", "name to set for grpc package")
-	outDir           = goopt.String([]string{"--out"}, ".", "output dir")
-	module           = goopt.String([]string{"--module"}, "example.com/example", "module path")
-	overwrite        = goopt.Flag([]string{"--overwrite"}, []string{"--no-overwrite"}, "Overwrite existing files (default)", "disable overwriting files")
-	contextFileName  = goopt.String([]string{"--context"}, "", "context file (json) to populate context with")
-	mappingFileName  = goopt.String([]string{"--mapping"}, "", "mapping file (json) to map sql types to golang/protobuf etc")
-	execCustomScript = goopt.String([]string{"--exec"}, "", "execute script for custom code generation")
+	modelPackageName    = goopt.String([]string{"--model"}, "model", "name to set for model package")
+	modelNamingTemplate = goopt.String([]string{"--model_naming"}, "{{.}}", "model naming template to name structs")
+	fileNamingTemplate = goopt.String([]string{"--file_naming"}, "{{.}}", "file_naming template to name files")
+	daoPackageName      = goopt.String([]string{"--dao"}, "dao", "name to set for dao package")
+	apiPackageName      = goopt.String([]string{"--api"}, "api", "name to set for api package")
+	grpcPackageName     = goopt.String([]string{"--grpc"}, "grpc", "name to set for grpc package")
+	outDir              = goopt.String([]string{"--out"}, ".", "output dir")
+	module              = goopt.String([]string{"--module"}, "example.com/example", "module path")
+	overwrite           = goopt.Flag([]string{"--overwrite"}, []string{"--no-overwrite"}, "Overwrite existing files (default)", "disable overwriting files")
+	contextFileName     = goopt.String([]string{"--context"}, "", "context file (json) to populate context with")
+	mappingFileName     = goopt.String([]string{"--mapping"}, "", "mapping file (json) to map sql types to golang/protobuf etc")
+	execCustomScript    = goopt.String([]string{"--exec"}, "", "execute script for custom code generation")
 
 	AddJSONAnnotation = goopt.Flag([]string{"--json"}, []string{"--no-json"}, "Add json annotations (default)", "Disable json annotations")
 	jsonNameFormat    = goopt.String([]string{"--json-fmt"}, "snake", "json name format [snake | camel | lower_camel | none]")
@@ -76,6 +77,9 @@ var (
 
 	verbose = goopt.Flag([]string{"-v", "--verbose"}, []string{}, "Enable verbose output", "")
 
+	nameTest = goopt.String([]string{"--name_test"}, "", "perform name test using the --model_naming or --file_naming options")
+
+
 	baseTemplates *packr.Box
 	tableInfos    map[string]*dbmeta.ModelInfo
 )
@@ -85,8 +89,7 @@ func init() {
 	goopt.Description = func() string {
 		return "ORM and RESTful API generator for SQl databases"
 	}
-
-	goopt.Version = "0.9.7 (06/09/2020)"
+	goopt.Version = "0.9.8 (06/10/2020)"
 	goopt.Summary = `gen [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> --module=example.com/example [--json] [--gorm] [--guregu] [--generate-dao] [--generate-proj]
 
            sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
@@ -147,6 +150,22 @@ func main() {
 		return
 	}
 
+	if *nameTest != "" {
+		fmt.Printf("Running name test\n")
+		fmt.Printf("table name: %s\n", *nameTest)
+
+		fmt.Printf("modelNamingTemplate: %s\n", *modelNamingTemplate)
+		result := dbmeta.Replace(*modelNamingTemplate, *nameTest )
+		fmt.Printf("model: %s\n", result)
+
+		fmt.Printf("fileNamingTemplate: %s\n", *fileNamingTemplate)
+		result = dbmeta.Replace(*modelNamingTemplate, *nameTest )
+		fmt.Printf("file: %s\n", result)
+
+		os.Exit(0)
+		return
+	}
+
 	// Username is required
 	if sqlConnStr == nil || *sqlConnStr == "" || *sqlConnStr == "nil" {
 		fmt.Printf("sql connection string is required! Add it with --connstr=s\n\n")
@@ -180,6 +199,17 @@ func main() {
 			os.Exit(1)
 			return
 		}
+	}
+
+
+	if strings.HasPrefix(*modelNamingTemplate, "'") && strings.HasSuffix(*modelNamingTemplate, "'"){
+		*modelNamingTemplate=strings.TrimSuffix(*modelNamingTemplate, "'")
+		*modelNamingTemplate=strings.TrimPrefix(*modelNamingTemplate, "'")
+	}
+
+	if strings.HasPrefix(*fileNamingTemplate, "'") && strings.HasSuffix(*fileNamingTemplate, "'"){
+		*fileNamingTemplate=strings.TrimSuffix(*fileNamingTemplate, "'")
+		*fileNamingTemplate=strings.TrimPrefix(*fileNamingTemplate, "'")
 	}
 
 	var excludeDbTables []string
@@ -312,6 +342,9 @@ func initialize(conf *dbmeta.Config) {
 	conf.GrpcPackageName = *grpcPackageName
 	conf.GrpcFQPN = *module + "/" + *grpcPackageName
 
+	conf.FileNamingTemplate = *fileNamingTemplate
+	conf.ModelNamingTemplate = *modelNamingTemplate
+
 	conf.Swagger.Version = *swaggerVersion
 	conf.Swagger.BasePath = *swaggerBasePath
 	conf.Swagger.Title = fmt.Sprintf("Sample CRUD api for %s db", *sqlDatabase)
@@ -375,6 +408,7 @@ func execTemplate(conf *dbmeta.Config, name, templateStr string, data map[string
 	data["tableInfos"] = tableInfos
 	data["CommandLine"] = conf.CmdLine
 	data["outDir"] = *outDir
+	data["Config"] = conf
 
 	rt, err := conf.GetTemplate(name, templateStr)
 	if err != nil {
@@ -542,6 +576,7 @@ func generate(conf *dbmeta.Config) error {
 	data = map[string]interface{}{
 		"deps":        "go list -f '{{ join .Deps  \"\\n\"}}' .",
 		"CommandLine": conf.CmdLine,
+		"Config": conf,
 	}
 
 	if *projectGenerate {
@@ -594,8 +629,9 @@ func generateMakefile(conf *dbmeta.Config) (err error) {
 	}
 
 	data := map[string]interface{}{
-		"deps":         "go list -f '{{ join .Deps  \"\\n\"}}' .",
-		"RegenCmdLine": regenCmdLine(),
+		"deps":             "go list -f '{{ join .Deps  \"\\n\"}}' .",
+		"RegenCmdLineArgs": regenCmdLine(),
+		"RegenCmdLine":     strings.Join(regenCmdLine(), " \\\n    "),
 	}
 	conf.WriteTemplate("makefile", MakefileTmpl, data, filepath.Join(*outDir, "Makefile"), false)
 	return nil
@@ -731,93 +767,92 @@ func copyTemplatesToTarget() (err error) {
 	return nil
 }
 
-func regenCmdLine() string {
-	buf := bytes.Buffer{}
-
-	buf.WriteString("gen")
-	buf.WriteString(fmt.Sprintf(" --sqltype=%s", *sqlType))
-	buf.WriteString(fmt.Sprintf(" --connstr=%s", *sqlConnStr))
-	buf.WriteString(fmt.Sprintf(" --database=%s", *sqlDatabase))
-	buf.WriteString(fmt.Sprintf(" --templateDir=%s", "./templates"))
+func regenCmdLine() []string {
+	cmdLine := []string{"gen",
+		fmt.Sprintf(" --sqltype=%s", *sqlType),
+		fmt.Sprintf(" --connstr=\"%s\"", *sqlConnStr),
+		fmt.Sprintf(" --database=%s", *sqlDatabase),
+		fmt.Sprintf(" --templateDir=%s", "./templates"),
+	}
 
 	if *sqlTable != "" {
-		buf.WriteString(fmt.Sprintf(" --table=%s", *sqlTable))
+		cmdLine = append(cmdLine, fmt.Sprintf(" --table=%s", *sqlTable))
 	}
 
 	if *excludeSqlTables != "" {
-		buf.WriteString(fmt.Sprintf(" --exclude=%s", *excludeSqlTables))
+		cmdLine = append(cmdLine, fmt.Sprintf(" --exclude=%s", *excludeSqlTables))
 	}
 
-	buf.WriteString(fmt.Sprintf(" --model=%s", *modelPackageName))
-	buf.WriteString(fmt.Sprintf(" --dao=%s", *daoPackageName))
-	buf.WriteString(fmt.Sprintf(" --api=%s", *apiPackageName))
-	buf.WriteString(fmt.Sprintf(" --out=%s", "./"))
-	buf.WriteString(fmt.Sprintf(" --module=%s", *module))
+	cmdLine = append(cmdLine, fmt.Sprintf(" --model=%s", *modelPackageName))
+	cmdLine = append(cmdLine, fmt.Sprintf(" --dao=%s", *daoPackageName))
+	cmdLine = append(cmdLine, fmt.Sprintf(" --api=%s", *apiPackageName))
+	cmdLine = append(cmdLine, fmt.Sprintf(" --out=%s", "./"))
+	cmdLine = append(cmdLine, fmt.Sprintf(" --module=%s", *module))
 	if *AddJSONAnnotation {
-		buf.WriteString(fmt.Sprintf(" --json"))
-		buf.WriteString(fmt.Sprintf(" --json-fmt=%s", *jsonNameFormat))
+		cmdLine = append(cmdLine, fmt.Sprintf(" --json"))
+		cmdLine = append(cmdLine, fmt.Sprintf(" --json-fmt=%s", *jsonNameFormat))
 	}
 	if *AddXMLAnnotation {
-		buf.WriteString(fmt.Sprintf(" --xml"))
-		buf.WriteString(fmt.Sprintf(" --xml-fmt=%s", *xmlNameFormat))
+		cmdLine = append(cmdLine, fmt.Sprintf(" --xml"))
+		cmdLine = append(cmdLine, fmt.Sprintf(" --xml-fmt=%s", *xmlNameFormat))
 	}
 	if *AddGormAnnotation {
-		buf.WriteString(fmt.Sprintf(" --gorm"))
+		cmdLine = append(cmdLine, fmt.Sprintf(" --gorm"))
 	}
 	if *AddProtobufAnnotation {
-		buf.WriteString(fmt.Sprintf(" --protobuf"))
-		buf.WriteString(fmt.Sprintf(" --proto-fmt=%s", *protoNameFormat))
+		cmdLine = append(cmdLine, fmt.Sprintf(" --protobuf"))
+		cmdLine = append(cmdLine, fmt.Sprintf(" --proto-fmt=%s", *protoNameFormat))
 	}
 	if *AddDBAnnotation {
-		buf.WriteString(fmt.Sprintf(" --db"))
+		cmdLine = append(cmdLine, fmt.Sprintf(" --db"))
 	}
 	if *UseGureguTypes {
-		buf.WriteString(fmt.Sprintf(" --guregu"))
+		cmdLine = append(cmdLine, fmt.Sprintf(" --guregu"))
 	}
 	if *modGenerate {
-		buf.WriteString(fmt.Sprintf(" --mod"))
+		cmdLine = append(cmdLine, fmt.Sprintf(" --mod"))
 	}
 	if *makefileGenerate {
-		buf.WriteString(fmt.Sprintf(" --makefile"))
+		cmdLine = append(cmdLine, fmt.Sprintf(" --makefile"))
 	}
 	if *serverGenerate {
-		buf.WriteString(fmt.Sprintf(" --server"))
+		cmdLine = append(cmdLine, fmt.Sprintf(" --server"))
 	}
 	if *overwrite {
-		buf.WriteString(fmt.Sprintf(" --overwrite"))
+		cmdLine = append(cmdLine, fmt.Sprintf(" --overwrite"))
 	}
 
 	if *contextFileName != "" {
-		buf.WriteString(fmt.Sprintf(" --context=%s", *contextFileName))
+		cmdLine = append(cmdLine, fmt.Sprintf(" --context=%s", *contextFileName))
 	}
 
-	buf.WriteString(fmt.Sprintf(" --host=%s", *serverHost))
-	buf.WriteString(fmt.Sprintf(" --port=%d", *serverPort))
+	cmdLine = append(cmdLine, fmt.Sprintf(" --host=%s", *serverHost))
+	cmdLine = append(cmdLine, fmt.Sprintf(" --port=%d", *serverPort))
 	if *restAPIGenerate {
-		buf.WriteString(fmt.Sprintf(" --rest"))
+		cmdLine = append(cmdLine, fmt.Sprintf(" --rest"))
 	}
 
 	if *daoGenerate {
-		buf.WriteString(fmt.Sprintf(" --generate-dao"))
+		cmdLine = append(cmdLine, fmt.Sprintf(" --generate-dao"))
 	}
 	if *projectGenerate {
-		buf.WriteString(fmt.Sprintf(" --generate-proj"))
+		cmdLine = append(cmdLine, fmt.Sprintf(" --generate-proj"))
 	}
+
+	cmdLine = append(cmdLine, fmt.Sprintf(" --file_naming=\"%s\"", *fileNamingTemplate))
+	cmdLine = append(cmdLine, fmt.Sprintf(" --model_naming=\"%s\"", *modelNamingTemplate))
 
 	if *verbose {
-		buf.WriteString(fmt.Sprintf(" --verbose"))
+		cmdLine = append(cmdLine, fmt.Sprintf(" --verbose"))
 	}
 
-	buf.WriteString(fmt.Sprintf(" --swagger_version=%s", *swaggerVersion))
-	buf.WriteString(fmt.Sprintf(" --swagger_path=%s", *swaggerBasePath))
-	buf.WriteString(fmt.Sprintf(" --swagger_tos=%s", *swaggerTos))
-	buf.WriteString(fmt.Sprintf(" --swagger_contact_name=%s", *swaggerContactName))
-	buf.WriteString(fmt.Sprintf(" --swagger_contact_url=%s", *swaggerContactURL))
-	buf.WriteString(fmt.Sprintf(" --swagger_contact_email=%s", *swaggerContactEmail))
-
-	regenCmdLine := buf.String()
-	regenCmdLine = strings.Trim(regenCmdLine, " \t")
-	return regenCmdLine
+	cmdLine = append(cmdLine, fmt.Sprintf(" --swagger_version=%s", *swaggerVersion))
+	cmdLine = append(cmdLine, fmt.Sprintf(" --swagger_path=%s", *swaggerBasePath))
+	cmdLine = append(cmdLine, fmt.Sprintf(" --swagger_tos=%s", *swaggerTos))
+	cmdLine = append(cmdLine, fmt.Sprintf(" --swagger_contact_name=%s", *swaggerContactName))
+	cmdLine = append(cmdLine, fmt.Sprintf(" --swagger_contact_url=%s", *swaggerContactURL))
+	cmdLine = append(cmdLine, fmt.Sprintf(" --swagger_contact_email=%s", *swaggerContactEmail))
+	return cmdLine
 }
 
 // SaveAssets will save the prepacked templates for local editing. File structure will be recreated under the output dir.
@@ -881,7 +916,9 @@ func WriteNewFile(fpath string, in io.Reader) error {
 
 // CreateGoSrcFileName ensures name doesnt clash with go naming conventions like _test.go
 func CreateGoSrcFileName(tableName string) string {
-	name := inflection.Singular(tableName)
+	name := dbmeta.Replace(*fileNamingTemplate, tableName)
+	// name := inflection.Singular(tableName)
+
 	if strings.HasSuffix(name, "_test") {
 		name = name[0 : len(name)-5]
 		name = name + "_tst"

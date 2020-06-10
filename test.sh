@@ -20,6 +20,8 @@ func_gen_gorm() {
       --api=apis
       --dao=daos
       --model=models
+      --file_naming='{{.}}'
+      --model_naming='{{.}}'
       --guregu
       --rest
       --mod
@@ -70,6 +72,8 @@ func_gen_sqlx() {
   DEFAULT_GEN_OPTIONS="--json --db  --protobuf --api=apis
       --dao=daos
       --model=models
+      --file_naming='{{.}}'
+      --model_naming='{{.}}'
       --guregu
       --rest
       --mod

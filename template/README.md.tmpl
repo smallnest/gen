@@ -1,3 +1,6 @@
+[comment]: <> (This is a generated file please edit source in ./templates)
+[comment]: <> (All modification will be lost, you have been warned)
+[comment]: <> ()
 ### Sample CRUD API for the {{.sqlType}} database {{.sqlConnStr}}
 
 ## Example
@@ -49,7 +52,7 @@ http://{{.serverHost}}:{{.serverPort}}/swagger/index.html
 * http://{{$.serverHost}}:{{$.serverPort}}/{{$codeInfo.StructName | toLower}}{{ end }}
 
 ## Project Generated Details
-{{markdownCodeBlock ".bash" (wrapBash .CommandLine)}}
+{{markdownCodeBlock ".bash" (.Config.CmdLineWrapped)}}
 
 {{/*
 */}}

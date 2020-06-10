@@ -12,7 +12,6 @@ import (
 
 	"github.com/bxcodec/faker/v3"
 	"github.com/iancoleman/strcase"
-	"github.com/jinzhu/inflection"
 	"github.com/ompluscator/dynamic-struct"
 )
 
@@ -747,7 +746,8 @@ func GenerateModelInfo(tables map[string]*ModelInfo, dbMeta DbTableMeta,
 	conf *Config) (*ModelInfo, error) {
 
 	structName := FmtFieldName(tableName)
-	structName = inflection.Singular(structName)
+	structName = Replace(conf.ModelNamingTemplate, structName)
+	// structName = inflection.Singular(structName)
 	structName = CheckForDupe(tables, structName)
 
 	conf.JsonNameFormat = strings.ToLower(conf.JsonNameFormat)
