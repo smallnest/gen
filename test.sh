@@ -52,7 +52,7 @@ func_gen_gorm() {
   fi
 
 
-  go run . \
+  ${GEN_APP} \
     --sqltype="${DB_TYPE}" \
     --connstr="${DB_CON}" \
     --database="${DB}" \
@@ -102,7 +102,7 @@ func_gen_sqlx() {
     DEFAULT_GEN_OPTIONS="${DEFAULT_GEN_OPTIONS} --table=${TABLES}"
   fi
 
-  go run . \
+  ${GEN_APP} \
     --sqltype="${DB_TYPE}" \
     --connstr="${DB_CON}" \
     --database="${DB}" \
@@ -137,6 +137,7 @@ func_meta() {
 create_env(){
 cat > ./.env <<DELIM
 base_module=
+USE_GEN=0
 
 postgres_conn=""
 postgres_db=
@@ -195,9 +196,19 @@ DB_NAME="${DB_TYPE}_db"
 DB_CON=${!DB_CON_NAME}
 DB=${!DB_NAME}
 
-
 [ -z "${DB_CON}" ] && echo "fill in ${DB_CON_NAME} entry in .env" && exit 0
 [ -z "${DB_NAME}" ] && echo "fill in ${DB_NAME} entry in .env" && exit 0
+
+
+GEN_APP="go run ."
+if [ "${USE_GEN}" = "1" ];
+then
+  GEN_APP=gen
+  echo "Using precompiled gen binary"
+else
+    echo "Using go run - compiling on the fly"
+fi
+
 
 case ${APP} in
 gen_gorm | gen_sqlx | meta)

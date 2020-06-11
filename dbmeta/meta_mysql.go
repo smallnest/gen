@@ -84,7 +84,7 @@ func LoadMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 		// fmt.Printf("dbType: %s\n", dbType)
 
 		if strings.Contains(dbType, "char") || strings.Contains(dbType, "text") {
-			columnLen, err := GetFieldLenFromInformationSchema(db, "DATABASE()", tableName, v.Name())
+			columnLen, err := GetFieldLenFromInformationSchema(db, sqlDatabase, tableName, v.Name())
 			if err == nil {
 				colMeta.columnLen = columnLen
 			}

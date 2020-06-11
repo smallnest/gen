@@ -477,6 +477,33 @@
       "guregu_type": "null.Int",
       "go_nullable_type": "sql.NullInt64",
       "swagger_type": "int64"
+    },
+    {
+      "sql_type": "udecimal",
+      "go_type": "float64",
+      "json_type": "Float",
+      "protobuf_type": "float",
+      "guregu_type": "null.Float",
+      "go_nullable_type": "sql.NullFloat64",
+      "swagger_type": "float64"
+    },
+    {
+      "sql_type": "udouble",
+      "go_type": "float64",
+      "json_type": "Float",
+      "protobuf_type": "float",
+      "guregu_type": "null.Float",
+      "go_nullable_type": "sql.NullFloat64",
+      "swagger_type": "float64"
+    },
+    {
+      "sql_type": "ufloat",
+      "go_type": "float32",
+      "json_type": "Float",
+      "protobuf_type": "float",
+      "guregu_type": "null.Float",
+      "go_nullable_type": "sql.NullFloat64",
+      "swagger_type": "float32"
     }
   ]
 }
