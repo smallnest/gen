@@ -4,7 +4,7 @@
 // params - pagesize - number of records in a page  (defaults to 20)
 // params - order    - db sort order column
 // error - ErrNotFound, db Find error
-func GetAll{{.StructName}}(ctx context.Context, page, pagesize int64, order string) ({{.StructName | toLower}} []*{{.modelPackageName}}.{{.StructName}}, totalRows int, err error) {
+func GetAll{{.StructName}}(ctx context.Context, page, pagesize int64, order string) (results []*{{.modelPackageName}}.{{.StructName}}, totalRows int, err error) {
 	sql := "{{.selectMultiSql}}"
 
 	if order == "" {
@@ -19,7 +19,7 @@ func GetAll{{.StructName}}(ctx context.Context, page, pagesize int64, order stri
 		sql = fmt.Sprintf("%s order by %s LIMIT %d, %d", sql, order, page, pagesize)
 	}
 
-	err = DB.SelectContext(ctx, &{{.StructName | toLower}}, sql)
-	return {{.StructName | toLower}}, len({{.StructName | toLower}}), err
+	err = DB.SelectContext(ctx, &results, sql)
+	return results, len(results), err
 }
 {{end}}

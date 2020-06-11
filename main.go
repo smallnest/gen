@@ -35,7 +35,7 @@ var (
 
 	modelPackageName    = goopt.String([]string{"--model"}, "model", "name to set for model package")
 	modelNamingTemplate = goopt.String([]string{"--model_naming"}, "{{.}}", "model naming template to name structs")
-	fileNamingTemplate = goopt.String([]string{"--file_naming"}, "{{.}}", "file_naming template to name files")
+	fileNamingTemplate  = goopt.String([]string{"--file_naming"}, "{{.}}", "file_naming template to name files")
 	daoPackageName      = goopt.String([]string{"--dao"}, "dao", "name to set for dao package")
 	apiPackageName      = goopt.String([]string{"--api"}, "api", "name to set for api package")
 	grpcPackageName     = goopt.String([]string{"--grpc"}, "grpc", "name to set for grpc package")
@@ -79,7 +79,6 @@ var (
 
 	nameTest = goopt.String([]string{"--name_test"}, "", "perform name test using the --model_naming or --file_naming options")
 
-
 	baseTemplates *packr.Box
 	tableInfos    map[string]*dbmeta.ModelInfo
 )
@@ -89,7 +88,7 @@ func init() {
 	goopt.Description = func() string {
 		return "ORM and RESTful API generator for SQl databases"
 	}
-	goopt.Version = "0.9.8 (06/10/2020)"
+	goopt.Version = "v0.9.9 (06/11/2020)"
 	goopt.Summary = `gen [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> --module=example.com/example [--json] [--gorm] [--guregu] [--generate-dao] [--generate-proj]
 
            sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
@@ -155,11 +154,11 @@ func main() {
 		fmt.Printf("table name: %s\n", *nameTest)
 
 		fmt.Printf("modelNamingTemplate: %s\n", *modelNamingTemplate)
-		result := dbmeta.Replace(*modelNamingTemplate, *nameTest )
+		result := dbmeta.Replace(*modelNamingTemplate, *nameTest)
 		fmt.Printf("model: %s\n", result)
 
 		fmt.Printf("fileNamingTemplate: %s\n", *fileNamingTemplate)
-		result = dbmeta.Replace(*modelNamingTemplate, *nameTest )
+		result = dbmeta.Replace(*modelNamingTemplate, *nameTest)
 		fmt.Printf("file: %s\n", result)
 
 		os.Exit(0)
@@ -201,15 +200,14 @@ func main() {
 		}
 	}
 
-
-	if strings.HasPrefix(*modelNamingTemplate, "'") && strings.HasSuffix(*modelNamingTemplate, "'"){
-		*modelNamingTemplate=strings.TrimSuffix(*modelNamingTemplate, "'")
-		*modelNamingTemplate=strings.TrimPrefix(*modelNamingTemplate, "'")
+	if strings.HasPrefix(*modelNamingTemplate, "'") && strings.HasSuffix(*modelNamingTemplate, "'") {
+		*modelNamingTemplate = strings.TrimSuffix(*modelNamingTemplate, "'")
+		*modelNamingTemplate = strings.TrimPrefix(*modelNamingTemplate, "'")
 	}
 
-	if strings.HasPrefix(*fileNamingTemplate, "'") && strings.HasSuffix(*fileNamingTemplate, "'"){
-		*fileNamingTemplate=strings.TrimSuffix(*fileNamingTemplate, "'")
-		*fileNamingTemplate=strings.TrimPrefix(*fileNamingTemplate, "'")
+	if strings.HasPrefix(*fileNamingTemplate, "'") && strings.HasSuffix(*fileNamingTemplate, "'") {
+		*fileNamingTemplate = strings.TrimSuffix(*fileNamingTemplate, "'")
+		*fileNamingTemplate = strings.TrimPrefix(*fileNamingTemplate, "'")
 	}
 
 	var excludeDbTables []string
@@ -576,7 +574,7 @@ func generate(conf *dbmeta.Config) error {
 	data = map[string]interface{}{
 		"deps":        "go list -f '{{ join .Deps  \"\\n\"}}' .",
 		"CommandLine": conf.CmdLine,
-		"Config": conf,
+		"Config":      conf,
 	}
 
 	if *projectGenerate {

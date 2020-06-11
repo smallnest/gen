@@ -21,16 +21,25 @@ require (
 	github.com/jinzhu/gorm v1.9.11
 	github.com/jinzhu/inflection v1.0.0
 	github.com/julienschmidt/httprouter v1.2.0
+	github.com/karrick/godirwalk v1.15.6 // indirect
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/lib/pq v1.3.0
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mwitkow/go-proto-validators v0.3.0 // indirect
 	github.com/ompluscator/dynamic-struct v1.2.0
+	github.com/rogpeppe/go-internal v1.6.0 // indirect
 	github.com/serenize/snaker v0.0.0-20171204205717-a683aaf2d516
+	github.com/sirupsen/logrus v1.6.0 // indirect
+	github.com/spf13/cobra v1.0.0 // indirect
+	github.com/spf13/pflag v1.0.5 // indirect
+	golang.org/x/crypto v0.0.0-20200604202706-70a84ac30bf9 // indirect
 	golang.org/x/lint v0.0.0-20200302205851-738671d3881b // indirect
-	golang.org/x/tools v0.0.0-20200512131952-2bc93b1c0c88 // indirect
+	golang.org/x/mod v0.3.0 // indirect
+	golang.org/x/sync v0.0.0-20200317015054-43a5402ce75a // indirect
+	golang.org/x/sys v0.0.0-20200610111108-226ff32320da // indirect
+	golang.org/x/tools v0.0.0-20200610222039-2ee2e4c56a28 // indirect
 	google.golang.org/appengine v1.6.5 // indirect
 	google.golang.org/genproto v0.0.0-20200608115520-7c474a2e3482 // indirect
 	gopkg.in/yaml.v2 v2.3.0 // indirect
-	honnef.co/go/tools v0.0.1-2020.1.3 // indirect
+	honnef.co/go/tools v0.0.1-2020.1.4 // indirect
 )

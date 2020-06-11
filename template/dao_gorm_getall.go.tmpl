@@ -4,29 +4,27 @@
 // params - pagesize - number of records in a page  (defaults to 20)
 // params - order    - db sort order column
 // error - ErrNotFound, db Find error
-func GetAll{{.StructName}}(ctx context.Context, page, pagesize int64, order string) ({{.StructName | toLower}} []*{{.modelPackageName}}.{{.StructName}}, totalRows int, err error) {
+func GetAll{{.StructName}}(ctx context.Context, page, pagesize int64, order string) (results []*{{.modelPackageName}}.{{.StructName}}, totalRows int, err error) {
 
-	{{.StructName | toLower}} = []*{{.modelPackageName}}.{{.StructName}}{}
-
-	{{.StructName | toLower}}Orm := DB.Model(&{{.modelPackageName}}.{{.StructName}}{})
-    {{.StructName | toLower}}Orm.Count(&totalRows)
+	resultOrm := DB.Model(&{{.modelPackageName}}.{{.StructName}}{})
+    resultOrm.Count(&totalRows)
 
 	if page > 0 {
 		offset := (page - 1) * pagesize
-		{{.StructName | toLower}}Orm = {{.StructName | toLower}}Orm.Offset(offset).Limit(pagesize)
+		resultOrm = resultOrm.Offset(offset).Limit(pagesize)
 	} else {
-		{{.StructName | toLower}}Orm = {{.StructName | toLower}}Orm.Limit(pagesize)
+		resultOrm = resultOrm.Limit(pagesize)
     }
 
 	if order != "" {
-		{{.StructName | toLower}}Orm = {{.StructName | toLower}}Orm.Order(order)
+		resultOrm = resultOrm.Order(order)
 	}
 
-	if err = {{.StructName | toLower}}Orm.Find(&{{.StructName | toLower}}).Error; err != nil {
+	if err = resultOrm.Find(&results).Error; err != nil {
 	    err = ErrNotFound
 		return nil, -1, err
 	}
 
-	return {{.StructName | toLower}}, totalRows, nil
+	return results, totalRows, nil
 }
 {{end}}

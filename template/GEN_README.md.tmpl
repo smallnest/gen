@@ -249,6 +249,9 @@ Table Name: registration_source
 |ms sql   |y   | y  | y  | y  | y | y| n
 
 ## Version History
+- v0.9.9 (06/11/2020)
+    - Fixed issue with mysql and table named `order`
+    - Fixed internals in GetAll generation in gorm and sqlx.
 - v0.9.8 (06/10/2020)
     - Added ability to set file naming convention for models, dao, apis and grpc  `--file_naming={{"{{.}}"}}`
     - Added ability to set struct naming convention `--model_naming={{"{{.}}"}}`

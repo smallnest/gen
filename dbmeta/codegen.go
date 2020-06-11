@@ -62,7 +62,7 @@ func (c *Config) GetTemplate(name, t string) (*template.Template, error) {
 		"toLower":           strings.ToLower,
 		"toUpper":           strings.ToUpper,
 		"toLowerCamelCase":  camelToLowerCamel,
-		"toUpperCamelCase": camelToUpperCamel,
+		"toUpperCamelCase":  camelToUpperCamel,
 		"FormatSource":      FormatSource,
 		"toSnakeCase":       snaker.CamelToSnake,
 		"markdownCodeBlock": markdownCodeBlock,
@@ -75,7 +75,7 @@ func (c *Config) GetTemplate(name, t string) (*template.Template, error) {
 		"set":               s.Set,
 		"inc":               s.Inc,
 		"StringsJoin":       strings.Join,
-		"replace":          replace,
+		"replace":           replace,
 	}
 
 	tmpl, err := template.New(name).Option("missingkey=error").Funcs(funcMap).Parse(t)
@@ -223,7 +223,7 @@ func RegSplit(text string, delimeter string) []string {
 		result[i] = text[laststart:element[0]]
 		laststart = element[1]
 	}
-	result[len(indexes)] = text[laststart:len(text)]
+	result[len(indexes)] = text[laststart:]
 	return result
 }
 

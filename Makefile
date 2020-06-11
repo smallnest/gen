@@ -27,12 +27,15 @@ vet: ## run go vet on the project
 	go vet .
 
 tools: ## install dependent tools
-	go get -u honnef.co/go/tools/cmd/staticcheck
-	go get -u honnef.co/go/tools/cmd/gosimple
-	go get -u honnef.co/go/tools/cmd/unused
+	go get -u github.com/gogo/protobuf
+	go get -u github.com/gogo/protobuf/proto
+	go get -u github.com/gogo/protobuf/jsonpb
+	go get -u github.com/gogo/protobuf/protoc-gen-gogo
+	go get -u github.com/gogo/protobuf/gogoproto
+	go get -u honnef.co/go/tools
 	go get -u github.com/gordonklaus/ineffassign
 	go get -u github.com/fzipp/gocyclo
-	go get -u github.com/golang/lint/golint
+	go get -u golang.org/x/lint/golint
 	go get -u github.com/gobuffalo/packr/v2/packr2
 
 lint: ## run golint on the project

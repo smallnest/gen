@@ -172,7 +172,7 @@ func GetFieldLenFromInformationSchema(db *sql.DB, tableSchema, tableName, column
 	sql := fmt.Sprintf(`
 select CHARACTER_MAXIMUM_LENGTH 
 from information_schema.columns
-where table_schema = %s AND 
+where table_schema = '%s' AND 
       table_name = '%s' AND       
       COLUMN_NAME = '%s'    
 `, tableSchema, tableName, columnName)
