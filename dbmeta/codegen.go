@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"path/filepath"
+	"reflect"
 	"regexp"
 	"strings"
 	"text/template"
@@ -76,6 +77,7 @@ func (c *Config) GetTemplate(name, t string) (*template.Template, error) {
 		"inc":               s.Inc,
 		"StringsJoin":       strings.Join,
 		"replace":           replace,
+		"hasField":          hasField,
 	}
 
 	tmpl, err := template.New(name).Option("missingkey=error").Funcs(funcMap).Parse(t)
@@ -120,6 +122,17 @@ func (c *Config) GetTemplate(name, t string) (*template.Template, error) {
 	}
 
 	return tmpl, nil
+}
+
+func hasField(v interface{}, name string) bool {
+	rv := reflect.ValueOf(v)
+	if rv.Kind() == reflect.Ptr {
+		rv = rv.Elem()
+	}
+	if rv.Kind() != reflect.Struct {
+		return false
+	}
+	return rv.FieldByName(name).IsValid()
 }
 
 // ToJSON func to return json string representation of struct

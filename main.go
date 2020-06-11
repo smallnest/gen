@@ -9,6 +9,7 @@ import (
 	"io/ioutil"
 	"os"
 	"os/exec"
+	"os/user"
 	"path/filepath"
 	"strings"
 
@@ -55,8 +56,10 @@ var (
 	AddGormAnnotation     = goopt.Flag([]string{"--gorm"}, []string{}, "Add gorm annotations (tags)", "")
 	AddProtobufAnnotation = goopt.Flag([]string{"--protobuf"}, []string{}, "Add protobuf annotations (tags)", "")
 	protoNameFormat       = goopt.String([]string{"--proto-fmt"}, "snake", "proto name format [snake | camel | lower_camel | none]")
-	AddDBAnnotation       = goopt.Flag([]string{"--db"}, []string{}, "Add db annotations (tags)", "")
-	UseGureguTypes        = goopt.Flag([]string{"--guregu"}, []string{}, "Add guregu null types", "")
+	gogoProtoImport       = goopt.String([]string{"--gogo-proto"}, "", "location of gogo import ")
+
+	AddDBAnnotation = goopt.Flag([]string{"--db"}, []string{}, "Add db annotations (tags)", "")
+	UseGureguTypes  = goopt.Flag([]string{"--guregu"}, []string{}, "Add guregu null types", "")
 
 	copyTemplates    = goopt.Flag([]string{"--copy-templates"}, []string{}, "Copy regeneration templates to project directory", "")
 	modGenerate      = goopt.Flag([]string{"--mod"}, []string{}, "Generate go.mod in output dir", "")
@@ -631,6 +634,11 @@ func generateMakefile(conf *dbmeta.Config) (err error) {
 		"RegenCmdLineArgs": regenCmdLine(),
 		"RegenCmdLine":     strings.Join(regenCmdLine(), " \\\n    "),
 	}
+
+	if *AddProtobufAnnotation {
+		populateProtoCinContext(conf, data)
+	}
+
 	conf.WriteTemplate("makefile", MakefileTmpl, data, filepath.Join(*outDir, "Makefile"), false)
 	return nil
 }
@@ -681,14 +689,51 @@ func generateProtobufDefinitionFile(conf *dbmeta.Config, data map[string]interfa
 
 	return nil
 }
-func CompileProtoC(protoBufDir, protoBufOutDir, protoBufFile string) (string, error) {
+
+func createProtocCmdLine(protoBufDir, protoBufOutDir, protoBufFile string) ([]string, error) {
+
+	if *gogoProtoImport != "" {
+		if !dbmeta.Exists(*gogoProtoImport) {
+			fmt.Printf("%s does not exist on path - install with\ngo get -u github.com/gogo/protobuf/proto\n\n", *gogoProtoImport)
+			return nil, fmt.Errorf("supplied gogo proto location does  not exist")
+		}
+	}
+
+	usr, err := user.Current()
+	if err == nil {
+		dir := usr.HomeDir
+		srcPath := filepath.Join(dir, "go/src")
+
+		//srcDirExists := dbmeta.Exists(srcPath)
+
+		gogoPath := filepath.Join(dir, "go/src/github.com/gogo/protobuf/gogoproto/gogo.proto")
+		gogoImportExists := dbmeta.Exists(gogoPath)
+
+		//fmt.Printf("path    : %s   srcDirExists: %t\n", srcPath, srcDirExists)
+		//fmt.Printf("gogoPath: %s   gogoImportExists: %t\n", gogoPath, gogoImportExists)
+
+		if !gogoImportExists {
+			fmt.Printf("github.com/gogo/protobuf/gogoproto/gogo.proto does not exist on path - install with\ngo get -u github.com/gogo/protobuf/proto\n\n")
+			return nil, fmt.Errorf("github.com/gogo/protobuf/gogoproto/gogo.proto does not exist")
+		}
+
+		*gogoProtoImport = srcPath
+	}
 
 	fmt.Printf("----------------------------\n")
 
-	args := []string{fmt.Sprintf("-I%s", "/home/alexj/go/src"),
+	args := []string{fmt.Sprintf("-I%s", *gogoProtoImport),
 		fmt.Sprintf("-I%s", protoBufDir),
 		fmt.Sprintf("--gogo_out=plugins=grpc:%s", protoBufOutDir),
 		fmt.Sprintf("%s", protoBufFile)}
+
+	return args, nil
+}
+func CompileProtoC(protoBufDir, protoBufOutDir, protoBufFile string) (string, error) {
+	args, err := createProtocCmdLine(protoBufDir, protoBufOutDir, protoBufFile)
+	if err != nil {
+		return "", err
+	}
 
 	cmd := exec.Command("protoc", args...)
 
@@ -717,12 +762,24 @@ func generateProjectFiles(conf *dbmeta.Config, data map[string]interface{}) (err
 		fmt.Printf("Error loading template %v\n", err)
 		return
 	}
-
+	populateProtoCinContext(conf, data)
 	conf.WriteTemplate("gitignore", GitIgnoreTmpl, data, filepath.Join(*outDir, ".gitignore"), false)
 	conf.WriteTemplate("readme", ReadMeTmpl, data, filepath.Join(*outDir, "README.md"), false)
 	return nil
 }
 
+func populateProtoCinContext(conf *dbmeta.Config, data map[string]interface{})  {
+	protofile := fmt.Sprintf("%s.proto", *sqlDatabase)
+	moduleDir := filepath.Join(*outDir, conf.ModelPackageName)
+	protocCmdLineArgs, err := createProtocCmdLine(*outDir, moduleDir, filepath.Join(*outDir, protofile))
+	if err != nil {
+		protoC := []string{"gen"}
+		protoC = append(protoC, protocCmdLineArgs...)
+
+		data["ProtocCmdLineArgs"] = protoC
+		data["ProtocCmdLine"] = strings.Join(protoC, " \\\n    ")
+	}
+}
 func generateServerCode(conf *dbmeta.Config) (err error) {
 	data := map[string]interface{}{}
 	var MainServerTmpl string
