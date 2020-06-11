@@ -23,8 +23,8 @@ The code generation, will generate functions for
 // params - pagesize - number of records in a page  (defaults to 20)
 // params - order    - db sort order column
 // error - ErrNotFound, db Find error
-func GetAllInvoices(ctx context.Context, page, pagesize int64, order string) (invoices []*model.Invoices, totalRows int, err error) {
-	sql := "SELECT * FROM invoices"
+func GetAllInvoices(ctx context.Context, page, pagesize int64, order string) (results []*model.Invoices, totalRows int, err error) {
+	sql := "SELECT * FROM `invoices`"
 
 	if order == "" {
 	    order = "InvoiceId"
@@ -38,8 +38,8 @@ func GetAllInvoices(ctx context.Context, page, pagesize int64, order string) (in
 		sql = fmt.Sprintf("%s order by %s LIMIT %d, %d", sql, order, page, pagesize)
 	}
 
-	err = DB.SelectContext(ctx, &invoices, sql)
-	return invoices, len(invoices), err
+	err = DB.SelectContext(ctx, &results, sql)
+	return results, len(results), err
 }
 
 ```
@@ -50,7 +50,7 @@ func GetAllInvoices(ctx context.Context, page, pagesize int64, order string) (in
 // GetInvoices is a function to get a single record from the invoices table in the main database
 // error - ErrNotFound, db Find error
 func GetInvoices(ctx context.Context,  argInvoiceID int32,        ) (record *model.Invoices, err error) {
-	sql := "SELECT * FROM invoices WHERE InvoiceId = $1"
+	sql := "SELECT * FROM `invoices` WHERE InvoiceId = $1"
 	record = &model.Invoices{}
 	err = DB.GetContext(ctx, record, sql,   argInvoiceID,        )
     if err != nil {
@@ -77,7 +77,7 @@ func AddInvoices(ctx context.Context, record *model.Invoices) (result *model.Inv
 // addInvoicesPostgres is a function to add a single record to invoices table in the main database
 // error - ErrInsertFailed, db save call failed
 func addInvoicesPostgres(ctx context.Context, record *model.Invoices) (result *model.Invoices, RowsAffected int64, err error) {
-    sql := "INSERT INTO invoices ( CustomerId,  InvoiceDate,  BillingAddress,  BillingCity,  BillingState,  BillingCountry,  BillingPostalCode,  Total) values ( $1, $2, $3, $4, $5, $6, $7, $8 )"
+    sql := "INSERT INTO `invoices` ( CustomerId,  InvoiceDate,  BillingAddress,  BillingCity,  BillingState,  BillingCountry,  BillingPostalCode,  Total) values ( $1, $2, $3, $4, $5, $6, $7, $8 )"
 
     rows := int64(1)
     sql = fmt.Sprintf("%s returning %s", sql, "InvoiceId")
@@ -90,7 +90,7 @@ func addInvoicesPostgres(ctx context.Context, record *model.Invoices) (result *m
 // addInvoicesPostgres is a function to add a single record to invoices table in the main database
 // error - ErrInsertFailed, db save call failed
 func addInvoices(ctx context.Context, record *model.Invoices) (result *model.Invoices, RowsAffected int64, err error) {
-    sql := "INSERT INTO invoices ( CustomerId,  InvoiceDate,  BillingAddress,  BillingCity,  BillingState,  BillingCountry,  BillingPostalCode,  Total) values ( $1, $2, $3, $4, $5, $6, $7, $8 )"
+    sql := "INSERT INTO `invoices` ( CustomerId,  InvoiceDate,  BillingAddress,  BillingCity,  BillingState,  BillingCountry,  BillingPostalCode,  Total) values ( $1, $2, $3, $4, $5, $6, $7, $8 )"
 
     rows := int64(0)
 
@@ -114,7 +114,7 @@ func addInvoices(ctx context.Context, record *model.Invoices) (result *model.Inv
 // error - ErrNotFound, db record for id not found
 // error - ErrUpdateFailed, db meta data copy failed or db.Save call failed
 func UpdateInvoices(ctx context.Context,   argInvoiceID int32,        updated *model.Invoices) (result *model.Invoices, RowsAffected int64, err error) {
-	sql := "UPDATE invoices set CustomerId = $1, InvoiceDate = $2, BillingAddress = $3, BillingCity = $4, BillingState = $5, BillingCountry = $6, BillingPostalCode = $7, Total = $8 WHERE InvoiceId = $9"
+	sql := "UPDATE `invoices` set CustomerId = $1, InvoiceDate = $2, BillingAddress = $3, BillingCity = $4, BillingState = $5, BillingCountry = $6, BillingPostalCode = $7, Total = $8 WHERE InvoiceId = $9"
 	dbResult := DB.MustExecContext(ctx, sql,    updated.CustomerID,  updated.InvoiceDate,  updated.BillingAddress,  updated.BillingCity,  updated.BillingState,  updated.BillingCountry,  updated.BillingPostalCode,  updated.Total,  argInvoiceID,        )
 	rows, err := dbResult.RowsAffected()
       updated.InvoiceID = argInvoiceID

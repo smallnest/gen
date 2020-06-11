@@ -74,7 +74,7 @@ func GenerateUpdateSql(dbTable DbTableMeta) (string, error) {
 	}
 
 	buf := bytes.Buffer{}
-	buf.WriteString(fmt.Sprintf("UPDATE %s set", dbTable.TableName()))
+	buf.WriteString(fmt.Sprintf("UPDATE `%s` set", dbTable.TableName()))
 
 	setCol := 1
 	for _, col := range dbTable.Columns() {
@@ -115,7 +115,7 @@ func GenerateInsertSql(dbTable DbTableMeta) (string, error) {
 	}
 
 	buf := bytes.Buffer{}
-	buf.WriteString(fmt.Sprintf("INSERT INTO %s (", dbTable.TableName()))
+	buf.WriteString(fmt.Sprintf("INSERT INTO `%s` (", dbTable.TableName()))
 
 	pastFirst := false
 	for _, col := range dbTable.Columns() {
@@ -157,7 +157,7 @@ func GenerateSelectOneSql(dbTable DbTableMeta) (string, error) {
 	}
 
 	buf := bytes.Buffer{}
-	buf.WriteString(fmt.Sprintf("SELECT * FROM %s WHERE ", dbTable.TableName()))
+	buf.WriteString(fmt.Sprintf("SELECT * FROM `%s` WHERE ", dbTable.TableName()))
 
 	pastFirst := false
 	pos := 1
@@ -184,6 +184,6 @@ func GenerateSelectMultiSql(dbTable DbTableMeta) (string, error) {
 	}
 
 	buf := bytes.Buffer{}
-	buf.WriteString(fmt.Sprintf("SELECT * FROM %s", dbTable.TableName()))
+	buf.WriteString(fmt.Sprintf("SELECT * FROM `%s`", dbTable.TableName()))
 	return buf.String(), nil
 }

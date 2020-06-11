@@ -23,30 +23,28 @@ The code generation, will generate functions for
 // params - pagesize - number of records in a page  (defaults to 20)
 // params - order    - db sort order column
 // error - ErrNotFound, db Find error
-func GetAllInvoices(ctx context.Context, page, pagesize int64, order string) (invoices []*model.Invoices, totalRows int, err error) {
+func GetAllInvoices(ctx context.Context, page, pagesize int64, order string) (results []*model.Invoices, totalRows int, err error) {
 
-	invoices = []*model.Invoices{}
-
-	invoicesOrm := DB.Model(&model.Invoices{})
-    invoicesOrm.Count(&totalRows)
+	resultOrm := DB.Model(&model.Invoices{})
+    resultOrm.Count(&totalRows)
 
 	if page > 0 {
 		offset := (page - 1) * pagesize
-		invoicesOrm = invoicesOrm.Offset(offset).Limit(pagesize)
+		resultOrm = resultOrm.Offset(offset).Limit(pagesize)
 	} else {
-		invoicesOrm = invoicesOrm.Limit(pagesize)
+		resultOrm = resultOrm.Limit(pagesize)
     }
 
 	if order != "" {
-		invoicesOrm = invoicesOrm.Order(order)
+		resultOrm = resultOrm.Order(order)
 	}
 
-	if err = invoicesOrm.Find(&invoices).Error; err != nil {
+	if err = resultOrm.Find(&results).Error; err != nil {
 	    err = ErrNotFound
 		return nil, -1, err
 	}
 
-	return invoices, totalRows, nil
+	return results, totalRows, nil
 }
 
 ```

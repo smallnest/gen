@@ -7,6 +7,8 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"reflect"
+	"runtime"
 	"strings"
 	"time"
 
@@ -291,6 +293,10 @@ type FieldInfo struct {
 	GoGoMoreTags          string
 }
 
+func GetFunctionName(i interface{}) string {
+	return runtime.FuncForPC(reflect.ValueOf(i).Pointer()).Name()
+}
+
 // LoadMeta loads the DbTableMeta data from the db connection for the table
 func LoadMeta(sqlType string, db *sql.DB, sqlDatabase, tableName string) (DbTableMeta, error) {
 	dbMetaFunc, haveMeta := metaDataFuncs[sqlType]
@@ -299,6 +305,9 @@ func LoadMeta(sqlType string, db *sql.DB, sqlDatabase, tableName string) (DbTabl
 	}
 
 	dbMeta, err := dbMetaFunc(db, sqlType, sqlDatabase, tableName)
+	if err != nil {
+		fmt.Printf("Error calling func: %s error: %v\n", GetFunctionName(dbMetaFunc), err)
+	}
 	return dbMeta, err
 }
 
@@ -713,13 +722,13 @@ func LoadTableInfo(db *sql.DB, dbTables []string, excludeDbTables []string, conf
 
 		dbMeta, err := LoadMeta(conf.SqlType, db, conf.SqlDatabase, tableName)
 		if err != nil {
-			fmt.Printf("Error getting table info for %s error: %v\n", tableName, err)
+			fmt.Printf("LoadMeta Error getting table info for %s error: %v\n", tableName, err)
 			continue
 		}
 
 		modelInfo, err := GenerateModelInfo(tableInfos, dbMeta, tableName, conf)
 		if err != nil {
-			fmt.Printf("Error getting table info for %s error: %v\n", tableName, err)
+			fmt.Printf("GenerateModelInfo Error getting table info for %s error: %v\n", tableName, err)
 			continue
 		}
 
