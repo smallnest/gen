@@ -4,6 +4,12 @@
 // error - ErrDeleteFailed, db Delete failed error
 func Delete{{.StructName}}(ctx context.Context,{{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}} {{$field.GoFieldType}},{{end}}{{end -}}) (rowsAffected int64, err error) {
 	sql := "{{.delSql}}"
+	sql = DB.Rebind(sql)
+
+	if Logger != nil {
+		Logger(ctx, sql)
+	}
+
 	result := DB.MustExecContext(ctx, sql, {{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}},{{end}}{{end -}} )
 	return result.RowsAffected()
 }

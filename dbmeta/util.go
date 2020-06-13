@@ -109,7 +109,9 @@ func FmtFieldName(s string) string {
 		}
 	}
 	fieldName := string(runes)
-	return RenameReservedName(fieldName)
+	fieldName = RenameReservedName(fieldName)
+	// fmt.Printf("FmtFieldName:%s=%s\n", s, fieldName)
+	return fieldName
 }
 func isAllLower(name string) (allLower bool) {
 	allLower = true
