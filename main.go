@@ -35,8 +35,10 @@ var (
 	saveTemplateDir  = goopt.String([]string{"--save"}, "", "Save templates to dir")
 
 	modelPackageName    = goopt.String([]string{"--model"}, "model", "name to set for model package")
-	modelNamingTemplate = goopt.String([]string{"--model_naming"}, "{{.}}", "model naming template to name structs")
+	modelNamingTemplate = goopt.String([]string{"--model_naming"}, "{{FmtFieldName .}}", "model naming template to name structs")
+	fieldNamingTemplate = goopt.String([]string{"--field_naming"}, "{{FmtFieldName (stringifyFirstChar .) }}", "field naming template to name structs")
 	fileNamingTemplate  = goopt.String([]string{"--file_naming"}, "{{.}}", "file_naming template to name files")
+
 	daoPackageName      = goopt.String([]string{"--dao"}, "dao", "name to set for dao package")
 	apiPackageName      = goopt.String([]string{"--api"}, "api", "name to set for api package")
 	grpcPackageName     = goopt.String([]string{"--grpc"}, "grpc", "name to set for grpc package")
@@ -91,7 +93,7 @@ func init() {
 	goopt.Description = func() string {
 		return "ORM and RESTful API generator for SQl databases"
 	}
-	goopt.Version = "v0.9.10 (06/11/2020)"
+	goopt.Version = "v0.9.11 (06/13/2020)"
 	goopt.Summary = `gen [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> --module=example.com/example [--json] [--gorm] [--guregu] [--generate-dao] [--generate-proj]
 
            sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
@@ -140,6 +142,10 @@ func loadContextMapping(conf *dbmeta.Config) {
 }
 
 func main() {
+	//for i, arg := range os.Args {
+	//	fmt.Printf("[%2d] %s\n", i, arg)
+	//}
+
 
 	baseTemplates = packr.New("gen", "./template")
 
@@ -164,9 +170,16 @@ func main() {
 		result = dbmeta.Replace(*modelNamingTemplate, *nameTest)
 		fmt.Printf("file: %s\n", result)
 
+		fmt.Printf("fieldNamingTemplate: %s\n", *fieldNamingTemplate)
+		result = dbmeta.Replace(*fieldNamingTemplate, *nameTest)
+		fmt.Printf("field: %s\n", result)
 		os.Exit(0)
 		return
 	}
+
+	//fmt.Printf("fieldNamingTemplate: %s\n", *fieldNamingTemplate)
+	//fmt.Printf("fileNamingTemplate: %s\n", *fileNamingTemplate)
+	//fmt.Printf("modelNamingTemplate: %s\n", *modelNamingTemplate)
 
 	// Username is required
 	if sqlConnStr == nil || *sqlConnStr == "" || *sqlConnStr == "nil" {
@@ -208,10 +221,6 @@ func main() {
 		*modelNamingTemplate = strings.TrimPrefix(*modelNamingTemplate, "'")
 	}
 
-	if strings.HasPrefix(*fileNamingTemplate, "'") && strings.HasSuffix(*fileNamingTemplate, "'") {
-		*fileNamingTemplate = strings.TrimSuffix(*fileNamingTemplate, "'")
-		*fileNamingTemplate = strings.TrimPrefix(*fileNamingTemplate, "'")
-	}
 
 	var excludeDbTables []string
 
@@ -345,6 +354,7 @@ func initialize(conf *dbmeta.Config) {
 
 	conf.FileNamingTemplate = *fileNamingTemplate
 	conf.ModelNamingTemplate = *modelNamingTemplate
+	conf.FieldNamingTemplate = *fieldNamingTemplate
 
 	conf.Swagger.Version = *swaggerVersion
 	conf.Swagger.BasePath = *swaggerBasePath

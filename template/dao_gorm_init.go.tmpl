@@ -1,6 +1,7 @@
 package {{.daoPackageName}}
 
 import (
+	"context"
 	"errors"
 	"fmt"
 	"reflect"
@@ -30,7 +31,7 @@ type BuildInfo struct {
 	RuntimeVer   string
 }
 
-
+type LogSql func(ctx context.Context, sql string)
 
 var (
     // ErrNotFound error when record not found
@@ -56,6 +57,9 @@ var (
 
 	// AppBuildInfo reference to build info
 	AppBuildInfo *BuildInfo
+
+	// Logger function that will be invoked before executing sql
+	Logger LogSql
 )
 
 

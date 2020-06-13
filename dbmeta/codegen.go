@@ -22,16 +22,18 @@ import (
 type TemplateLoader func(filename string) (content string, err error)
 
 var replaceFuncMap = template.FuncMap{
-	"singular":         inflection.Singular,
-	"pluralize":        inflection.Plural,
-	"title":            strings.Title,
-	"toLower":          strings.ToLower,
-	"toUpper":          strings.ToUpper,
-	"toLowerCamelCase": camelToLowerCamel,
-	"toUpperCamelCase": camelToUpperCamel,
-	"toSnakeCase":      snaker.CamelToSnake,
-	"StringsJoin":      strings.Join,
-	"replace":          replace,
+	"singular":           inflection.Singular,
+	"pluralize":          inflection.Plural,
+	"title":              strings.Title,
+	"toLower":            strings.ToLower,
+	"toUpper":            strings.ToUpper,
+	"toLowerCamelCase":   camelToLowerCamel,
+	"toUpperCamelCase":   camelToUpperCamel,
+	"toSnakeCase":        snaker.CamelToSnake,
+	"StringsJoin":        strings.Join,
+	"replace":            replace,
+	"stringifyFirstChar": stringifyFirstChar,
+	"FmtFieldName":       FmtFieldName,
 }
 
 func replace(input, from, to string) string {
@@ -39,10 +41,11 @@ func replace(input, from, to string) string {
 }
 func Replace(nameFormat, name string) string {
 	var tpl bytes.Buffer
+	//fmt.Printf("Replace: %s\n",nameFormat)
 	t := template.Must(template.New("t1").Funcs(replaceFuncMap).Parse(nameFormat))
 
 	if err := t.Execute(&tpl, name); err != nil {
-		fmt.Printf("Error creating name format: %s error: %v\n", nameFormat, err)
+		//fmt.Printf("Error creating name format: %s error: %v\n", nameFormat, err)
 		return name
 	}
 	result := tpl.String()
@@ -50,34 +53,50 @@ func Replace(nameFormat, name string) string {
 	result = strings.Trim(result, " \t")
 	result = strings.Replace(result, " ", "_", -1)
 	result = strings.Replace(result, "\t", "_", -1)
+
+	//fmt.Printf("Replace( '%s' '%s')= %s\n",nameFormat, name, result)
 	return result
+}
+
+func (c *Config) ReplaceFileNamingTemplate(name string) string {
+	return Replace(c.FileNamingTemplate, name)
+}
+func (c *Config) ReplaceModelNamingTemplate(name string) string {
+	return Replace(c.ModelNamingTemplate, name)
+}
+func (c *Config) ReplaceFieldNamingTemplate(name string) string {
+	return Replace(c.FieldNamingTemplate, name)
 }
 
 func (c *Config) GetTemplate(name, t string) (*template.Template, error) {
 	var s State
 	var funcMap = template.FuncMap{
-		"FmtFieldName":      FmtFieldName,
-		"singular":          inflection.Singular,
-		"pluralize":         inflection.Plural,
-		"title":             strings.Title,
-		"toLower":           strings.ToLower,
-		"toUpper":           strings.ToUpper,
-		"toLowerCamelCase":  camelToLowerCamel,
-		"toUpperCamelCase":  camelToUpperCamel,
-		"FormatSource":      FormatSource,
-		"toSnakeCase":       snaker.CamelToSnake,
-		"markdownCodeBlock": markdownCodeBlock,
-		"wrapBash":          wrapBash,
-		"escape":            escape,
-		"GenerateTableFile": c.GenerateTableFile,
-		"GenerateFile":      c.GenerateFile,
-		"ToJSON":            ToJSON,
-		"spew":              Spew,
-		"set":               s.Set,
-		"inc":               s.Inc,
-		"StringsJoin":       strings.Join,
-		"replace":           replace,
-		"hasField":          hasField,
+		"ReplaceFileNamingTemplate":  c.ReplaceFileNamingTemplate,
+		"ReplaceModelNamingTemplate": c.ReplaceModelNamingTemplate,
+		"ReplaceFieldNamingTemplate": c.ReplaceFieldNamingTemplate,
+		"stringifyFirstChar":         stringifyFirstChar,
+		"singular":                   inflection.Singular,
+		"pluralize":                  inflection.Plural,
+		"title":                      strings.Title,
+		"toLower":                    strings.ToLower,
+		"toUpper":                    strings.ToUpper,
+		"toLowerCamelCase":           camelToLowerCamel,
+		"toUpperCamelCase":           camelToUpperCamel,
+		"FormatSource":               FormatSource,
+		"toSnakeCase":                snaker.CamelToSnake,
+		"markdownCodeBlock":          markdownCodeBlock,
+		"wrapBash":                   wrapBash,
+		"escape":                     escape,
+		"GenerateTableFile":          c.GenerateTableFile,
+		"GenerateFile":               c.GenerateFile,
+		"ToJSON":                     ToJSON,
+		"spew":                       Spew,
+		"set":                        s.Set,
+		"inc":                        s.Inc,
+		"StringsJoin":                strings.Join,
+		"replace":                    replace,
+		"hasField":                   hasField,
+		"FmtFieldName":               FmtFieldName,
 	}
 
 	tmpl, err := template.New(name).Option("missingkey=error").Funcs(funcMap).Parse(t)
@@ -534,6 +553,7 @@ type Config struct {
 	CmdLineArgs           []string
 	FileNamingTemplate    string
 	ModelNamingTemplate   string
+	FieldNamingTemplate   string
 	string
 	ContextMap     map[string]interface{}
 	TemplateLoader TemplateLoader
@@ -560,6 +580,8 @@ func NewConfig(templateLoader TemplateLoader) *Config {
 	conf.ContextMap = make(map[string]interface{})
 
 	conf.FileNamingTemplate = "{{.}}"
-	conf.ModelNamingTemplate = "{{.}}"
+	conf.ModelNamingTemplate = "{{FmtFieldName .}}"
+	conf.FieldNamingTemplate = "{{FmtFieldName (stringifyFirstChar .) }}"
+
 	return conf
 }

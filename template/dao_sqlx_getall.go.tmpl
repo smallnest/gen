@@ -7,16 +7,27 @@
 func GetAll{{.StructName}}(ctx context.Context, page, pagesize int64, order string) (results []*{{.modelPackageName}}.{{.StructName}}, totalRows int, err error) {
 	sql := "{{.selectMultiSql}}"
 
+	if order != "" {
+		if strings.ContainsAny(order, "'\"") {
+			order = ""
+		}
+	}
+
 	if order == "" {
-	    order = "{{.PrimaryKeysJoined}}"
+		order = "id"
 	}
 
 	if DB.DriverName() == "mssql" {
 		sql = fmt.Sprintf("%s order by %s OFFSET %d ROWS FETCH FIRST %d ROWS ONLY", sql, order, page, pagesize)
 	} else if DB.DriverName() == "postgres" {
-		sql = fmt.Sprintf("%s order by %s OFFSET %d LIMIT %d", sql, order, page, pagesize)
+		sql = fmt.Sprintf("%s order by `%s` OFFSET %d LIMIT %d", sql, order, page, pagesize)
 	} else {
-		sql = fmt.Sprintf("%s order by %s LIMIT %d, %d", sql, order, page, pagesize)
+		sql = fmt.Sprintf("%s order by `%s` LIMIT %d, %d", sql, order, page, pagesize)
+	}
+	sql = DB.Rebind(sql)
+
+	if Logger != nil {
+		Logger(ctx, sql)
 	}
 
 	err = DB.SelectContext(ctx, &results, sql)

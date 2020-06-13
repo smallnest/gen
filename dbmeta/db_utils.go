@@ -47,12 +47,12 @@ func GenerateDeleteSql(dbTable DbTableMeta) (string, error) {
 	}
 
 	buf := bytes.Buffer{}
-	buf.WriteString(fmt.Sprintf("DELETE FROM %s where", dbTable.TableName()))
+	buf.WriteString(fmt.Sprintf("DELETE FROM `%s` where", dbTable.TableName()))
 
 	addedKey := 1
 	for _, col := range dbTable.Columns() {
 		if col.IsPrimaryKey() {
-			buf.WriteString(fmt.Sprintf(" %s = $%d", col.Name(), addedKey))
+			buf.WriteString(fmt.Sprintf(" %s = ?", col.Name()))
 			addedKey++
 
 			if addedKey < primaryCnt {
@@ -83,7 +83,7 @@ func GenerateUpdateSql(dbTable DbTableMeta) (string, error) {
 				buf.WriteString(",")
 			}
 
-			buf.WriteString(fmt.Sprintf(" %s = $%d", col.Name(), setCol))
+			buf.WriteString(fmt.Sprintf(" %s = ?", col.Name() ))
 			setCol++
 		}
 	}
@@ -92,7 +92,7 @@ func GenerateUpdateSql(dbTable DbTableMeta) (string, error) {
 	addedKey := 0
 	for _, col := range dbTable.Columns() {
 		if col.IsPrimaryKey() {
-			buf.WriteString(fmt.Sprintf(" %s = $%d", col.Name(), setCol))
+			buf.WriteString(fmt.Sprintf(" %s = ?", col.Name()))
 
 			setCol++
 			addedKey++
@@ -138,7 +138,7 @@ func GenerateInsertSql(dbTable DbTableMeta) (string, error) {
 				buf.WriteString(", ")
 			}
 
-			buf.WriteString(fmt.Sprintf("$%d", pos))
+			buf.WriteString(fmt.Sprintf("?"))
 			pos++
 			pastFirst = true
 		}
@@ -167,7 +167,7 @@ func GenerateSelectOneSql(dbTable DbTableMeta) (string, error) {
 				buf.WriteString(" AND ")
 			}
 
-			buf.WriteString(fmt.Sprintf("%s = $%d", col.Name(), pos))
+			buf.WriteString(fmt.Sprintf("%s = ?", col.Name()))
 			pos++
 			pastFirst = true
 		}

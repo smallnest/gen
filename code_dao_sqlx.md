@@ -26,16 +26,27 @@ The code generation, will generate functions for
 func GetAllInvoices(ctx context.Context, page, pagesize int64, order string) (results []*model.Invoices, totalRows int, err error) {
 	sql := "SELECT * FROM `invoices`"
 
+	if order != "" {
+		if strings.ContainsAny(order, "'\"") {
+			order = ""
+		}
+	}
+
 	if order == "" {
-	    order = "InvoiceId"
+		order = "id"
 	}
 
 	if DB.DriverName() == "mssql" {
 		sql = fmt.Sprintf("%s order by %s OFFSET %d ROWS FETCH FIRST %d ROWS ONLY", sql, order, page, pagesize)
 	} else if DB.DriverName() == "postgres" {
-		sql = fmt.Sprintf("%s order by %s OFFSET %d LIMIT %d", sql, order, page, pagesize)
+		sql = fmt.Sprintf("%s order by `%s` OFFSET %d LIMIT %d", sql, order, page, pagesize)
 	} else {
-		sql = fmt.Sprintf("%s order by %s LIMIT %d, %d", sql, order, page, pagesize)
+		sql = fmt.Sprintf("%s order by `%s` LIMIT %d, %d", sql, order, page, pagesize)
+	}
+	sql = DB.Rebind(sql)
+
+	if Logger != nil {
+		Logger(ctx, sql)
 	}
 
 	err = DB.SelectContext(ctx, &results, sql)
@@ -50,7 +61,13 @@ func GetAllInvoices(ctx context.Context, page, pagesize int64, order string) (re
 // GetInvoices is a function to get a single record from the invoices table in the main database
 // error - ErrNotFound, db Find error
 func GetInvoices(ctx context.Context,  argInvoiceID int32,        ) (record *model.Invoices, err error) {
-	sql := "SELECT * FROM `invoices` WHERE InvoiceId = $1"
+	sql := "SELECT * FROM `invoices` WHERE InvoiceId = ?"
+    sql = DB.Rebind(sql)
+
+    if Logger != nil {
+        Logger(ctx, sql)
+    }
+
 	record = &model.Invoices{}
 	err = DB.GetContext(ctx, record, sql,   argInvoiceID,        )
     if err != nil {
@@ -77,7 +94,12 @@ func AddInvoices(ctx context.Context, record *model.Invoices) (result *model.Inv
 // addInvoicesPostgres is a function to add a single record to invoices table in the main database
 // error - ErrInsertFailed, db save call failed
 func addInvoicesPostgres(ctx context.Context, record *model.Invoices) (result *model.Invoices, RowsAffected int64, err error) {
-    sql := "INSERT INTO `invoices` ( CustomerId,  InvoiceDate,  BillingAddress,  BillingCity,  BillingState,  BillingCountry,  BillingPostalCode,  Total) values ( $1, $2, $3, $4, $5, $6, $7, $8 )"
+    sql := "INSERT INTO `invoices` ( CustomerId,  InvoiceDate,  BillingAddress,  BillingCity,  BillingState,  BillingCountry,  BillingPostalCode,  Total) values ( ?, ?, ?, ?, ?, ?, ?, ? )"
+    sql = DB.Rebind(sql)
+
+    if Logger != nil {
+        Logger(ctx, sql)
+    }
 
     rows := int64(1)
     sql = fmt.Sprintf("%s returning %s", sql, "InvoiceId")
@@ -90,7 +112,12 @@ func addInvoicesPostgres(ctx context.Context, record *model.Invoices) (result *m
 // addInvoicesPostgres is a function to add a single record to invoices table in the main database
 // error - ErrInsertFailed, db save call failed
 func addInvoices(ctx context.Context, record *model.Invoices) (result *model.Invoices, RowsAffected int64, err error) {
-    sql := "INSERT INTO `invoices` ( CustomerId,  InvoiceDate,  BillingAddress,  BillingCity,  BillingState,  BillingCountry,  BillingPostalCode,  Total) values ( $1, $2, $3, $4, $5, $6, $7, $8 )"
+    sql := "INSERT INTO `invoices` ( CustomerId,  InvoiceDate,  BillingAddress,  BillingCity,  BillingState,  BillingCountry,  BillingPostalCode,  Total) values ( ?, ?, ?, ?, ?, ?, ?, ? )"
+    sql = DB.Rebind(sql)
+
+    if Logger != nil {
+        Logger(ctx, sql)
+    }
 
     rows := int64(0)
 
@@ -114,7 +141,13 @@ func addInvoices(ctx context.Context, record *model.Invoices) (result *model.Inv
 // error - ErrNotFound, db record for id not found
 // error - ErrUpdateFailed, db meta data copy failed or db.Save call failed
 func UpdateInvoices(ctx context.Context,   argInvoiceID int32,        updated *model.Invoices) (result *model.Invoices, RowsAffected int64, err error) {
-	sql := "UPDATE `invoices` set CustomerId = $1, InvoiceDate = $2, BillingAddress = $3, BillingCity = $4, BillingState = $5, BillingCountry = $6, BillingPostalCode = $7, Total = $8 WHERE InvoiceId = $9"
+	sql := "UPDATE `invoices` set CustomerId = ?, InvoiceDate = ?, BillingAddress = ?, BillingCity = ?, BillingState = ?, BillingCountry = ?, BillingPostalCode = ?, Total = ? WHERE InvoiceId = ?"
+	sql = DB.Rebind(sql)
+
+	if Logger != nil {
+		Logger(ctx, sql)
+	}
+
 	dbResult := DB.MustExecContext(ctx, sql,    updated.CustomerID,  updated.InvoiceDate,  updated.BillingAddress,  updated.BillingCity,  updated.BillingState,  updated.BillingCountry,  updated.BillingPostalCode,  updated.Total,  argInvoiceID,        )
 	rows, err := dbResult.RowsAffected()
       updated.InvoiceID = argInvoiceID
@@ -131,7 +164,13 @@ func UpdateInvoices(ctx context.Context,   argInvoiceID int32,        updated *m
 // error - ErrNotFound, db Find error
 // error - ErrDeleteFailed, db Delete failed error
 func DeleteInvoices(ctx context.Context,  argInvoiceID int32,        ) (rowsAffected int64, err error) {
-	sql := "DELETE FROM invoices where InvoiceId = $1"
+	sql := "DELETE FROM `invoices` where InvoiceId = ?"
+	sql = DB.Rebind(sql)
+
+	if Logger != nil {
+		Logger(ctx, sql)
+	}
+
 	result := DB.MustExecContext(ctx, sql,   argInvoiceID,        )
 	return result.RowsAffected()
 }

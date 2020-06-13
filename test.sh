@@ -1,6 +1,5 @@
 #!/bin/bash
 
-
 usage() {
   echo "usage: $0 <DB_TYPE> <APP>"
   echo ""
@@ -11,103 +10,42 @@ usage() {
 
 func_gen_gorm() {
   OUT_DIR="./tests/${DB_TYPE}_gorm"
-  if [[ -d ${OUT_DIR} ]];
-  then
+  if [[ -d ${OUT_DIR} ]]; then
     rm -rf "${OUT_DIR}"
   fi
-
-  DEFAULT_GEN_OPTIONS="--json
-      --api=apis
-      --dao=daos
-      --model=models
-      --file_naming='{{.}}'
-      --model_naming='{{.}}'
-      --guregu
-      --rest
-      --mod
-      --server
-      --makefile
-      --generate-dao
-      --generate-proj
-      --overwrite
-      --copy-templates
-      --host=localhost
-      --port=8080
-      --db
-      --protobuf
-      --mapping ./template/mapping.json
-      --templateDir=./template
-      --gorm
-      --verbose"
 
   TABLES_KEY="${DB_TYPE}_tables"
   TABLES=${!TABLES_KEY}
 
-  if [[ "${TABLES}" == 'all' || "${TABLES}" == '' ]];
-  then
-      echo 'generating gorm code for all tables'
+  if [[ "${TABLES}" == 'all' || "${TABLES}" == '' ]]; then
+    echo 'generating gorm code for all tables'
   else
     echo "generating gorm code for tables: ${TABLES}"
     DEFAULT_GEN_OPTIONS="${DEFAULT_GEN_OPTIONS} --table=${TABLES}"
   fi
 
-
-  ${GEN_APP} \
-    --sqltype="${DB_TYPE}" \
-    --connstr="${DB_CON}" \
-    --database="${DB}" \
-    --out="${OUT_DIR}" \
-    --module="${base_module}/${DB}" ${DEFAULT_GEN_OPTIONS}
+  CMD="${GEN_APP} --gorm ${DEFAULT_GEN_OPTIONS} --sqltype=\"${DB_TYPE}\" --connstr=\"${DB_CON}\" --database=\"${DB}\" --out=\"${OUT_DIR}\" --module=\"${base_module}/${DB}\""
+  eval ${CMD}
 }
-
-
 
 func_gen_sqlx() {
   OUT_DIR="./tests/${DB_TYPE}_sqlx"
-  if [[ -d ./tests/${DB_TYPE} ]];
-  then
+  if [[ -d ./tests/${DB_TYPE} ]]; then
     rm -rf "${OUT_DIR}"
   fi
-
-  DEFAULT_GEN_OPTIONS="--json --db  --protobuf --api=apis
-      --dao=daos
-      --model=models
-      --file_naming='{{.}}'
-      --model_naming='{{.}}'
-      --guregu
-      --rest
-      --mod
-      --server
-      --makefile
-      --generate-dao
-      --generate-proj
-      --overwrite
-      --copy-templates
-      --host=localhost
-      --port=8080
-      --mapping ./template/mapping.json
-      --templateDir=./template
-      --verbose"
-
-
 
   TABLES_KEY="${DB_TYPE}_tables"
   TABLES=${!TABLES_KEY}
 
-  if [[ "${TABLES}" == 'all' || "${TABLES}" == '' ]];
-  then
-      echo 'generating sqlx code for all tables'
+  if [[ "${TABLES}" == 'all' || "${TABLES}" == '' ]]; then
+    echo 'generating sqlx code for all tables'
   else
     echo "generating sqlx code for tables: ${TABLES}"
     DEFAULT_GEN_OPTIONS="${DEFAULT_GEN_OPTIONS} --table=${TABLES}"
   fi
 
-  ${GEN_APP} \
-    --sqltype="${DB_TYPE}" \
-    --connstr="${DB_CON}" \
-    --database="${DB}" \
-    --out="${OUT_DIR}" \
-    --module="${base_module}/${DB}" ${DEFAULT_GEN_OPTIONS}
+  CMD="${GEN_APP} ${DEFAULT_GEN_OPTIONS} --sqltype=\"${DB_TYPE}\" --connstr=\"${DB_CON}\" --database=\"${DB}\" --out=\"${OUT_DIR}\" --module=\"${base_module}/${DB}\""
+  eval ${CMD}
 }
 
 func_meta() {
@@ -116,9 +54,8 @@ func_meta() {
   TABLES_KEY="${DB_TYPE}_tables"
   TABLES=${!TABLES_KEY}
 
-  if [[ "${TABLES}" == 'all' || "${TABLES}" == '' ]];
-  then
-      echo 'showing meta for all tables'
+  if [[ "${TABLES}" == 'all' || "${TABLES}" == '' ]]; then
+    echo 'showing meta for all tables'
   else
     echo "showing meta for tables: ${TABLES}"
     DEFAULT_META_OPTIONS="${DEFAULT_META_OPTIONS} --table=${TABLES}"
@@ -131,11 +68,67 @@ func_meta() {
 
 }
 
+func_test() {
+  echo "test"
+  echo "${DEFAULT_GEN_OPTIONS}"
+  eval print_args ${DEFAULT_GEN_OPTIONS}
+}
 
+print_args() {
+  echo "--------------------------------"
+  echo ""
+  args=("$@")
+  # get number of elements
+  ELEMENTS=${#args[@]}
 
+  # echo each element in array
+  # for loop
+  for (( i=0;i<${ELEMENTS};i++)); do
+    echo "[$i ] ${args[${i}]}"
+  done
 
-create_env(){
-cat > ./.env <<DELIM
+}
+check_vars(){
+  if [ "${USE_GEN}" == "" ];
+  then
+    echo "" >>  ./.env
+    echo "USE_GEN=0" >>  ./.env
+    . .env
+  fi
+
+  if [ "${DEFAULT_GEN_OPTIONS}" == "" ];
+  then
+    echo "" >>  ./.env
+    echo "DEFAULT_GEN_OPTIONS=\"--json
+      --db
+      --protobuf
+      --api=apis
+      --dao=daos
+      --model=models
+      --guregu
+      --rest
+      --mod
+      --server
+      --makefile
+      --generate-dao
+      --generate-proj
+      --overwrite
+      --copy-templates
+      --host=localhost
+      --port=8080
+      --mapping ./template/mapping.json
+      --templateDir=./template
+      --file_naming='{{. }}'
+      --model_naming='{{FmtFieldName .}}'
+      --field_naming='{{FmtFieldName (stringifyFirstChar .) }}'
+      --verbose\"" >>  ./.env
+
+      . .env
+  fi
+
+}
+create_env() {
+  cat >./.env <<DELIM
 base_module=
 USE_GEN=0
 
@@ -155,36 +148,56 @@ mssql_conn=""
 mssql_db=""
 mssql_tables=
 
+DEFAULT_GEN_OPTIONS="--json \
+      --db \
+      --protobuf  \
+      --api=apis  \
+      --dao=daos  \
+      --model=models  \
+      --guregu  \
+      --rest \
+      --mod \
+      --server \
+      --makefile \
+      --generate-dao \
+      --generate-proj \
+      --overwrite \
+      --copy-templates \
+      --host=localhost \
+      --port=8080 \
+      --mapping ./template/mapping.json \
+      --templateDir=./template \
+      --file_naming='{{. }}' \
+      --model_naming='{{FmtFieldName .}}' \
+      --field_naming='{{FmtFieldName (stringifyFirstChar .) }}' \
+      --verbose"
+
 DELIM
 
 }
 
-
-
-if [[ -f ./.env ]];
-then
+if [[ -f ./.env ]]; then
   echo "loaded env file"
   . .env
+  check_vars
+
 else
   echo "env file does not exist -= creating template"
   create_env
   exit
 fi
 
-
-
 DB_TYPE="$1"
 APP="$2"
 
 case ${DB_TYPE} in
-postgres | mysql | mssql | sqlite3)
-  ;;
+postgres | mysql | mssql | sqlite3) ;;
+
 *)
   echo "unknown db type: [${DB_TYPE}]"
   usage
   ;;
 esac
-
 
 if [ -z "${base_module}" ]; then
   base_module="example"
@@ -199,19 +212,16 @@ DB=${!DB_NAME}
 [ -z "${DB_CON}" ] && echo "fill in ${DB_CON_NAME} entry in .env" && exit 0
 [ -z "${DB_NAME}" ] && echo "fill in ${DB_NAME} entry in .env" && exit 0
 
-
 GEN_APP="go run ."
-if [ "${USE_GEN}" = "1" ];
-then
+if [ "${USE_GEN}" = "1" ]; then
   GEN_APP=gen
   echo "Using precompiled gen binary"
 else
-    echo "Using go run - compiling on the fly"
+  echo "Using go run - compiling on the fly"
 fi
 
-
 case ${APP} in
-gen_gorm | gen_sqlx | meta)
+gen_gorm | gen_sqlx | meta | test)
   echo "running ${APP}"
   "func_${APP}"
   ;;
@@ -220,5 +230,3 @@ gen_gorm | gen_sqlx | meta)
   usage
   ;;
 esac
-
-

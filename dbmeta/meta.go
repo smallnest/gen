@@ -377,7 +377,9 @@ func (c *Config) GenerateFieldsTypes(dbMeta DbTableMeta) ([]*FieldInfo, error) {
 			continue
 		}
 
-		fieldName := FmtFieldName(stringifyFirstChar(name))
+		//fieldName := FmtFieldName(stringifyFirstChar(name))
+		//experiment
+		fieldName := Replace(c.FieldNamingTemplate, name)
 		fieldName = checkDupeFieldName(fields, fieldName)
 
 		fi.GormAnnotation = createGormAnnotation(col)
@@ -754,8 +756,10 @@ func GenerateModelInfo(tables map[string]*ModelInfo, dbMeta DbTableMeta,
 	tableName string,
 	conf *Config) (*ModelInfo, error) {
 
-	structName := FmtFieldName(tableName)
-	structName = Replace(conf.ModelNamingTemplate, structName)
+	//structName := FmtFieldName(tableName)
+	//experiment
+	structName := Replace(conf.ModelNamingTemplate, tableName)
+	// fmt.Printf("tableName: %s   structName: %s\n", tableName, structName)
 	// structName = inflection.Singular(structName)
 	structName = CheckForDupe(tables, structName)
 
