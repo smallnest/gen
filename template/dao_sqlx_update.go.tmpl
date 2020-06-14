@@ -10,7 +10,11 @@ func Update{{.StructName}}(ctx context.Context, {{range $field := .TableInfo.Cod
 		Logger(ctx, sql)
 	}
 
-	dbResult := DB.MustExecContext(ctx, sql, {{range $field := .TableInfo.CodeFields}} {{ if not $field.PrimaryKeyArgName }} updated.{{$field.GoFieldName}},{{end}}{{end -}} {{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}},{{end}}{{end -}})
+	dbResult, err := DB.ExecContext(ctx, sql, {{range $field := .TableInfo.CodeFields}} {{ if not $field.PrimaryKeyArgName }} updated.{{$field.GoFieldName}},{{end}}{{end -}} {{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}},{{end}}{{end -}})
+	if err != nil {
+		return nil, 0, err
+	}
+
 	rows, err := dbResult.RowsAffected()
     {{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} updated.{{$field.GoFieldName}} = {{$field.PrimaryKeyArgName}}{{print "\n"}}{{end}}{{end}}
 	return updated, rows, err

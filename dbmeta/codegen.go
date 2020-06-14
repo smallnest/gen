@@ -583,5 +583,40 @@ func NewConfig(templateLoader TemplateLoader) *Config {
 	conf.ModelNamingTemplate = "{{FmtFieldName .}}"
 	conf.FieldNamingTemplate = "{{FmtFieldName (stringifyFirstChar .) }}"
 
+
+	outDir := "."
+	module := "github.com/alexj212/test"
+	modelPackageName := "model"
+	daoPackageName := "dao"
+	apiPackageName := "api"
+
+	conf.ModelPackageName = modelPackageName
+	conf.DaoPackageName = daoPackageName
+	conf.ApiPackageName = apiPackageName
+
+	conf.AddJSONAnnotation = true
+	conf.AddXMLAnnotation = true
+	conf.AddGormAnnotation = true
+	conf.AddProtobufAnnotation = true
+	conf.AddDBAnnotation = true
+	conf.UseGureguTypes = false
+	conf.JsonNameFormat = "snake"
+	conf.XMLNameFormat = "snake"
+	conf.ProtobufNameFormat = "snake"
+	conf.Verbose = false
+	conf.OutDir = outDir
+	conf.Overwrite = true
+
+	conf.ServerPort = 8080
+	conf.ServerHost = "127.0.0.1"
+	conf.Overwrite = true
+
+	conf.Module = module
+	conf.ModelFQPN = module + "/" + modelPackageName
+	conf.DaoFQPN = module + "/" + daoPackageName
+	conf.ApiFQPN = module + "/" + apiPackageName
+
+	conf.Swagger.Host = fmt.Sprintf("%s:%d", conf.ServerHost, conf.ServerPort)
+
 	return conf
 }

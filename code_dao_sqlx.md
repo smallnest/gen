@@ -121,12 +121,15 @@ func addInvoices(ctx context.Context, record *model.Invoices) (result *model.Inv
 
     rows := int64(0)
 
-    dbResult := DB.MustExecContext(ctx, sql,    record.CustomerID,  record.InvoiceDate,  record.BillingAddress,  record.BillingCity,  record.BillingState,  record.BillingCountry,  record.BillingPostalCode,  record.Total,)
+    dbResult, err := DB.ExecContext(ctx, sql,    record.CustomerID,  record.InvoiceDate,  record.BillingAddress,  record.BillingCity,  record.BillingState,  record.BillingCountry,  record.BillingPostalCode,  record.Total,)
+    if err != nil {
+        return nil, 0, err
+    }
+
     id, err := dbResult.LastInsertId()
     rows, err = dbResult.RowsAffected()
 
      record.InvoiceID = int32(id)
-
 
 
     return record, rows, err
@@ -148,7 +151,11 @@ func UpdateInvoices(ctx context.Context,   argInvoiceID int32,        updated *m
 		Logger(ctx, sql)
 	}
 
-	dbResult := DB.MustExecContext(ctx, sql,    updated.CustomerID,  updated.InvoiceDate,  updated.BillingAddress,  updated.BillingCity,  updated.BillingState,  updated.BillingCountry,  updated.BillingPostalCode,  updated.Total,  argInvoiceID,        )
+	dbResult, err := DB.ExecContext(ctx, sql,    updated.CustomerID,  updated.InvoiceDate,  updated.BillingAddress,  updated.BillingCity,  updated.BillingState,  updated.BillingCountry,  updated.BillingPostalCode,  updated.Total,  argInvoiceID,        )
+	if err != nil {
+		return nil, 0, err
+	}
+
 	rows, err := dbResult.RowsAffected()
       updated.InvoiceID = argInvoiceID
         
@@ -171,7 +178,11 @@ func DeleteInvoices(ctx context.Context,  argInvoiceID int32,        ) (rowsAffe
 		Logger(ctx, sql)
 	}
 
-	result := DB.MustExecContext(ctx, sql,   argInvoiceID,        )
+	result, err := DB.ExecContext(ctx, sql,   argInvoiceID,        )
+	if err != nil {
+		return 0, err
+	}
+
 	return result.RowsAffected()
 }
 
