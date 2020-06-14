@@ -102,7 +102,6 @@ func init() {
 
 	//Parse options
 	goopt.Parse(nil)
-
 }
 
 func saveTemplates() {
@@ -329,6 +328,7 @@ func initialize(conf *dbmeta.Config) {
 	conf.AddDBAnnotation = *AddDBAnnotation
 	conf.UseGureguTypes = *UseGureguTypes
 	conf.JsonNameFormat = *jsonNameFormat
+	conf.XMLNameFormat = *xmlNameFormat
 	conf.ProtobufNameFormat = *protoNameFormat
 	conf.Verbose = *verbose
 	conf.OutDir = *outDir
@@ -365,6 +365,10 @@ func initialize(conf *dbmeta.Config) {
 	conf.Swagger.ContactURL = *swaggerContactURL
 	conf.Swagger.ContactEmail = *swaggerContactEmail
 	conf.Swagger.Host = fmt.Sprintf("%s:%d", *serverHost, *serverPort)
+
+	conf.JsonNameFormat = strings.ToLower(conf.JsonNameFormat)
+	conf.XMLNameFormat = strings.ToLower(conf.XMLNameFormat)
+	conf.ProtobufNameFormat = strings.ToLower(conf.ProtobufNameFormat)
 }
 
 func loadDefaultDBMappings(conf *dbmeta.Config) error {

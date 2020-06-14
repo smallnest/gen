@@ -10,7 +10,11 @@ func Delete{{.StructName}}(ctx context.Context,{{range $field := .TableInfo.Code
 		Logger(ctx, sql)
 	}
 
-	result := DB.MustExecContext(ctx, sql, {{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}},{{end}}{{end -}} )
+	result, err := DB.ExecContext(ctx, sql, {{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}},{{end}}{{end -}} )
+	if err != nil {
+		return 0, err
+	}
+
 	return result.RowsAffected()
 }
 {{end}}

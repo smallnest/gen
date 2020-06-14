@@ -17,6 +17,9 @@ func_gen_gorm() {
   TABLES_KEY="${DB_TYPE}_tables"
   TABLES=${!TABLES_KEY}
 
+  EXTABLES_KEY="${DB_TYPE}_exclude_tables"
+  EXTABLES=${!EXTABLES_KEY}
+
   if [[ "${TABLES}" == 'all' || "${TABLES}" == '' ]]; then
     echo 'generating gorm code for all tables'
   else
@@ -24,7 +27,11 @@ func_gen_gorm() {
     DEFAULT_GEN_OPTIONS="${DEFAULT_GEN_OPTIONS} --table=${TABLES}"
   fi
 
-  CMD="${GEN_APP} --gorm ${DEFAULT_GEN_OPTIONS} --sqltype=\"${DB_TYPE}\" --connstr=\"${DB_CON}\" --database=\"${DB}\" --out=\"${OUT_DIR}\" --module=\"${base_module}/${DB}\""
+  if [[ "${EXTABLES}" != '' ]]; then
+    echo "excluding tables: ${EXTABLES}"
+  fi
+
+  CMD="${GEN_APP} --gorm ${DEFAULT_GEN_OPTIONS} --exclude=\"${EXTABLES}\" --sqltype=\"${DB_TYPE}\" --connstr=\"${DB_CON}\" --database=\"${DB}\" --out=\"${OUT_DIR}\" --module=\"${base_module}/${DB}\""
   eval ${CMD}
 }
 
@@ -37,6 +44,9 @@ func_gen_sqlx() {
   TABLES_KEY="${DB_TYPE}_tables"
   TABLES=${!TABLES_KEY}
 
+  EXTABLES_KEY="${DB_TYPE}_exclude_tables"
+  EXTABLES=${!EXTABLES_KEY}
+
   if [[ "${TABLES}" == 'all' || "${TABLES}" == '' ]]; then
     echo 'generating sqlx code for all tables'
   else
@@ -44,7 +54,11 @@ func_gen_sqlx() {
     DEFAULT_GEN_OPTIONS="${DEFAULT_GEN_OPTIONS} --table=${TABLES}"
   fi
 
-  CMD="${GEN_APP} ${DEFAULT_GEN_OPTIONS} --sqltype=\"${DB_TYPE}\" --connstr=\"${DB_CON}\" --database=\"${DB}\" --out=\"${OUT_DIR}\" --module=\"${base_module}/${DB}\""
+  if [[ "${EXTABLES}" != '' ]]; then
+    echo "excluding tables: ${EXTABLES}"
+  fi
+
+  CMD="${GEN_APP} ${DEFAULT_GEN_OPTIONS} --exclude=\"${EXTABLES}\" --sqltype=\"${DB_TYPE}\" --connstr=\"${DB_CON}\" --database=\"${DB}\" --out=\"${OUT_DIR}\" --module=\"${base_module}/${DB}\""
   eval ${CMD}
 }
 
@@ -135,18 +149,22 @@ USE_GEN=0
 postgres_conn=""
 postgres_db=
 postgres_tables=
+postgres_exclude_tables=
 
 mysql_conn=""
 mysql_db=
 mysql_tables=
+mysql_exclude_tables=
 
 sqlite3_conn="./example/sample.db"
 sqlite3_db=main
 sqlite3_tables=
+sqlite3_exclude_tables=
 
 mssql_conn=""
 mssql_db=""
 mssql_tables=
+mssql_exclude_tables=
 
 DEFAULT_GEN_OPTIONS="--json \
       --db \

@@ -39,12 +39,15 @@ func add{{.StructName}}(ctx context.Context, record *{{.modelPackageName}}.{{.St
 
     rows := int64(0)
 
-    dbResult := DB.MustExecContext(ctx, sql, {{range $field := .TableInfo.CodeFields}} {{ if not $field.ColumnMeta.IsAutoIncrement }} record.{{$field.GoFieldName}},{{end}}{{end -}} )
+    dbResult, err := DB.ExecContext(ctx, sql, {{range $field := .TableInfo.CodeFields}} {{ if not $field.ColumnMeta.IsAutoIncrement }} record.{{$field.GoFieldName}},{{end}}{{end -}} )
+    if err != nil {
+        return nil, 0, err
+    }
+
     id, err := dbResult.LastInsertId()
     rows, err = dbResult.RowsAffected()
 
     {{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName }} record.{{$field.GoFieldName}} = {{$field.GoFieldType}}(id){{print "\n"}}{{end}}{{end}}
-
 
     return record, rows, err
 }
