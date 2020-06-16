@@ -10,34 +10,40 @@
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
 // @Failure 404 {object} {{.apiPackageName}}.HTTPError
 // @Router /{{.StructName | toLower}} [post]
-// echo '{{ToJSON .TableInfo.Instance 0}}' | http POST "http://{{$.serverHost}}:{{$.serverPort}}/{{.StructName | toLower}}"
+// echo '{{ToJSON .TableInfo.Instance 0}}' | http POST "http://{{$.serverHost}}:{{$.serverPort}}/{{.StructName | toLower}}" X-Api-User:user123
 func Add{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := initializeContext(r)
 	{{.StructName | toLower}} := &{{.modelPackageName}}.{{.StructName}}{}
 
 	if err := readJSON(r, {{.StructName | toLower}}); err != nil {
-		returnError(w, r, {{.daoPackageName}}.ErrBadParams)
+		returnError(ctx, w, r, {{.daoPackageName}}.ErrBadParams)
 		return
 	}
 
 
    if err := {{.StructName | toLower}}.BeforeSave(); err != nil {
-      returnError(w, r, {{.daoPackageName}}.ErrBadParams)
+      returnError(ctx, w, r, {{.daoPackageName}}.ErrBadParams)
    }
 
    {{.StructName | toLower}}.Prepare()
 
    if err := {{.StructName | toLower}}.Validate({{.modelPackageName}}.Create); err != nil {
-      returnError(w, r, {{.daoPackageName}}.ErrBadParams)
+      returnError(ctx, w, r, {{.daoPackageName}}.ErrBadParams)
       return
    }
 
-    var err error
-	{{.StructName | toLower}}, _, err = {{.daoPackageName}}.Add{{.StructName}}(r.Context(), {{.StructName | toLower}})
-	if err != nil {
-		returnError(w, r, err)
+	if err := ValidateRequest(ctx, r, "{{.TableName}}", {{.modelPackageName}}.Create); err != nil{
+		returnError(ctx, w, r, err)
 		return
 	}
 
-	writeJSON(w, {{.StructName | toLower}})
+    var err error
+	{{.StructName | toLower}}, _, err = {{.daoPackageName}}.Add{{.StructName}}(ctx, {{.StructName | toLower}})
+	if err != nil {
+		returnError(ctx, w, r, err)
+		return
+	}
+
+	writeJSON(ctx, w, {{.StructName | toLower}})
 }
 {{end}}

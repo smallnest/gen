@@ -1,21 +1,43 @@
 package {{.modelPackageName}}
 
+import "fmt"
+
 // Action CRUD actions
 type Action int32
 
 var (
     // Create action when record is created
-	Create   = Action(0)
+    Create = Action(0)
 
-	// Retrieve action when record is retrieved from db
-	Retrieve = Action(1)
+    // RetrieveOne action when a record is retrieved from db
+    RetrieveOne = Action(1)
 
-	// Update action when record is updated in db
-	Update   = Action(2)
+    // RetrieveMany action when record(s) are retrieved from db
+    RetrieveMany = Action(2)
 
-	// Delete action when record is deleted in db
-	Delete   = Action(3)
+    // Update action when record is updated in db
+    Update = Action(3)
+
+    // Delete action when record is deleted in db
+    Delete = Action(4)
 )
+
+func (i Action) String() string {
+    switch i {
+    case Create:
+        return "Create"
+    case RetrieveOne:
+        return "RetrieveOne"
+    case RetrieveMany:
+        return "RetrieveMany"
+    case Update:
+        return "Update"
+    case Delete:
+        return "Delete"
+    default:
+        return fmt.Sprintf("unknown action: %d", int(i))
+    }
+}
 
 // Model interface methods for database structs generated
 type Model interface {

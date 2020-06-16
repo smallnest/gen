@@ -11,44 +11,50 @@
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
 // @Failure 404 {object} {{.apiPackageName}}.HTTPError
 // @Router /{{.StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/{ {{- $field.PrimaryKeyArgName -}} }{{end}}{{end}} [patch]
-// echo '{{ToJSON .TableInfo.Instance 0}}' | http PUT "http://{{$.serverHost}}:{{$.serverPort}}/{{.StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/{{ $field.FakeData }}{{end}}{{end}}"
+// echo '{{ToJSON .TableInfo.Instance 0}}' | http PUT "http://{{$.serverHost}}:{{$.serverPort}}/{{.StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/{{ $field.FakeData }}{{end}}{{end}}"  X-Api-User:user123
 func Update{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := initializeContext(r)
 {{range $field := .TableInfo.CodeFields}}
 {{ if $field.PrimaryKeyArgName }}
 
 	{{$field.PrimaryKeyArgName}}, err := {{$field.PrimaryKeyFieldParser}}(ps, "{{$field.PrimaryKeyArgName}}")
 	if err != nil {
-		returnError(w, r, err)
+		returnError(ctx, w, r, err)
 		return
 	}
 {{end}}{{end}}
 
 	{{.StructName | toLower}} := &{{.modelPackageName}}.{{.StructName}}{}
 	if err := readJSON(r, {{.StructName | toLower}}); err != nil {
-		returnError(w, r, {{.daoPackageName}}.ErrBadParams)
+		returnError(ctx, w, r, {{.daoPackageName}}.ErrBadParams)
 		return
 	}
 
    if err := {{.StructName | toLower}}.BeforeSave(); err != nil {
-      returnError(w, r, {{.daoPackageName}}.ErrBadParams)
+      returnError(ctx, w, r, {{.daoPackageName}}.ErrBadParams)
    }
 
    {{.StructName | toLower}}.Prepare()
 
    if err := {{.StructName | toLower}}.Validate( {{.modelPackageName}}.Update); err != nil {
-      returnError(w, r, {{.daoPackageName}}.ErrBadParams)
+      returnError(ctx, w, r, {{.daoPackageName}}.ErrBadParams)
       return
    }
 
-	{{.StructName | toLower}}, _, err = {{.daoPackageName}}.Update{{.StructName}}(r.Context(),
+	if err := ValidateRequest(ctx, r, "{{.TableName}}", {{.modelPackageName}}.Update); err != nil{
+		returnError(ctx, w, r, err)
+		return
+	}
+
+	{{.StructName | toLower}}, _, err = {{.daoPackageName}}.Update{{.StructName}}(ctx,
 	{{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}},{{end}}{{end}}
 	{{.StructName | toLower}})
 	if err != nil {
-	    returnError(w, r, err)
+	    returnError(ctx, w, r, err)
    	    return
 	}
 
-	writeJSON(w, {{.StructName | toLower}})
+	writeJSON(ctx, w, {{.StructName | toLower}})
 }
 {{end}}
 

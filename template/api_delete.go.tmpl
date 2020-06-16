@@ -10,20 +10,26 @@
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
 // @Failure 500 {object} {{.apiPackageName}}.HTTPError
 // @Router /{{.StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/{ {{- $field.PrimaryKeyArgName -}} }{{end}}{{end}} [delete]
-// http DELETE "http://{{$.serverHost}}:{{$.serverPort}}/{{.StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/{{ $field.FakeData }}{{end}}{{end}}"
+// http DELETE "http://{{$.serverHost}}:{{$.serverPort}}/{{.StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/{{ $field.FakeData }}{{end}}{{end}}" X-Api-User:user123
 func Delete{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := initializeContext(r)
 {{range $field := .TableInfo.CodeFields}}
 {{ if $field.PrimaryKeyArgName }}
 	{{$field.PrimaryKeyArgName}}, err := {{$field.PrimaryKeyFieldParser}}(ps, "{{$field.PrimaryKeyArgName}}")
 	if err != nil {
-		returnError(w, r, err)
+		returnError(ctx, w, r, err)
 		return
 	}
 {{end}}{{end}}
 
-	rowsAffected, err := {{.daoPackageName}}.Delete{{.StructName}}(r.Context(),{{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}},{{end}}{{end -}})
+	if err := ValidateRequest(ctx, r, "{{.TableName}}", {{.modelPackageName}}.Delete); err != nil{
+		returnError(ctx, w, r, err)
+		return
+	}
+
+	rowsAffected, err := {{.daoPackageName}}.Delete{{.StructName}}(ctx,{{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}},{{end}}{{end -}})
 	if err != nil {
-	    returnError(w, r, err)
+	    returnError(ctx, w, r, err)
 	    return
 	}
 

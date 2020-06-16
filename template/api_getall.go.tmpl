@@ -12,29 +12,35 @@
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
 // @Failure 404 {object} {{.apiPackageName}}.HTTPError
 // @Router /{{.StructName | toLower}} [get]
-// http "http://{{$.serverHost}}:{{$.serverPort}}/{{.StructName | toLower}}?page=0&pagesize=20"
+// http "http://{{$.serverHost}}:{{$.serverPort}}/{{.StructName | toLower}}?page=0&pagesize=20" X-Api-User:user123
 func GetAll{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := initializeContext(r)
     page, err := readInt(r, "page", 0)
 	if err != nil || page < 0 {
-		returnError(w, r, {{.daoPackageName}}.ErrBadParams)
+		returnError(ctx, w, r, {{.daoPackageName}}.ErrBadParams)
 		return
 	}
 
 	pagesize, err := readInt(r, "pagesize", 20)
 	if err != nil || pagesize <= 0 {
-		returnError(w, r, {{.daoPackageName}}.ErrBadParams)
+		returnError(ctx, w, r, {{.daoPackageName}}.ErrBadParams)
 		return
 	}
 
 	order := r.FormValue("order")
 
-    records, totalRows, err :=  {{.daoPackageName}}.GetAll{{.StructName}}(r.Context(), page, pagesize, order)
+	if err := ValidateRequest(ctx, r, "{{.TableName}}", {{.modelPackageName}}.RetrieveMany); err != nil{
+		returnError(ctx, w, r, err)
+		return
+	}
+
+    records, totalRows, err :=  {{.daoPackageName}}.GetAll{{.StructName}}(ctx, page, pagesize, order)
 	if err != nil {
-	    returnError(w, r, err)
+	    returnError(ctx, w, r, err)
 		return
 	}
 
 	result := &PagedResults{Page: page, PageSize: pagesize, Data: records, TotalRecords: totalRows}
-	writeJSON(w, result)
+	writeJSON(ctx, w, result)
 }
 {{end}}
