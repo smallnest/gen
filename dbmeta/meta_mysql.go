@@ -104,6 +104,7 @@ func mysqlLoadDDL(db *sql.DB, tableName string) (ddl string, err error) {
 		return "", fmt.Errorf("unable to load ddl from mysql: %v", err)
 	}
 
+	defer res.Close()
 	var ddl1 string
 	var ddl2 string
 	if res.Next() {

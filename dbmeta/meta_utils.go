@@ -64,6 +64,7 @@ WHERE
 	if err != nil {
 		return "", fmt.Errorf("unable to load ddl from ms sql: %v", err)
 	}
+	defer res.Close()
 	for res.Next() {
 		var columnName string
 		err = res.Scan(&columnName)
@@ -107,7 +108,7 @@ ORDER BY table_name, ordinal_position;
 	if err != nil {
 		return nil, fmt.Errorf("unable to load ddl from %s: %v", tableName, err)
 	}
-
+	defer res.Close()
 	for res.Next() {
 		ci := &PostgresInformationSchema{}
 		err = res.Scan(&ci.TableCatalog, &ci.TableSchema, &ci.TableName, &ci.OrdinalPosition, &ci.ColumnName, &ci.DataType, &ci.CharacterMaximumLength,
@@ -151,7 +152,7 @@ ORDER BY table_name, ordinal_position;
 	if err != nil {
 		return nil, fmt.Errorf("unable to load ddl from information_schema: %v", err)
 	}
-
+	defer res.Close()
 	for res.Next() {
 		ci := &InformationSchema{}
 		err = res.Scan(&ci.TableCatalog, &ci.TableSchema, &ci.TableName, &ci.OrdinalPosition, &ci.ColumnName, &ci.DataType, &ci.CharacterMaximumLength,
@@ -183,14 +184,14 @@ where table_schema = '%s' AND
 	}
 
 	var colLen int64
-
+	defer res.Close()
 	if res.Next() {
 		err = res.Scan(&colLen)
 		if err != nil {
 			return -1, fmt.Errorf("unable to load ddl from mysql Scan: %v", err)
 		}
 	}
-
+	_ = res.Close()
 	return colLen, nil
 
 }

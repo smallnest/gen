@@ -249,6 +249,9 @@ Table Name: registration_source
 |ms sql   |y   | y  | y  | y  | y | y| n
 
 ## Version History
+- v0.9.13 (06/22/2020)
+    - fixed closing of connections via defer
+    - bug fixes in sqlx generated code
 - v0.9.12 (06/14/2020)
     - SQLX changed MustExec to Exec and checking/returning error
     - Updated field renaming if duplicated, need more elegant renaming solution.

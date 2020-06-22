@@ -9,25 +9,30 @@
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
 // @Failure 404 {object} {{.apiPackageName}}.HTTPError "ErrNotFound, db record for id not found - returns NotFound HTTP 404 not found error"
 // @Router /{{.StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/{ {{- $field.PrimaryKeyArgName -}} }{{end}}{{end}} [get]
-// http "http://{{$.serverHost}}:{{$.serverPort}}/{{.StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/{{ $field.FakeData }}{{end}}{{end}}"
+// http "http://{{$.serverHost}}:{{$.serverPort}}/{{.StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/{{ $field.FakeData }}{{end}}{{end}}" X-Api-User:user123
 func Get{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-
+	ctx := initializeContext(r)
 {{range $field := .TableInfo.CodeFields}}
 {{ if $field.PrimaryKeyArgName }}
 
 	{{$field.PrimaryKeyArgName}}, err := {{$field.PrimaryKeyFieldParser}}(ps, "{{$field.PrimaryKeyArgName}}")
 	if err != nil {
-		returnError(w, r, err)
+		returnError(ctx, w, r, err)
 		return
 	}
 {{end}}{{end}}
 
-	record, err := {{.daoPackageName}}.Get{{.StructName}}(r.Context(),{{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}},{{end}}{{end -}})
-	if err != nil {
-		returnError(w, r, err)
+	if err := ValidateRequest(ctx, r, "{{.TableName}}", {{.modelPackageName}}.RetrieveOne); err != nil{
+		returnError(ctx, w, r, err)
 		return
 	}
 
-	writeJSON(w, record)
+	record, err := {{.daoPackageName}}.Get{{.StructName}}(ctx,{{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}},{{end}}{{end -}})
+	if err != nil {
+		returnError(ctx, w, r, err)
+		return
+	}
+
+	writeJSON(ctx, w, record)
 }
 {{end}}

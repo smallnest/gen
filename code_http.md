@@ -38,30 +38,36 @@
 // @Failure 400 {object} api.HTTPError
 // @Failure 404 {object} api.HTTPError
 // @Router /invoices [get]
-// http "http://127.0.0.1:8080/invoices?page=0&pagesize=20"
+// http "http://127.0.0.1:8080/invoices?page=0&pagesize=20" X-Api-User:user123
 func GetAllInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := initializeContext(r)
     page, err := readInt(r, "page", 0)
 	if err != nil || page < 0 {
-		returnError(w, r, dao.ErrBadParams)
+		returnError(ctx, w, r, dao.ErrBadParams)
 		return
 	}
 
 	pagesize, err := readInt(r, "pagesize", 20)
 	if err != nil || pagesize <= 0 {
-		returnError(w, r, dao.ErrBadParams)
+		returnError(ctx, w, r, dao.ErrBadParams)
 		return
 	}
 
 	order := r.FormValue("order")
 
-    records, totalRows, err :=  dao.GetAllInvoices(r.Context(), page, pagesize, order)
+	if err := ValidateRequest(ctx, r, "invoices", model.RetrieveMany); err != nil{
+		returnError(ctx, w, r, err)
+		return
+	}
+
+    records, totalRows, err :=  dao.GetAllInvoices(ctx, page, pagesize, order)
 	if err != nil {
-	    returnError(w, r, err)
+	    returnError(ctx, w, r, err)
 		return
 	}
 
 	result := &PagedResults{Page: page, PageSize: pagesize, Data: records, TotalRecords: totalRows}
-	writeJSON(w, result)
+	writeJSON(ctx, w, result)
 }
 
 ```
@@ -81,15 +87,15 @@ func GetAllInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 // @Failure 400 {object} api.HTTPError
 // @Failure 404 {object} api.HTTPError "ErrNotFound, db record for id not found - returns NotFound HTTP 404 not found error"
 // @Router /invoices/{argInvoiceID} [get]
-// http "http://127.0.0.1:8080/invoices/1"
+// http "http://127.0.0.1:8080/invoices/1" X-Api-User:user123
 func GetInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
-
+	ctx := initializeContext(r)
 
 
 
 	argInvoiceID, err := parseInt32(ps, "argInvoiceID")
 	if err != nil {
-		returnError(w, r, err)
+		returnError(ctx, w, r, err)
 		return
 	}
 
@@ -102,13 +108,18 @@ func GetInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 
 
-	record, err := dao.GetInvoices(r.Context(),  argInvoiceID,        )
+	if err := ValidateRequest(ctx, r, "invoices", model.RetrieveOne); err != nil{
+		returnError(ctx, w, r, err)
+		return
+	}
+
+	record, err := dao.GetInvoices(ctx,  argInvoiceID,        )
 	if err != nil {
-		returnError(w, r, err)
+		returnError(ctx, w, r, err)
 		return
 	}
 
-	writeJSON(w, record)
+	writeJSON(ctx, w, record)
 }
 
 ```
@@ -127,35 +138,41 @@ func GetInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 // @Failure 400 {object} api.HTTPError
 // @Failure 404 {object} api.HTTPError
 // @Router /invoices [post]
-// echo '{"billing_city": "KFexcWKROnLINETrbmVOvTkcR","billing_state": "vhcqlIruTvNNVLldzziowZnTi","billing_country": "LFUPxhKvYOUNjkTxIuyHFhqpu","invoice_id": 22,"invoice_date": "2232-05-19T13:23:42.984104667-05:00","billing_postal_code": "ruCpAHdOcxexpzANxveifgEjs","total": 0.09440238810354037,"customer_id": 51,"billing_address": "aUXNwnUvmZIqZXIxeAEndiuXN"}' | http POST "http://127.0.0.1:8080/invoices"
+// echo '{"billing_country": "IpUUsYnBsqHwrxQDbsMHHLRQU","total": 0.6259580209855646,"invoice_date": "2075-08-12T03:25:37.660915502-05:00","billing_address": "GYQbNQncNaNKozjThrsZArZMR","billing_city": "VwefAqGZrDHMcxZpdrJTundko","billing_state": "CAEhinkxrJUROEgUQTraDmIzF","invoice_id": 68,"customer_id": 19,"billing_postal_code": "ozEslZvvxcyFtZKbpltimEMVw"}' | http POST "http://127.0.0.1:8080/invoices" X-Api-User:user123
 func AddInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := initializeContext(r)
 	invoices := &model.Invoices{}
 
 	if err := readJSON(r, invoices); err != nil {
-		returnError(w, r, dao.ErrBadParams)
+		returnError(ctx, w, r, dao.ErrBadParams)
 		return
 	}
 
 
    if err := invoices.BeforeSave(); err != nil {
-      returnError(w, r, dao.ErrBadParams)
+      returnError(ctx, w, r, dao.ErrBadParams)
    }
 
    invoices.Prepare()
 
    if err := invoices.Validate(model.Create); err != nil {
-      returnError(w, r, dao.ErrBadParams)
+      returnError(ctx, w, r, dao.ErrBadParams)
       return
    }
 
-    var err error
-	invoices, _, err = dao.AddInvoices(r.Context(), invoices)
-	if err != nil {
-		returnError(w, r, err)
+	if err := ValidateRequest(ctx, r, "invoices", model.Create); err != nil{
+		returnError(ctx, w, r, err)
 		return
 	}
 
-	writeJSON(w, invoices)
+    var err error
+	invoices, _, err = dao.AddInvoices(ctx, invoices)
+	if err != nil {
+		returnError(ctx, w, r, err)
+		return
+	}
+
+	writeJSON(ctx, w, invoices)
 }
 
 ```
@@ -175,14 +192,15 @@ func AddInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 // @Failure 400 {object} api.HTTPError
 // @Failure 404 {object} api.HTTPError
 // @Router /invoices/{argInvoiceID} [patch]
-// echo '{"billing_city": "KFexcWKROnLINETrbmVOvTkcR","billing_state": "vhcqlIruTvNNVLldzziowZnTi","billing_country": "LFUPxhKvYOUNjkTxIuyHFhqpu","invoice_id": 22,"invoice_date": "2232-05-19T13:23:42.984104667-05:00","billing_postal_code": "ruCpAHdOcxexpzANxveifgEjs","total": 0.09440238810354037,"customer_id": 51,"billing_address": "aUXNwnUvmZIqZXIxeAEndiuXN"}' | http PUT "http://127.0.0.1:8080/invoices/1"
+// echo '{"billing_country": "IpUUsYnBsqHwrxQDbsMHHLRQU","total": 0.6259580209855646,"invoice_date": "2075-08-12T03:25:37.660915502-05:00","billing_address": "GYQbNQncNaNKozjThrsZArZMR","billing_city": "VwefAqGZrDHMcxZpdrJTundko","billing_state": "CAEhinkxrJUROEgUQTraDmIzF","invoice_id": 68,"customer_id": 19,"billing_postal_code": "ozEslZvvxcyFtZKbpltimEMVw"}' | http PUT "http://127.0.0.1:8080/invoices/1"  X-Api-User:user123
 func UpdateInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := initializeContext(r)
 
 
 
 	argInvoiceID, err := parseInt32(ps, "argInvoiceID")
 	if err != nil {
-		returnError(w, r, err)
+		returnError(ctx, w, r, err)
 		return
 	}
 
@@ -197,30 +215,35 @@ func UpdateInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 
 	invoices := &model.Invoices{}
 	if err := readJSON(r, invoices); err != nil {
-		returnError(w, r, dao.ErrBadParams)
+		returnError(ctx, w, r, dao.ErrBadParams)
 		return
 	}
 
    if err := invoices.BeforeSave(); err != nil {
-      returnError(w, r, dao.ErrBadParams)
+      returnError(ctx, w, r, dao.ErrBadParams)
    }
 
    invoices.Prepare()
 
    if err := invoices.Validate( model.Update); err != nil {
-      returnError(w, r, dao.ErrBadParams)
+      returnError(ctx, w, r, dao.ErrBadParams)
       return
    }
 
-	invoices, _, err = dao.UpdateInvoices(r.Context(),
+	if err := ValidateRequest(ctx, r, "invoices", model.Update); err != nil{
+		returnError(ctx, w, r, err)
+		return
+	}
+
+	invoices, _, err = dao.UpdateInvoices(ctx,
 	  argInvoiceID,        
 	invoices)
 	if err != nil {
-	    returnError(w, r, err)
+	    returnError(ctx, w, r, err)
    	    return
 	}
 
-	writeJSON(w, invoices)
+	writeJSON(ctx, w, invoices)
 }
 
 ```
@@ -239,13 +262,14 @@ func UpdateInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 // @Failure 400 {object} api.HTTPError
 // @Failure 500 {object} api.HTTPError
 // @Router /invoices/{argInvoiceID} [delete]
-// http DELETE "http://127.0.0.1:8080/invoices/1"
+// http DELETE "http://127.0.0.1:8080/invoices/1" X-Api-User:user123
 func DeleteInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := initializeContext(r)
 
 
 	argInvoiceID, err := parseInt32(ps, "argInvoiceID")
 	if err != nil {
-		returnError(w, r, err)
+		returnError(ctx, w, r, err)
 		return
 	}
 
@@ -258,9 +282,14 @@ func DeleteInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params
 
 
 
-	rowsAffected, err := dao.DeleteInvoices(r.Context(),  argInvoiceID,        )
+	if err := ValidateRequest(ctx, r, "invoices", model.Delete); err != nil{
+		returnError(ctx, w, r, err)
+		return
+	}
+
+	rowsAffected, err := dao.DeleteInvoices(ctx,  argInvoiceID,        )
 	if err != nil {
-	    returnError(w, r, err)
+	    returnError(ctx, w, r, err)
 	    return
 	}
 

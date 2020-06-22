@@ -96,6 +96,7 @@ func sqliteLoadPragma(db *sql.DB, tableName string) (colsInfos map[string]*sqlit
 		return nil, fmt.Errorf("unable to load PRAGMA table_info %s: %v", tableName, err)
 	}
 
+	defer res.Close()
 	colsInfos = make(map[string]*sqliteColumnInfo)
 	for res.Next() {
 		ci := &sqliteColumnInfo{}
@@ -170,13 +171,14 @@ func sqliteParseDDL(ddl string) map[string]string {
 func sqliteLoadDDL(db *sql.DB, tableName string) (string, error) {
 	var ddl string
 	ddlSQL := fmt.Sprintf("SELECT sql FROM sqlite_master WHERE type='table' and name = '%s';", tableName)
-	_, err := db.Query(ddlSQL)
-	if err != nil {
-		return "", fmt.Errorf("unable to load ddl from sqlite_master: %v", err)
-	}
+	//_, err := db.Query(ddlSQL)
+	//if err != nil {
+		//return "", fmt.Errorf("unable to load ddl from sqlite_master: %v", err)
+	//}
+
 
 	row := db.QueryRow(ddlSQL, 0)
-	err = row.Scan(&ddl)
+	err := row.Scan(&ddl)
 	if err != nil {
 		return "", err
 	}

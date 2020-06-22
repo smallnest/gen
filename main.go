@@ -93,7 +93,7 @@ func init() {
 	goopt.Description = func() string {
 		return "ORM and RESTful API generator for SQl databases"
 	}
-	goopt.Version = "v0.9.11 (06/13/2020)"
+	goopt.Version = "v0.9.13 (06/22/2020)"
 	goopt.Summary = `gen [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> --module=example.com/example [--json] [--gorm] [--guregu] [--generate-dao] [--generate-proj]
 
            sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
@@ -738,7 +738,9 @@ func createProtocCmdLine(protoBufDir, protoBufOutDir, protoBufFile string) ([]st
 
 	args := []string{fmt.Sprintf("-I%s", *gogoProtoImport),
 		fmt.Sprintf("-I%s", protoBufDir),
-		fmt.Sprintf("--gogo_out=plugins=grpc:%s", protoBufOutDir),
+
+		fmt.Sprintf("--gogo_out=plugins=grpc,Mgoogle/protobuf/timestamp.proto=github.com/gogo/protobuf/types,Mgoogle/protobuf/duration.proto=github.com/gogo/protobuf/types,Mgoogle/protobuf/empty.proto=github.com/gogo/protobuf/types,Mgoogle/api/annotations.proto=github.com/gogo/googleapis/google/api,Mmodel.proto:%s", protoBufOutDir),
+		//fmt.Sprintf("--gogo_out=plugins=grpc:%s", protoBufOutDir),
 		fmt.Sprintf("%s", protoBufFile)}
 
 	return args, nil
