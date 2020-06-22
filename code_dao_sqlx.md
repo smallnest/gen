@@ -33,7 +33,7 @@ func GetAllInvoices(ctx context.Context, page, pagesize int64, order string) (re
 	}
 
 	if order == "" {
-		order = "id"
+		order = "InvoiceId"
 	}
 
 	if DB.DriverName() == "mssql" {
@@ -50,8 +50,18 @@ func GetAllInvoices(ctx context.Context, page, pagesize int64, order string) (re
 	}
 
 	err = DB.SelectContext(ctx, &results, sql)
-	return results, len(results), err
+	if err != nil {
+		return nil, -1, err
+	}
+
+	cnt , err := GetRowCount(ctx, "invoices")
+	if err != nil {
+		return results, -2, err
+	}
+
+	return results, cnt, err
 }
+
 
 ```
 

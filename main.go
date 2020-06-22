@@ -738,7 +738,9 @@ func createProtocCmdLine(protoBufDir, protoBufOutDir, protoBufFile string) ([]st
 
 	args := []string{fmt.Sprintf("-I%s", *gogoProtoImport),
 		fmt.Sprintf("-I%s", protoBufDir),
-		fmt.Sprintf("--gogo_out=plugins=grpc:%s", protoBufOutDir),
+
+		fmt.Sprintf("--gogo_out=plugins=grpc,Mgoogle/protobuf/timestamp.proto=github.com/gogo/protobuf/types,Mgoogle/protobuf/duration.proto=github.com/gogo/protobuf/types,Mgoogle/protobuf/empty.proto=github.com/gogo/protobuf/types,Mgoogle/api/annotations.proto=github.com/gogo/googleapis/google/api,Mmodel.proto:%s", protoBufOutDir),
+		//fmt.Sprintf("--gogo_out=plugins=grpc:%s", protoBufOutDir),
 		fmt.Sprintf("%s", protoBufFile)}
 
 	return args, nil

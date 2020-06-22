@@ -1,7 +1,9 @@
 syntax = "proto3";
 
 package {{.DatabaseName}};
+import "google/protobuf/timestamp.proto";
 import "github.com/gogo/protobuf/gogoproto/gogo.proto";
+
 
 option (gogoproto.populate_all) = true;
 option go_package = "{{.Config.ModelPackageName}}";

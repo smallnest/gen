@@ -14,7 +14,7 @@ func GetAll{{.StructName}}(ctx context.Context, page, pagesize int64, order stri
 	}
 
 	if order == "" {
-		order = "id"
+		order = "{{.PrimaryKeysJoined}}"
 	}
 
 	if DB.DriverName() == "mssql" {
@@ -31,6 +31,16 @@ func GetAll{{.StructName}}(ctx context.Context, page, pagesize int64, order stri
 	}
 
 	err = DB.SelectContext(ctx, &results, sql)
-	return results, len(results), err
+	if err != nil {
+		return nil, -1, err
+	}
+
+	cnt , err := GetRowCount(ctx, "{{.TableName}}")
+	if err != nil {
+		return results, -2, err
+	}
+
+	return results, cnt, err
 }
+
 {{end}}

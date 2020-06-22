@@ -114,6 +114,8 @@ func postgresLoadPrimaryKey(db *sql.DB, tableName string, colInfo map[string]*Po
 	if err != nil {
 		return fmt.Errorf("unable to load ddl from ms sql: %v", err)
 	}
+
+	defer res.Close()
 	for res.Next() {
 
 		var columnName string

@@ -91,3 +91,19 @@ func Copy(dst interface{}, src interface{}) error {
 func isZeroOfUnderlyingType(x interface{}) bool {
 	return x == nil || reflect.DeepEqual(x, reflect.Zero(reflect.TypeOf(x)).Interface())
 }
+
+func GetRowCount(ctx context.Context, tableName string) (int, error) {
+	sql := fmt.Sprintf("SELECT count(*) FROM %s", tableName)
+	if Logger != nil {
+		Logger(ctx, sql)
+	}
+
+	cnt := 0
+	row := DB.QueryRowContext(ctx, sql)
+	err := row.Scan(&cnt)
+	if err != nil {
+		return -1, err
+	}
+
+	return cnt, err
+}
