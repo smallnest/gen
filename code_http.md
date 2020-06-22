@@ -138,7 +138,7 @@ func GetInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 // @Failure 400 {object} api.HTTPError
 // @Failure 404 {object} api.HTTPError
 // @Router /invoices [post]
-// echo '{"invoice_date": "2098-02-17T20:15:20.299175489-05:00","billing_address": "hwnwXOSeNWuMIGbsxFDcbBmnr","billing_country": "DdMirnlLiqTUytbSjdyklITxY","billing_postal_code": "spOgXKMrHSbiFKgStSKDUkGWq","customer_id": 27,"billing_city": "npLApZXkAPvqaDLDAHmqeHHUE","billing_state": "nhkfpzwApQGnQjgNoZNDQLiaY","total": 0.5085729892618615,"invoice_id": 62}' | http POST "http://127.0.0.1:8080/invoices" X-Api-User:user123
+// echo '{"billing_country": "IpUUsYnBsqHwrxQDbsMHHLRQU","total": 0.6259580209855646,"invoice_date": "2075-08-12T03:25:37.660915502-05:00","billing_address": "GYQbNQncNaNKozjThrsZArZMR","billing_city": "VwefAqGZrDHMcxZpdrJTundko","billing_state": "CAEhinkxrJUROEgUQTraDmIzF","invoice_id": 68,"customer_id": 19,"billing_postal_code": "ozEslZvvxcyFtZKbpltimEMVw"}' | http POST "http://127.0.0.1:8080/invoices" X-Api-User:user123
 func AddInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := initializeContext(r)
 	invoices := &model.Invoices{}
@@ -192,7 +192,7 @@ func AddInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 // @Failure 400 {object} api.HTTPError
 // @Failure 404 {object} api.HTTPError
 // @Router /invoices/{argInvoiceID} [patch]
-// echo '{"invoice_date": "2098-02-17T20:15:20.299175489-05:00","billing_address": "hwnwXOSeNWuMIGbsxFDcbBmnr","billing_country": "DdMirnlLiqTUytbSjdyklITxY","billing_postal_code": "spOgXKMrHSbiFKgStSKDUkGWq","customer_id": 27,"billing_city": "npLApZXkAPvqaDLDAHmqeHHUE","billing_state": "nhkfpzwApQGnQjgNoZNDQLiaY","total": 0.5085729892618615,"invoice_id": 62}' | http PUT "http://127.0.0.1:8080/invoices/1"  X-Api-User:user123
+// echo '{"billing_country": "IpUUsYnBsqHwrxQDbsMHHLRQU","total": 0.6259580209855646,"invoice_date": "2075-08-12T03:25:37.660915502-05:00","billing_address": "GYQbNQncNaNKozjThrsZArZMR","billing_city": "VwefAqGZrDHMcxZpdrJTundko","billing_state": "CAEhinkxrJUROEgUQTraDmIzF","invoice_id": 68,"customer_id": 19,"billing_postal_code": "ozEslZvvxcyFtZKbpltimEMVw"}' | http PUT "http://127.0.0.1:8080/invoices/1"  X-Api-User:user123
 func UpdateInvoices(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := initializeContext(r)
 
