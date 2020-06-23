@@ -3,8 +3,10 @@ package dbmeta
 import (
 	"database/sql"
 	"fmt"
+	"regexp"
 	"strings"
 
+	"github.com/davecgh/go-spew/spew"
 	"github.com/jimsmart/schema"
 )
 
@@ -34,6 +36,8 @@ func LoadMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 		fmt.Printf("error calling LoadTableInfoFromMSSqlInformationSchema table: %s error: %v\n", tableName, err)
 	}
 
+	spew.Dump(infoSchema)
+
 	m.columns = make([]*columnMeta, len(cols))
 
 	for i, v := range cols {
@@ -54,6 +58,14 @@ func LoadMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 		if isUnsigned {
 			notes = notes + " column is set for unsigned"
 			columnType = "u" + columnType
+		}
+
+		comment := ""
+		commentIdx := strings.Index(colDDL, "COMMENT '")
+		if commentIdx > -1 {
+			re := regexp.MustCompile("COMMENT '(.*?)'")
+			match := re.FindStringSubmatch(colDDL)
+			comment = match[1]
 		}
 
 		if infoSchema != nil {
@@ -78,6 +90,7 @@ func LoadMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 			columnType:       columnType,
 			columnLen:        columnLen,
 			notes:            strings.Trim(notes, " "),
+			comment:          comment,
 		}
 
 		dbType := strings.ToLower(colMeta.DatabaseTypeName())
