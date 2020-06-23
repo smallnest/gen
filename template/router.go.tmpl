@@ -19,7 +19,7 @@ import (
 )
 
 var (
-    _ = time.Second
+    _ = time.Second // import time.Second for unknown usage in api
 	crudEndpoints map[string]*CrudAPI
 )
 
@@ -56,7 +56,7 @@ func ConfigRouter() http.Handler {
 	router := httprouter.New()
 	{{range $tableName, $codeInfo := .tableInfos}}config{{$codeInfo.StructName}}Router(router)
     {{end}}
-	router.GET("/ddl/:argId", GetDdl)
+	router.GET("/ddl/:argID", GetDdl)
 	router.GET("/ddl", GetDdlEndpoints)
 	return router
 }
@@ -66,7 +66,7 @@ func ConfigRouter() http.Handler {
 func ConfigGinRouter(router gin.IRoutes) {
 	{{range $tableName, $codeInfo := .tableInfos}}configGin{{$codeInfo.StructName}}Router(router)
 	{{end}}
-	router.GET("/ddl/:argId", ConverHttprouterToGin(GetDdl))
+	router.GET("/ddl/:argID", ConverHttprouterToGin(GetDdl))
 	router.GET("/ddl", ConverHttprouterToGin(GetDdlEndpoints))
 	return
 }
@@ -277,31 +277,31 @@ func parseUUID(ps httprouter.Params, key string) (string, error) {
 
 
 // GetDdl is a function to get table info for a table in the {{.DatabaseName}} database
-// @Summary Get table info for a table in the {{.DatabaseName}} database by argId
+// @Summary Get table info for a table in the {{.DatabaseName}} database by argID
 // @Tags TableInfo
-// @ID argId
+// @ID argID
 // @Description GetDdl is a function to get table info for a table in the {{.DatabaseName}} database
 // @Accept  json
 // @Produce  json
-// @Param  argId path int true "id"
+// @Param  argID path int true "id"
 // @Success 200 {object} {{.apiPackageName}}.CrudAPI
 // @Failure 400 {object} apis.HTTPError
 // @Failure 404 {object} apis.HTTPError "ErrNotFound, db record for id not found - returns NotFound HTTP 404 not found error"
-// @Router /ddl/{argId} [get]
+// @Router /ddl/{argID} [get]
 // http "http://localhost:8080/ddl/xyz" X-Api-User:user123
 func GetDdl(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := initializeContext(r)
 
-	argId := ps.ByName("argId")
+	argID := ps.ByName("argID")
 
 	if err := ValidateRequest(ctx, r, "ddl", models.FetchDDL); err != nil {
 		returnError(ctx, w, r, err)
 		return
 	}
 
-	record, ok := crudEndpoints[argId]
+	record, ok := crudEndpoints[argID]
 	if !ok {
-		returnError(ctx, w, r, fmt.Errorf("unable to find table: %s", argId) )
+		returnError(ctx, w, r, fmt.Errorf("unable to find table: %s", argID) )
 		return
 	}
 

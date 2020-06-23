@@ -19,6 +19,7 @@ import (
 	"github.com/serenize/snaker"
 )
 
+// TemplateLoader loader function to retrieve a template contents
 type TemplateLoader func(filename string) (content string, err error)
 
 var replaceFuncMap = template.FuncMap{
@@ -39,6 +40,8 @@ var replaceFuncMap = template.FuncMap{
 func replace(input, from, to string) string {
 	return strings.Replace(input, from, to, -1)
 }
+
+// Replace takes a template based name format and will render a name using it
 func Replace(nameFormat, name string) string {
 	var tpl bytes.Buffer
 	//fmt.Printf("Replace: %s\n",nameFormat)
@@ -58,16 +61,22 @@ func Replace(nameFormat, name string) string {
 	return result
 }
 
+// ReplaceFileNamingTemplate use the FileNamingTemplate to format a table name
 func (c *Config) ReplaceFileNamingTemplate(name string) string {
 	return Replace(c.FileNamingTemplate, name)
 }
+
+// ReplaceModelNamingTemplate use the ModelNamingTemplate to format a table name
 func (c *Config) ReplaceModelNamingTemplate(name string) string {
 	return Replace(c.ModelNamingTemplate, name)
 }
+
+// ReplaceFieldNamingTemplate use the FieldNamingTemplate to format a table name
 func (c *Config) ReplaceFieldNamingTemplate(name string) string {
 	return Replace(c.FieldNamingTemplate, name)
 }
 
+// GetTemplate return a Template based on a name and template contents
 func (c *Config) GetTemplate(name, t string) (*template.Template, error) {
 	var s State
 	var funcMap = template.FuncMap{
@@ -169,15 +178,18 @@ func Spew(val interface{}) string {
 	return spew.Sdump(val)
 }
 
+// State struct used for storing state in template parsing
 type State struct {
 	n int
 }
 
+// Set set state value in template parsing
 func (s *State) Set(n int) int {
 	s.n = n
 	return n
 }
 
+// Inc increment state value in template parsing
 func (s *State) Inc() int {
 	s.n++
 	return s.n
@@ -195,6 +207,7 @@ func camelToUpperCamel(s string) string {
 	return strings.Join(ss, "")
 }
 
+// FormatSource format source code contents
 func FormatSource(s string) string {
 	formattedSource, err := format.Source([]byte(s))
 	if err != nil {
@@ -246,6 +259,7 @@ func wrapBash(content string) string {
 	//return strings.Join(result, " \\\n    ")
 }
 
+// RegSplit split text based on regex
 func RegSplit(text string, delimeter string) []string {
 	reg := regexp.MustCompile(delimeter)
 	indexes := reg.FindAllStringIndex(text, -1)
@@ -323,6 +337,7 @@ func parseCommandLine(command string) ([]string, error) {
 
 	return args, nil
 }
+
 func escape(content string) string {
 	content = strings.Replace(content, "\"", "\\\"", -1)
 	content = strings.Replace(content, "'", "\\'", -1)
@@ -367,6 +382,7 @@ func (c *Config) GenerateTableFile(tableInfos map[string]*ModelInfo, tableName, 
 	return buf.String()
 }
 
+// CreateContextForTableFile create map context for a db table
 func (c *Config) CreateContextForTableFile(tableInfo *ModelInfo) map[string]interface{} {
 	var modelInfo = map[string]interface{}{
 		"StructName":      tableInfo.StructName,
@@ -383,33 +399,34 @@ func (c *Config) CreateContextForTableFile(tableInfo *ModelInfo) map[string]inte
 	modelInfo["PrimaryKeyNamesList"] = primaryKeys
 	modelInfo["PrimaryKeysJoined"] = strings.Join(primaryKeys, ",")
 
-	delSql, err := GenerateDeleteSql(tableInfo.DBMeta)
+	delSQL, err := GenerateDeleteSQL(tableInfo.DBMeta)
 	if err == nil {
-		modelInfo["delSql"] = delSql
+		modelInfo["delSql"] = delSQL
 	}
 
-	updateSql, err := GenerateUpdateSql(tableInfo.DBMeta)
+	updateSQL, err := GenerateUpdateSQL(tableInfo.DBMeta)
 	if err == nil {
-		modelInfo["updateSql"] = updateSql
+		modelInfo["updateSql"] = updateSQL
 	}
 
-	insertSql, err := GenerateInsertSql(tableInfo.DBMeta)
+	insertSQL, err := GenerateInsertSQL(tableInfo.DBMeta)
 	if err == nil {
-		modelInfo["insertSql"] = insertSql
+		modelInfo["insertSql"] = insertSQL
 	}
 
-	selectOneSql, err := GenerateSelectOneSql(tableInfo.DBMeta)
+	selectOneSQL, err := GenerateSelectOneSQL(tableInfo.DBMeta)
 	if err == nil {
-		modelInfo["selectOneSql"] = selectOneSql
+		modelInfo["selectOneSql"] = selectOneSQL
 	}
 
-	selectMultiSql, err := GenerateSelectMultiSql(tableInfo.DBMeta)
+	selectMultiSQL, err := GenerateSelectMultiSQL(tableInfo.DBMeta)
 	if err == nil {
-		modelInfo["selectMultiSql"] = selectMultiSql
+		modelInfo["selectMultiSql"] = selectMultiSQL
 	}
 	return modelInfo
 }
 
+// WriteTemplate write a template out
 func (c *Config) WriteTemplate(name, templateStr string, data map[string]interface{}, outputFile string, formatOutput bool) {
 	if !c.Overwrite && Exists(outputFile) {
 		fmt.Printf("not overwriting %s\n", outputFile)
@@ -420,7 +437,7 @@ func (c *Config) WriteTemplate(name, templateStr string, data map[string]interfa
 		data[key] = value
 	}
 
-	data["DatabaseName"] = c.SqlDatabase
+	data["DatabaseName"] = c.SQLDatabase
 	data["module"] = c.Module
 
 	data["modelFQPN"] = c.ModelFQPN
@@ -429,11 +446,11 @@ func (c *Config) WriteTemplate(name, templateStr string, data map[string]interfa
 	data["daoFQPN"] = c.DaoFQPN
 	data["daoPackageName"] = c.DaoPackageName
 
-	data["apiFQPN"] = c.ApiFQPN
-	data["apiPackageName"] = c.ApiPackageName
+	data["apiFQPN"] = c.APIFQPN
+	data["apiPackageName"] = c.APIPackageName
 
-	data["sqlType"] = c.SqlType
-	data["sqlConnStr"] = c.SqlConnStr
+	data["sqlType"] = c.SQLType
+	data["sqlConnStr"] = c.SQLConnStr
 	data["serverPort"] = c.ServerPort
 	data["serverHost"] = c.ServerHost
 	data["SwaggerInfo"] = c.Swagger
@@ -455,7 +472,7 @@ func (c *Config) WriteTemplate(name, templateStr string, data map[string]interfa
 	if formatOutput {
 		formattedSource, err := format.Source(buf.Bytes())
 		if err != nil {
-			fmt.Printf("Error in formatting %s source: %s\n", name, err.Error())
+			fmt.Printf("Error in formatting template: %s outputfile: %s source: %s\n", name, outputFile, err.Error())
 			formattedSource = buf.Bytes()
 		}
 		err = ioutil.WriteFile(outputFile, formattedSource, 0777)
@@ -508,6 +525,7 @@ func (c *Config) GenerateFile(templateFilename, outDir, outputDirectory, outputF
 	return buf.String()
 }
 
+// SwaggerInfoDetails swagger details
 type SwaggerInfoDetails struct {
 	Version      string
 	Host         string
@@ -520,10 +538,11 @@ type SwaggerInfoDetails struct {
 	ContactEmail string
 }
 
+// Config for generating code
 type Config struct {
-	SqlType               string
-	SqlConnStr            string
-	SqlDatabase           string
+	SQLType               string
+	SQLConnStr            string
+	SQLDatabase           string
 	Module                string
 	ModelPackageName      string
 	ModelFQPN             string
@@ -533,13 +552,13 @@ type Config struct {
 	AddXMLAnnotation      bool
 	AddDBAnnotation       bool
 	UseGureguTypes        bool
-	JsonNameFormat        string
+	JSONNameFormat        string
 	XMLNameFormat         string
 	ProtobufNameFormat    string
 	DaoPackageName        string
 	DaoFQPN               string
-	ApiPackageName        string
-	ApiFQPN               string
+	APIPackageName        string
+	APIFQPN               string
 	GrpcPackageName       string
 	GrpcFQPN              string
 	Swagger               *SwaggerInfoDetails
@@ -559,6 +578,7 @@ type Config struct {
 	TemplateLoader TemplateLoader
 }
 
+// NewConfig create a new code config
 func NewConfig(templateLoader TemplateLoader) *Config {
 	conf := &Config{
 		Swagger: &SwaggerInfoDetails{
@@ -583,7 +603,6 @@ func NewConfig(templateLoader TemplateLoader) *Config {
 	conf.ModelNamingTemplate = "{{FmtFieldName .}}"
 	conf.FieldNamingTemplate = "{{FmtFieldName (stringifyFirstChar .) }}"
 
-
 	outDir := "."
 	module := "github.com/alexj212/test"
 	modelPackageName := "model"
@@ -592,7 +611,7 @@ func NewConfig(templateLoader TemplateLoader) *Config {
 
 	conf.ModelPackageName = modelPackageName
 	conf.DaoPackageName = daoPackageName
-	conf.ApiPackageName = apiPackageName
+	conf.APIPackageName = apiPackageName
 
 	conf.AddJSONAnnotation = true
 	conf.AddXMLAnnotation = true
@@ -600,7 +619,7 @@ func NewConfig(templateLoader TemplateLoader) *Config {
 	conf.AddProtobufAnnotation = true
 	conf.AddDBAnnotation = true
 	conf.UseGureguTypes = false
-	conf.JsonNameFormat = "snake"
+	conf.JSONNameFormat = "snake"
 	conf.XMLNameFormat = "snake"
 	conf.ProtobufNameFormat = "snake"
 	conf.Verbose = false
@@ -614,7 +633,7 @@ func NewConfig(templateLoader TemplateLoader) *Config {
 	conf.Module = module
 	conf.ModelFQPN = module + "/" + modelPackageName
 	conf.DaoFQPN = module + "/" + daoPackageName
-	conf.ApiFQPN = module + "/" + apiPackageName
+	conf.APIFQPN = module + "/" + apiPackageName
 
 	conf.Swagger.Host = fmt.Sprintf("%s:%d", conf.ServerHost, conf.ServerPort)
 

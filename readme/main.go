@@ -42,6 +42,7 @@ func init() {
 	goopt.Parse(nil)
 }
 
+// GenHelp generated help via exec the gen command
 func GenHelp() string {
 	cmd := exec.Command("./gen", "-h")
 	stdoutStderr, err := cmd.CombinedOutput()
@@ -147,11 +148,11 @@ func initialize(conf *dbmeta.Config) {
 	daoPackageName := "dao"
 	apiPackageName := "api"
 
-	conf.SqlType = *sqlType
-	conf.SqlDatabase = *sqlDatabase
+	conf.SQLType = *sqlType
+	conf.SQLDatabase = *sqlDatabase
 	conf.ModelPackageName = modelPackageName
 	conf.DaoPackageName = daoPackageName
-	conf.ApiPackageName = apiPackageName
+	conf.APIPackageName = apiPackageName
 
 	conf.AddJSONAnnotation = true
 	conf.AddXMLAnnotation = true
@@ -159,14 +160,14 @@ func initialize(conf *dbmeta.Config) {
 	conf.AddProtobufAnnotation = true
 	conf.AddDBAnnotation = true
 	conf.UseGureguTypes = false
-	conf.JsonNameFormat = "snake"
+	conf.JSONNameFormat = "snake"
 	conf.XMLNameFormat = "snake"
 	conf.ProtobufNameFormat = ""
 	conf.Verbose = false
 	conf.OutDir = outDir
 	conf.Overwrite = true
 
-	conf.SqlConnStr = *sqlConnStr
+	conf.SQLConnStr = *sqlConnStr
 	conf.ServerPort = 8080
 	conf.ServerHost = "127.0.0.1"
 	conf.Overwrite = true
@@ -174,7 +175,7 @@ func initialize(conf *dbmeta.Config) {
 	conf.Module = module
 	conf.ModelFQPN = module + "/" + modelPackageName
 	conf.DaoFQPN = module + "/" + daoPackageName
-	conf.ApiFQPN = module + "/" + apiPackageName
+	conf.APIFQPN = module + "/" + apiPackageName
 
 	conf.Swagger.Version = "1.0.0"
 	conf.Swagger.BasePath = "/"
@@ -219,6 +220,7 @@ func loadDefaultDBMappings() error {
 	return nil
 }
 
+// LoadTemplate return template from template dir, falling back to the embedded templates
 func LoadTemplate(filename string) (content string, err error) {
 	if *templateDir != "" {
 		fpath := filepath.Join(*templateDir, filename)

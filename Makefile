@@ -145,7 +145,7 @@ run_dbmeta: ## generate example project code from sqlite db in ./examples
  ## --table employees_2
 
 
-test: clean_example test_mysql test_postgres test_mssql test_sqlite3 ## test mysql, mssql, postgres and sqlite3 code generation
+test: clean_example test_mysql test_postgres test_sqlite3 test_mssql  ## test mysql, mssql, postgres and sqlite3 code generation
 
 test_mysql: ## test sqlite3 code generation
 	./test.sh mysql  gen_sqlx && cd ./tests/mysql_sqlx && make example

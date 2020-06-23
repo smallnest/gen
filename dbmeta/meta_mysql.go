@@ -6,7 +6,6 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/davecgh/go-spew/spew"
 	"github.com/jimsmart/schema"
 )
 
@@ -35,8 +34,6 @@ func LoadMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 	if err != nil {
 		fmt.Printf("error calling LoadTableInfoFromMSSqlInformationSchema table: %s error: %v\n", tableName, err)
 	}
-
-	spew.Dump(infoSchema)
 
 	m.columns = make([]*columnMeta, len(cols))
 

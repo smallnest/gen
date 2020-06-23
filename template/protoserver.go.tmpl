@@ -14,6 +14,7 @@ import (
     "gopkg.in/yaml.v2"
 )
 
+// Server server instance
 type Server struct {
 }
 
@@ -21,6 +22,8 @@ type Server struct {
 
 {{ range $tableName, $tableInfo := .tableInfos }}
 
+
+// GetAll{{ $tableInfo.StructName }} is a RPC method to get a slice of record(s) from {{.TableName}} table in the {{.DatabaseName}} database
 func (s *Server) GetAll{{ $tableInfo.StructName }}(context context.Context, request *{{$.modelPackageName}}.GetAll{{ $tableInfo.StructName }}Request) (*{{$.modelPackageName}}.GetAll{{ $tableInfo.StructName }}Response, error) {
 
     result, totalRows, err :=  {{$.daoPackageName}}.GetAll{{$tableInfo.StructName}}(context, request.Page, request.PageSize, request.Order)
@@ -33,7 +36,7 @@ func (s *Server) GetAll{{ $tableInfo.StructName }}(context context.Context, requ
     return response, nil
 }
 
-
+// Get{{.StructName}} is a RPC method to get a single record from the {{.TableName}} table in the {{.DatabaseName}} database
 func (s *Server) Get{{ $tableInfo.StructName }}(context context.Context, request *{{$.modelPackageName}}.Get{{ $tableInfo.StructName }}Request) (*{{$.modelPackageName}}.Get{{ $tableInfo.StructName }}Response, error) {
 
     result, err := {{$.daoPackageName}}.Get{{$tableInfo.StructName}}(context,{{range $field := .CodeFields}} {{ if $field.PrimaryKeyArgName }} request.{{$field.GoFieldName}},{{end}}{{end -}})
@@ -47,6 +50,8 @@ func (s *Server) Get{{ $tableInfo.StructName }}(context context.Context, request
     response.Result=&models.Result{Result: models.Result_Success}
     return response, nil
 }
+
+// Add{{.StructName}} is a RPC method to add a single record to {{.TableName}} table in the {{.DatabaseName}} database
 func (s *Server) Add{{ $tableInfo.StructName }}(context context.Context, request *{{$.modelPackageName}}.Add{{ $tableInfo.StructName }}Request) (*{{$.modelPackageName}}.Add{{ $tableInfo.StructName }}Response, error) {
 
     result, rowsAffected, err := {{$.daoPackageName}}.Add{{$tableInfo.StructName}}(context, request.Data)
@@ -62,6 +67,7 @@ func (s *Server) Add{{ $tableInfo.StructName }}(context context.Context, request
     return response, nil
 }
 
+// Update{{.StructName}} is a RPC method to Update a single record from {{.TableName}} table in the {{.DatabaseName}} database
 func (s *Server) Update{{ $tableInfo.StructName }}(context context.Context, request *{{$.modelPackageName}}.Update{{ $tableInfo.StructName }}Request) (*{{$.modelPackageName}}.Update{{ $tableInfo.StructName }}Response, error) {
 
     result, rowsAffected, err := {{$.daoPackageName}}.Update{{$tableInfo.StructName}}(context,
@@ -79,6 +85,7 @@ func (s *Server) Update{{ $tableInfo.StructName }}(context context.Context, requ
     return response, nil
 }
 
+// Delete{{.StructName}} is a RPC method to delete a single record from {{.TableName}} table in the {{.DatabaseName}} database
 func (s *Server) Delete{{ $tableInfo.StructName }}(context context.Context, request *{{$.modelPackageName}}.Delete{{ $tableInfo.StructName }}Request) (*{{$.modelPackageName}}.Delete{{ $tableInfo.StructName }}Response, error) {
 
     rowsAffected, err := {{$.daoPackageName}}.Delete{{$tableInfo.StructName}}(context,{{range $field := .CodeFields}} {{ if $field.PrimaryKeyArgName }} request.{{$field.GoFieldName}},{{end}}{{end -}})
@@ -94,7 +101,7 @@ func (s *Server) Delete{{ $tableInfo.StructName }}(context context.Context, requ
 {{- end}}
 
 
-
+// ServerConfig server configuration
 type ServerConfig struct {
     ListenAddr  string `yaml:"listen_on"`
     DatabaseURI string `yaml:"db_uri"`
@@ -104,6 +111,7 @@ type ServerConfig struct {
     CACert     string `yaml:"ca_cert"`
 }
 
+// LoadConfig load server configuration from file pointed to from BACKEND_CONFIG env variable
 func LoadConfig() ServerConfig {
     configPath := os.Getenv("BACKEND_CONFIG")
     content, err := ioutil.ReadFile(configPath)
@@ -123,11 +131,13 @@ func LoadConfig() ServerConfig {
     return config
 }
 
+// NewServerFromConfig create a server from a ServerConfig
 func NewServerFromConfig(cfg ServerConfig) *Server {
 
     return &Server{
     }
 }
 
+// Cleanup server resources
 func (s *Server) Cleanup() {
 }

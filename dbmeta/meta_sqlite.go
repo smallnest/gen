@@ -173,9 +173,8 @@ func sqliteLoadDDL(db *sql.DB, tableName string) (string, error) {
 	ddlSQL := fmt.Sprintf("SELECT sql FROM sqlite_master WHERE type='table' and name = '%s';", tableName)
 	//_, err := db.Query(ddlSQL)
 	//if err != nil {
-		//return "", fmt.Errorf("unable to load ddl from sqlite_master: %v", err)
+	//return "", fmt.Errorf("unable to load ddl from sqlite_master: %v", err)
 	//}
-
 
 	row := db.QueryRow(ddlSQL, 0)
 	err := row.Scan(&ddl)
