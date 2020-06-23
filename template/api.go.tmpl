@@ -18,7 +18,6 @@ var (
 func config{{.StructName}}Router(router *httprouter.Router) {
 	router.GET("/{{.StructName | toLower}}", GetAll{{.StructName}})
 	router.POST("/{{.StructName | toLower}}", Add{{.StructName}})
-
 	router.GET("/{{.StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/:{{$field.PrimaryKeyArgName}}{{end}}{{end -}}", Get{{.StructName}})
 	router.PUT("/{{.StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/:{{$field.PrimaryKeyArgName}}{{end}}{{end -}}", Update{{.StructName}})
 	router.DELETE("/{{.StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/:{{$field.PrimaryKeyArgName}}{{end}}{{end -}}", Delete{{.StructName}})

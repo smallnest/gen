@@ -3,6 +3,7 @@ package {{.apiPackageName}}
 import (
 	"context"
 	"encoding/json"
+	"fmt"
 	"io/ioutil"
 	"net/http"
 	"strconv"
@@ -19,7 +20,21 @@ import (
 
 var (
     _ = time.Second
+	crudEndpoints map[string]*CrudAPI
 )
+
+// CrudAPI describes requests available for tables in the database
+type CrudAPI struct {
+	Name            string           `json:"name"`
+	CreateURL       string           `json:"create_url"`
+	RetrieveOneURL  string           `json:"retrieve_one_url"`
+	RetrieveManyURL string           `json:"retrieve_many_url"`
+	UpdateURL       string           `json:"update_url"`
+	DeleteURL       string           `json:"delete_url"`
+	FetchDDLURL     string           `json:"fetch_ddl_url"`
+	TableInfo       *models.TableInfo `json:"table_info"`
+}
+
 
 // PagedResults results for pages GetAll results.
 type PagedResults struct {
@@ -41,7 +56,8 @@ func ConfigRouter() http.Handler {
 	router := httprouter.New()
 	{{range $tableName, $codeInfo := .tableInfos}}config{{$codeInfo.StructName}}Router(router)
     {{end}}
-
+	router.GET("/ddl/:argId", GetDdl)
+	router.GET("/ddl", GetDdlEndpoints)
 	return router
 }
 
@@ -50,7 +66,8 @@ func ConfigRouter() http.Handler {
 func ConfigGinRouter(router gin.IRoutes) {
 	{{range $tableName, $codeInfo := .tableInfos}}configGin{{$codeInfo.StructName}}Router(router)
 	{{end}}
-
+	router.GET("/ddl/:argId", ConverHttprouterToGin(GetDdl))
+	router.GET("/ddl", ConverHttprouterToGin(GetDdlEndpoints))
 	return
 }
 
@@ -252,6 +269,85 @@ func parseString(ps httprouter.Params, key string) (string, error) {
 func parseUUID(ps httprouter.Params, key string) (string, error) {
 	idStr := ps.ByName(key)
 	return idStr, nil
+}
+
+
+
+
+
+
+// GetDdl is a function to get table info for a table in the {{.DatabaseName}} database
+// @Summary Get table info for a table in the {{.DatabaseName}} database by argId
+// @Tags TableInfo
+// @ID argId
+// @Description GetDdl is a function to get table info for a table in the {{.DatabaseName}} database
+// @Accept  json
+// @Produce  json
+// @Param  argId path int true "id"
+// @Success 200 {object} {{.apiPackageName}}.CrudAPI
+// @Failure 400 {object} apis.HTTPError
+// @Failure 404 {object} apis.HTTPError "ErrNotFound, db record for id not found - returns NotFound HTTP 404 not found error"
+// @Router /ddl/{argId} [get]
+// http "http://localhost:8080/ddl/xyz" X-Api-User:user123
+func GetDdl(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := initializeContext(r)
+
+	argId := ps.ByName("argId")
+
+	if err := ValidateRequest(ctx, r, "ddl", models.FetchDDL); err != nil {
+		returnError(ctx, w, r, err)
+		return
+	}
+
+	record, ok := crudEndpoints[argId]
+	if !ok {
+		returnError(ctx, w, r, fmt.Errorf("unable to find table: %s", argId) )
+		return
+	}
+
+	writeJSON(ctx, w, record)
+}
+
+
+
+// GetDdlEndpoints is a function to get a list of ddl endpoints available for tables in the {{.DatabaseName}} database
+// @Summary Gets a list of ddl endpoints available for tables in the {{.DatabaseName}} database
+// @Tags TableInfo
+// @Description GetDdlEndpoints is a function to get a list of ddl endpoints available for tables in the {{.DatabaseName}} database
+// @Accept  json
+// @Produce  json
+// @Success 200 {object} {{.apiPackageName}}.CrudAPI
+// @Router /ddl [get]
+// http "http://localhost:8080/ddl" X-Api-User:user123
+func GetDdlEndpoints(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
+	ctx := initializeContext(r)
+
+	if err := ValidateRequest(ctx, r, "ddl", models.FetchDDL); err != nil {
+		returnError(ctx, w, r, err)
+		return
+	}
+
+	writeJSON(ctx, w, crudEndpoints)
+}
+
+func init() {
+	crudEndpoints = make(map[string]*CrudAPI)
+
+	var tmp *CrudAPI
+    {{ range $tableName, $tableInfo := .tableInfos }}
+	tmp = &CrudAPI{
+		Name: "{{$tableName}}",
+		CreateURL: "/{{$tableInfo.StructName | toLower}}",
+		RetrieveOneURL: "/{{$tableInfo.StructName | toLower}}",
+		RetrieveManyURL: "/{{$tableInfo.StructName | toLower}}",
+		UpdateURL: "/{{$tableInfo.StructName | toLower}}",
+		DeleteURL: "/{{$tableInfo.StructName | toLower}}",
+		FetchDDLURL: "/ddl/{{$tableName}}",
+	}
+	tmp.TableInfo, _ = models.GetTableInfo("{{$tableName}}")
+	crudEndpoints["{{$tableName}}"] = tmp
+
+	{{end}}
 }
 
 

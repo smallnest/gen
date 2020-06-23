@@ -94,6 +94,7 @@ type columnMeta struct {
 	columnLen        int64
 	defaultVal       string
 	notes            string
+	comment          string
 	databaseTypeName string
 	name             string
 }
@@ -106,6 +107,11 @@ func (ci *columnMeta) ColumnType() string {
 // Notes notes on column generation
 func (ci *columnMeta) Notes() string {
 	return ci.notes
+}
+
+// Comment column comment
+func (ci *columnMeta) Comment() string {
+	return ci.comment
 }
 
 // ColumnLength column length for text or varhar
@@ -187,6 +193,7 @@ type ColumnMeta interface {
 	IsArray() bool
 	ColumnType() string
 	Notes() string
+	Comment() string
 	ColumnLength() int64
 	DefaultValue() string
 }
@@ -311,7 +318,6 @@ func LoadMeta(sqlType string, db *sql.DB, sqlDatabase, tableName string) (DbTabl
 	return dbMeta, err
 }
 
-
 // Generate fields string
 func (c *Config) GenerateFieldsTypes(dbMeta DbTableMeta) ([]*FieldInfo, error) {
 
@@ -375,6 +381,10 @@ func (c *Config) GenerateFieldsTypes(dbMeta DbTableMeta) ([]*FieldInfo, error) {
 		}
 
 		field = fmt.Sprintf("//%s\n    %s", col.String(), field)
+		if col.Comment() != "" {
+			field = fmt.Sprintf("%s // %s", field, col.Comment() )
+		}
+
 
 		sqlMapping, _ := SQLTypeToMapping(strings.ToLower(col.DatabaseTypeName()))
 		goType, _ := SQLTypeToGoType(strings.ToLower(col.DatabaseTypeName()), false, false)
@@ -789,7 +799,6 @@ func CheckForDupeTable(tables map[string]*ModelInfo, name string) string {
 	return name
 }
 
-
 func checkDupeFieldName(fields []*FieldInfo, fieldName string) string {
 	var match bool
 	for _, field := range fields {
@@ -800,7 +809,7 @@ func checkDupeFieldName(fields []*FieldInfo, fieldName string) string {
 	}
 
 	if match {
-		fieldName = checkDupeFieldName( fields, generateAlternativeName( fieldName))
+		fieldName = checkDupeFieldName(fields, generateAlternativeName(fieldName))
 	}
 
 	return fieldName
@@ -816,7 +825,7 @@ func checkDupeJSONFieldName(fields []*FieldInfo, fieldName string) string {
 	}
 
 	if match {
-		fieldName = checkDupeJSONFieldName( fields, generateAlternativeName( fieldName))
+		fieldName = checkDupeJSONFieldName(fields, generateAlternativeName(fieldName))
 	}
 
 	return fieldName
@@ -832,14 +841,14 @@ func checkDupeProtoBufFieldName(fields []*FieldInfo, fieldName string) string {
 	}
 
 	if match {
-		fieldName = checkDupeProtoBufFieldName( fields, generateAlternativeName( fieldName))
+		fieldName = checkDupeProtoBufFieldName(fields, generateAlternativeName(fieldName))
 	}
 
 	return fieldName
 }
 
 // @TODO In progress - need more elegant renaming
-func generateAlternativeName(name string)string  {
-	name = name+"alt1"
+func generateAlternativeName(name string) string {
+	name = name + "alt1"
 	return name
 }
