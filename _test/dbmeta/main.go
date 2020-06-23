@@ -132,29 +132,29 @@ func main() {
 		fmt.Printf("primaryCnt: %d\n", primaryCnt)
 
 		fmt.Printf("\n\n")
-		delSql, err := dbmeta.GenerateDeleteSql(tableInfo)
+		delSQL, err := dbmeta.GenerateDeleteSQL(tableInfo)
 		if err == nil {
-			fmt.Printf("delSql: %s\n", delSql)
+			fmt.Printf("delSQL: %s\n", delSQL)
 		}
 
-		updateSql, err := dbmeta.GenerateUpdateSql(tableInfo)
+		updateSQL, err := dbmeta.GenerateUpdateSQL(tableInfo)
 		if err == nil {
-			fmt.Printf("updateSql: %s\n", updateSql)
+			fmt.Printf("updateSQL: %s\n", updateSQL)
 		}
 
-		insertSql, err := dbmeta.GenerateInsertSql(tableInfo)
+		insertSQL, err := dbmeta.GenerateInsertSQL(tableInfo)
 		if err == nil {
-			fmt.Printf("insertSql: %s\n", insertSql)
+			fmt.Printf("insertSQL: %s\n", insertSQL)
 		}
 
-		selectOneSql, err := dbmeta.GenerateSelectOneSql(tableInfo)
+		selectOneSQL, err := dbmeta.GenerateSelectOneSQL(tableInfo)
 		if err == nil {
-			fmt.Printf("selectOneSql: %s\n", selectOneSql)
+			fmt.Printf("selectOneSQL: %s\n", selectOneSQL)
 		}
 
-		selectMultiSql, err := dbmeta.GenerateSelectMultiSql(tableInfo)
+		selectMultiSQL, err := dbmeta.GenerateSelectMultiSQL(tableInfo)
 		if err == nil {
-			fmt.Printf("selectMultiSql: %s\n", selectMultiSql)
+			fmt.Printf("selectMultiSQL: %s\n", selectMultiSQL)
 		}
 	}
 }

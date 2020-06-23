@@ -5,7 +5,7 @@
 {{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}// @ID {{ $field.PrimaryKeyArgName }}{{print "\n"}}{{end}}{{end}} // @Description Get{{.StructName}} is a function to get a single record from the {{.TableName}} table in the {{.DatabaseName}} database
 // @Accept  json
 // @Produce  json
-{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}// @Param  {{ $field.PrimaryKeyArgName }} path {{ $field.SqlMapping.SwaggerType }} true "{{ $field.ColumnMeta.Name }}"{{print "\n"}}{{end}}{{end}} // @Success 200 {object} {{.modelPackageName}}.{{.StructName}}
+{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}// @Param  {{ $field.PrimaryKeyArgName }} path {{ $field.SQLMapping.SwaggerType }} true "{{ $field.ColumnMeta.Name }}"{{print "\n"}}{{end}}{{end}} // @Success 200 {object} {{.modelPackageName}}.{{.StructName}}
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
 // @Failure 404 {object} {{.apiPackageName}}.HTTPError "ErrNotFound, db record for id not found - returns NotFound HTTP 404 not found error"
 // @Router /{{.StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/{ {{- $field.PrimaryKeyArgName -}} }{{end}}{{end}} [get]

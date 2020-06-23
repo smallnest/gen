@@ -38,8 +38,8 @@ func NonPrimaryKeyNames(dbTable DbTableMeta) []string {
 	return primaryKeyNames
 }
 
-// GenerateDeleteSql generate sql for a delete
-func GenerateDeleteSql(dbTable DbTableMeta) (string, error) {
+// GenerateDeleteSQL generate sql for a delete
+func GenerateDeleteSQL(dbTable DbTableMeta) (string, error) {
 	primaryCnt := PrimaryKeyCount(dbTable)
 
 	if primaryCnt == 0 {
@@ -64,8 +64,8 @@ func GenerateDeleteSql(dbTable DbTableMeta) (string, error) {
 	return buf.String(), nil
 }
 
-// GenerateUpdateSql generate sql for a update
-func GenerateUpdateSql(dbTable DbTableMeta) (string, error) {
+// GenerateUpdateSQL generate sql for a update
+func GenerateUpdateSQL(dbTable DbTableMeta) (string, error) {
 	primaryCnt := PrimaryKeyCount(dbTable)
 	// nonPrimaryCnt := len(dbTable.Columns()) - primaryCnt
 
@@ -83,7 +83,7 @@ func GenerateUpdateSql(dbTable DbTableMeta) (string, error) {
 				buf.WriteString(",")
 			}
 
-			buf.WriteString(fmt.Sprintf(" %s = ?", col.Name() ))
+			buf.WriteString(fmt.Sprintf(" %s = ?", col.Name()))
 			setCol++
 		}
 	}
@@ -106,8 +106,8 @@ func GenerateUpdateSql(dbTable DbTableMeta) (string, error) {
 	return buf.String(), nil
 }
 
-// GenerateInsertSql generate sql for a insert
-func GenerateInsertSql(dbTable DbTableMeta) (string, error) {
+// GenerateInsertSQL generate sql for a insert
+func GenerateInsertSQL(dbTable DbTableMeta) (string, error) {
 	primaryCnt := PrimaryKeyCount(dbTable)
 
 	if primaryCnt == 0 {
@@ -148,8 +148,8 @@ func GenerateInsertSql(dbTable DbTableMeta) (string, error) {
 	return buf.String(), nil
 }
 
-// GenerateSelectOneSql generate sql for selecting one record
-func GenerateSelectOneSql(dbTable DbTableMeta) (string, error) {
+// GenerateSelectOneSQL generate sql for selecting one record
+func GenerateSelectOneSQL(dbTable DbTableMeta) (string, error) {
 	primaryCnt := PrimaryKeyCount(dbTable)
 
 	if primaryCnt == 0 {
@@ -175,8 +175,8 @@ func GenerateSelectOneSql(dbTable DbTableMeta) (string, error) {
 	return buf.String(), nil
 }
 
-// GenerateSelectMultiSql generate sql for selecting multiple records
-func GenerateSelectMultiSql(dbTable DbTableMeta) (string, error) {
+// GenerateSelectMultiSQL generate sql for selecting multiple records
+func GenerateSelectMultiSQL(dbTable DbTableMeta) (string, error) {
 	primaryCnt := PrimaryKeyCount(dbTable)
 
 	if primaryCnt == 0 {

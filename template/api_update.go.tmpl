@@ -5,7 +5,7 @@
 // @Tags {{.StructName}}
 // @Accept  json
 // @Produce  json
-{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}// @Param  {{ $field.PrimaryKeyArgName }} path {{ $field.SqlMapping.SwaggerType }} true "{{ $field.ColumnMeta.Name }}"{{end}}{{end}}
+{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}// @Param  {{ $field.PrimaryKeyArgName }} path {{ $field.SQLMapping.SwaggerType }} true "{{ $field.ColumnMeta.Name }}"{{end}}{{end}}
 // @Param  {{.StructName}} body {{.modelPackageName}}.{{.StructName}} true "Update {{.StructName}} record"
 // @Success 200 {object} {{.modelPackageName}}.{{.StructName}}
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError

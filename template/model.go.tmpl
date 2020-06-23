@@ -60,9 +60,9 @@ var {{.TableName}}TableInfo = &TableInfo {
         {{range .TableInfo.CodeFields}}
         &ColumnInfo{
         	Index: {{.ColumnMeta.Index}},
-        	Comment: "{{.ColumnMeta.Comment}}",
-        	Notes: "{{.ColumnMeta.Notes}}",
         	Name: "{{.ColumnMeta.Name}}",
+        	Comment: `{{.ColumnMeta.Comment}}`,
+        	Notes: `{{.ColumnMeta.Notes}}`,
         	Nullable: {{.ColumnMeta.Nullable}},
         	DatabaseTypeName: "{{.ColumnMeta.DatabaseTypeName}}",
         	DatabaseTypePretty: "{{.ColumnMeta.DatabaseTypePretty}}",

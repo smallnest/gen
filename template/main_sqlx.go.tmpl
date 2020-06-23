@@ -27,7 +27,8 @@ import (
 
 )
 
-const UserKey = "user"
+const UserKey = "user" // UserKey key used for storing User struct in context
+
 var (
     // BuildDate date string of when build was performed filled in by -X compile flag
 	BuildDate    string
@@ -51,6 +52,7 @@ var (
 	OsSignal     chan os.Signal
 )
 
+// User struct to store info in context
 type User struct{
 	Name string
 }
@@ -143,6 +145,7 @@ func main() {
 }
 
 
+// UserFromContext retrieve a User from Context if available
 func UserFromContext(ctx context.Context) (*User, bool) {
 	u, ok := ctx.Value(UserKey).(*User)
 	return u, ok
