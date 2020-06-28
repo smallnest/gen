@@ -181,6 +181,15 @@
       "swagger_type": "string"
     },
     {
+      "sql_type": "inet",
+      "go_type": "string",
+      "json_type": "Text",
+      "protobuf_type": "string",
+      "guregu_type": "null.String",
+      "go_nullable_type": "sql.NullString",
+      "swagger_type": "string"
+    },
+    {
       "sql_type": "json",
       "go_type": "string",
       "json_type": "Text",
