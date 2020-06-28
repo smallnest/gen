@@ -253,6 +253,15 @@
       "swagger_type": "time.Time"
     },
     {
+      "sql_type": "timestamptz",
+      "go_type": "time.Time",
+      "json_type": "Text",
+      "protobuf_type": "uint64",
+      "guregu_type": "null.Time",
+      "go_nullable_type": "time.Time",
+      "swagger_type": "time.Time"
+    },
+    {
       "sql_type": "smalldatetime",
       "go_type": "time.Time",
       "json_type": "Text",
