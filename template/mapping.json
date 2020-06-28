@@ -181,6 +181,15 @@
       "swagger_type": "string"
     },
     {
+      "sql_type": "inet",
+      "go_type": "string",
+      "json_type": "Text",
+      "protobuf_type": "string",
+      "guregu_type": "null.String",
+      "go_nullable_type": "sql.NullString",
+      "swagger_type": "string"
+    },
+    {
       "sql_type": "json",
       "go_type": "string",
       "json_type": "Text",
@@ -245,6 +254,15 @@
     },
     {
       "sql_type": "timestamp",
+      "go_type": "time.Time",
+      "json_type": "Text",
+      "protobuf_type": "uint64",
+      "guregu_type": "null.Time",
+      "go_nullable_type": "time.Time",
+      "swagger_type": "time.Time"
+    },
+    {
+      "sql_type": "timestamptz",
       "go_type": "time.Time",
       "json_type": "Text",
       "protobuf_type": "uint64",
