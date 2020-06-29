@@ -32,7 +32,7 @@ type CrudAPI struct {
 	UpdateURL       string           `json:"update_url"`
 	DeleteURL       string           `json:"delete_url"`
 	FetchDDLURL     string           `json:"fetch_ddl_url"`
-	TableInfo       *models.TableInfo `json:"table_info"`
+	TableInfo       *{{.modelFQPN}}.TableInfo `json:"table_info"`
 }
 
 
@@ -99,7 +99,7 @@ func initializeContext(r *http.Request) (ctx context.Context) {
 }
 
 
-func ValidateRequest(ctx context.Context, r *http.Request, table string, action {{.modelPackageName}}.Action) error {
+func ValidateRequest(ctx context.Context, r *http.Request, table string, action {{.modelFQPN}}.Action) error {
 	if RequestValidator != nil {
 		return RequestValidator(ctx, r, table, action)
 	}
@@ -107,7 +107,7 @@ func ValidateRequest(ctx context.Context, r *http.Request, table string, action 
 	return nil
 }
 
-type RequestValidatorFunc func(ctx context.Context, r *http.Request, table string, action {{.modelPackageName}}.Action) error
+type RequestValidatorFunc func(ctx context.Context, r *http.Request, table string, action {{.modelFQPN}}.Action) error
 
 var RequestValidator RequestValidatorFunc
 
@@ -294,7 +294,7 @@ func GetDdl(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	argID := ps.ByName("argID")
 
-	if err := ValidateRequest(ctx, r, "ddl", models.FetchDDL); err != nil {
+	if err := ValidateRequest(ctx, r, "ddl", {{.modelFQPN}}.FetchDDL); err != nil {
 		returnError(ctx, w, r, err)
 		return
 	}
@@ -322,7 +322,7 @@ func GetDdl(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 func GetDdlEndpoints(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := initializeContext(r)
 
-	if err := ValidateRequest(ctx, r, "ddl", models.FetchDDL); err != nil {
+	if err := ValidateRequest(ctx, r, "ddl", {{.modelFQPN}}.FetchDDL); err != nil {
 		returnError(ctx, w, r, err)
 		return
 	}
@@ -344,7 +344,7 @@ func init() {
 		DeleteURL: "/{{$tableInfo.StructName | toLower}}",
 		FetchDDLURL: "/ddl/{{$tableName}}",
 	}
-	tmp.TableInfo, _ = models.GetTableInfo("{{$tableName}}")
+	tmp.TableInfo, _ = {{.modelFQPN}}.GetTableInfo("{{$tableName}}")
 	crudEndpoints["{{$tableName}}"] = tmp
 
 	{{end}}
