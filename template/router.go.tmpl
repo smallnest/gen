@@ -32,7 +32,7 @@ type CrudAPI struct {
 	UpdateURL       string           `json:"update_url"`
 	DeleteURL       string           `json:"delete_url"`
 	FetchDDLURL     string           `json:"fetch_ddl_url"`
-	TableInfo       *models.TableInfo `json:"table_info"`
+	TableInfo       *{{$.modelPackageName}}.TableInfo `json:"table_info"`
 }
 
 
@@ -99,7 +99,7 @@ func initializeContext(r *http.Request) (ctx context.Context) {
 }
 
 
-func ValidateRequest(ctx context.Context, r *http.Request, table string, action {{.modelPackageName}}.Action) error {
+func ValidateRequest(ctx context.Context, r *http.Request, table string, action {{$.modelPackageName}}.Action) error {
 	if RequestValidator != nil {
 		return RequestValidator(ctx, r, table, action)
 	}
@@ -107,7 +107,7 @@ func ValidateRequest(ctx context.Context, r *http.Request, table string, action 
 	return nil
 }
 
-type RequestValidatorFunc func(ctx context.Context, r *http.Request, table string, action {{.modelPackageName}}.Action) error
+type RequestValidatorFunc func(ctx context.Context, r *http.Request, table string, action {{$.modelPackageName}}.Action) error
 
 var RequestValidator RequestValidatorFunc
 
@@ -285,8 +285,8 @@ func parseUUID(ps httprouter.Params, key string) (string, error) {
 // @Produce  json
 // @Param  argID path int true "id"
 // @Success 200 {object} {{.apiPackageName}}.CrudAPI
-// @Failure 400 {object} apis.HTTPError
-// @Failure 404 {object} apis.HTTPError "ErrNotFound, db record for id not found - returns NotFound HTTP 404 not found error"
+// @Failure 400 {object} {{.apiPackageName}}.HTTPError
+// @Failure 404 {object} {{.apiPackageName}}.HTTPError "ErrNotFound, db record for id not found - returns NotFound HTTP 404 not found error"
 // @Router /ddl/{argID} [get]
 // http "http://localhost:8080/ddl/xyz" X-Api-User:user123
 func GetDdl(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
@@ -294,7 +294,7 @@ func GetDdl(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	argID := ps.ByName("argID")
 
-	if err := ValidateRequest(ctx, r, "ddl", models.FetchDDL); err != nil {
+	if err := ValidateRequest(ctx, r, "ddl", {{$.modelPackageName}}.FetchDDL); err != nil {
 		returnError(ctx, w, r, err)
 		return
 	}
@@ -322,7 +322,7 @@ func GetDdl(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 func GetDdlEndpoints(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := initializeContext(r)
 
-	if err := ValidateRequest(ctx, r, "ddl", models.FetchDDL); err != nil {
+	if err := ValidateRequest(ctx, r, "ddl", {{$.modelPackageName}}.FetchDDL); err != nil {
 		returnError(ctx, w, r, err)
 		return
 	}
@@ -344,7 +344,7 @@ func init() {
 		DeleteURL: "/{{$tableInfo.StructName | toLower}}",
 		FetchDDLURL: "/ddl/{{$tableName}}",
 	}
-	tmp.TableInfo, _ = models.GetTableInfo("{{$tableName}}")
+	tmp.TableInfo, _ = {{$.modelPackageName}}.GetTableInfo("{{$tableName}}")
 	crudEndpoints["{{$tableName}}"] = tmp
 
 	{{end}}
