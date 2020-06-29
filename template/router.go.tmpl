@@ -285,8 +285,8 @@ func parseUUID(ps httprouter.Params, key string) (string, error) {
 // @Produce  json
 // @Param  argID path int true "id"
 // @Success 200 {object} {{.apiPackageName}}.CrudAPI
-// @Failure 400 {object} apis.HTTPError
-// @Failure 404 {object} apis.HTTPError "ErrNotFound, db record for id not found - returns NotFound HTTP 404 not found error"
+// @Failure 400 {object} {{.apiPackageName}}.HTTPError
+// @Failure 404 {object} {{.apiPackageName}}.HTTPError "ErrNotFound, db record for id not found - returns NotFound HTTP 404 not found error"
 // @Router /ddl/{argID} [get]
 // http "http://localhost:8080/ddl/xyz" X-Api-User:user123
 func GetDdl(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
