@@ -99,7 +99,7 @@ func initializeContext(r *http.Request) (ctx context.Context) {
 }
 
 
-func ValidateRequest(ctx context.Context, r *http.Request, table string, action {{.modelPackageName}}.Action) error {
+func ValidateRequest(ctx context.Context, r *http.Request, table string, action {{$.modelPackageName}}.Action) error {
 	if RequestValidator != nil {
 		return RequestValidator(ctx, r, table, action)
 	}
@@ -107,7 +107,7 @@ func ValidateRequest(ctx context.Context, r *http.Request, table string, action 
 	return nil
 }
 
-type RequestValidatorFunc func(ctx context.Context, r *http.Request, table string, action {{.modelPackageName}}.Action) error
+type RequestValidatorFunc func(ctx context.Context, r *http.Request, table string, action {{$.modelPackageName}}.Action) error
 
 var RequestValidator RequestValidatorFunc
 
@@ -344,6 +344,7 @@ func init() {
 		DeleteURL: "/{{$tableInfo.StructName | toLower}}",
 		FetchDDLURL: "/ddl/{{$tableName}}",
 	}
+
 	tmp.TableInfo, _ = {{.modelPackageName}}.GetTableInfo("{{$tableName}}")
 	crudEndpoints["{{$tableName}}"] = tmp
 
