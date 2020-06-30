@@ -19,8 +19,13 @@ import (
 	"github.com/serenize/snaker"
 )
 
+type GenTemplate struct {
+	Name    string
+	Content string
+}
+
 // TemplateLoader loader function to retrieve a template contents
-type TemplateLoader func(filename string) (content string, err error)
+type TemplateLoader func(filename string) (tpl *GenTemplate, err error)
 
 var replaceFuncMap = template.FuncMap{
 	"singular":           inflection.Singular,
@@ -77,7 +82,7 @@ func (c *Config) ReplaceFieldNamingTemplate(name string) string {
 }
 
 // GetTemplate return a Template based on a name and template contents
-func (c *Config) GetTemplate(name, t string) (*template.Template, error) {
+func (c *Config) GetTemplate(genTemplate *GenTemplate) (*template.Template, error) {
 	var s State
 	var funcMap = template.FuncMap{
 		"ReplaceFileNamingTemplate":  c.ReplaceFileNamingTemplate,
@@ -108,44 +113,51 @@ func (c *Config) GetTemplate(name, t string) (*template.Template, error) {
 		"FmtFieldName":               FmtFieldName,
 	}
 
-	tmpl, err := template.New(name).Option("missingkey=error").Funcs(funcMap).Parse(t)
+	baseName := filepath.Base(genTemplate.Name)
+
+	tmpl, err := template.New(baseName).Option("missingkey=error").Funcs(funcMap).Parse(genTemplate.Content)
 	if err != nil {
 		return nil, err
 	}
 
-	if name == "api.go.tmpl" || name == "dao_gorm.go.tmpl" || name == "dao_sqlx.go.tmpl" || name == "code_dao_sqlx.md.tmpl" || name == "code_dao_gorm.md.tmpl" || name == "code_http.md.tmpl" {
+	if baseName == "api.go.tmpl" ||
+		baseName == "dao_gorm.go.tmpl" ||
+		baseName == "dao_sqlx.go.tmpl" ||
+		baseName == "code_dao_sqlx.md.tmpl" ||
+		baseName == "code_dao_gorm.md.tmpl" ||
+		baseName == "code_http.md.tmpl" {
 
 		operations := []string{"add", "delete", "get", "getall", "update"}
 		for _, op := range operations {
 			var filename string
-			if name == "api.go.tmpl" {
+			if baseName == "api.go.tmpl" {
 				filename = fmt.Sprintf("api_%s.go.tmpl", op)
 			}
-			if name == "dao_gorm.go.tmpl" {
+			if baseName == "dao_gorm.go.tmpl" {
 				filename = fmt.Sprintf("dao_gorm_%s.go.tmpl", op)
 			}
-			if name == "dao_sqlx.go.tmpl" {
+			if baseName == "dao_sqlx.go.tmpl" {
 				filename = fmt.Sprintf("dao_sqlx_%s.go.tmpl", op)
 			}
 
-			if name == "code_dao_sqlx.md.tmpl" {
+			if baseName == "code_dao_sqlx.md.tmpl" {
 				filename = fmt.Sprintf("dao_sqlx_%s.go.tmpl", op)
 			}
-			if name == "code_dao_gorm.md.tmpl" {
+			if baseName == "code_dao_gorm.md.tmpl" {
 				filename = fmt.Sprintf("dao_gorm_%s.go.tmpl", op)
 			}
-			if name == "code_http.md.tmpl" {
+			if baseName == "code_http.md.tmpl" {
 				filename = fmt.Sprintf("api_%s.go.tmpl", op)
 			}
 
-			var subTemplate string
+			var subTemplate *GenTemplate
 			if subTemplate, err = c.TemplateLoader(filename); err != nil {
 				fmt.Printf("Error loading template %v\n", err)
 				return nil, err
 			}
 
-			//fmt.Printf("loading sub template %v\n", filename)
-			tmpl.Parse(subTemplate)
+			// fmt.Printf("loading sub template %v\n", filename)
+			tmpl.Parse(subTemplate.Content)
 		}
 	}
 
@@ -370,7 +382,7 @@ func (c *Config) GenerateTableFile(tableInfos map[string]*ModelInfo, tableName, 
 		return buf.String()
 	}
 
-	var tpl string
+	var tpl *GenTemplate
 	if tpl, err = c.TemplateLoader(templateFilename); err != nil {
 		buf.WriteString(fmt.Sprintf("Error loading template %v\n", err))
 		return buf.String()
@@ -378,7 +390,7 @@ func (c *Config) GenerateTableFile(tableInfos map[string]*ModelInfo, tableName, 
 
 	outputFile := filepath.Join(fileOutDir, outputFileName)
 	buf.WriteString(fmt.Sprintf("Writing %s -> %s\n", templateFilename, outputFile))
-	c.WriteTemplate(templateFilename, tpl, data, outputFile, formatOutput)
+	c.WriteTemplate(tpl, data, outputFile, formatOutput)
 	return buf.String()
 }
 
@@ -427,7 +439,7 @@ func (c *Config) CreateContextForTableFile(tableInfo *ModelInfo) map[string]inte
 }
 
 // WriteTemplate write a template out
-func (c *Config) WriteTemplate(name, templateStr string, data map[string]interface{}, outputFile string, formatOutput bool) {
+func (c *Config) WriteTemplate(genTemplate *GenTemplate, data map[string]interface{}, outputFile string, formatOutput bool) {
 	if !c.Overwrite && Exists(outputFile) {
 		fmt.Printf("not overwriting %s\n", outputFile)
 		return
@@ -457,22 +469,22 @@ func (c *Config) WriteTemplate(name, templateStr string, data map[string]interfa
 	data["outDir"] = c.OutDir
 	data["Config"] = c
 
-	rt, err := c.GetTemplate(name, templateStr)
+	rt, err := c.GetTemplate(genTemplate)
 	if err != nil {
-		fmt.Printf("Error in loading %s template, error: %v\n", name, err)
+		fmt.Printf("Error in loading %s template, error: %v\n", genTemplate.Name, err)
 		return
 	}
 	var buf bytes.Buffer
 	err = rt.Execute(&buf, data)
 	if err != nil {
-		fmt.Printf("Error in rendering %s: %s\n", name, err.Error())
+		fmt.Printf("Error in rendering %s: %s\n", genTemplate.Name, err.Error())
 		return
 	}
 
 	if formatOutput {
 		formattedSource, err := format.Source(buf.Bytes())
 		if err != nil {
-			fmt.Printf("Error in formatting template: %s outputfile: %s source: %s\n", name, outputFile, err.Error())
+			fmt.Printf("Error in formatting template: %s outputfile: %s source: %s\n", genTemplate.Name, outputFile, err.Error())
 			formattedSource = buf.Bytes()
 		}
 		err = ioutil.WriteFile(outputFile, formattedSource, 0777)
@@ -513,7 +525,7 @@ func (c *Config) GenerateFile(templateFilename, outDir, outputDirectory, outputF
 
 	data := map[string]interface{}{}
 
-	var tpl string
+	var tpl *GenTemplate
 	if tpl, err = c.TemplateLoader(templateFilename); err != nil {
 		buf.WriteString(fmt.Sprintf("Error loading template %v\n", err))
 		return buf.String()
@@ -521,7 +533,7 @@ func (c *Config) GenerateFile(templateFilename, outDir, outputDirectory, outputF
 
 	outputFile := filepath.Join(fileOutDir, outputFileName)
 	buf.WriteString(fmt.Sprintf("Writing %s -> %s\n", templateFilename, outputFile))
-	c.WriteTemplate(templateFilename, tpl, data, outputFile, formatOutput)
+	c.WriteTemplate(tpl, data, outputFile, formatOutput)
 	return buf.String()
 }
 

@@ -17,9 +17,10 @@ var (
 )
 
 
-{{template "getall" .}}
-{{template "get" .}}
-{{template "add" .}}
-{{template "update" .}}
-{{template "delete" .}}
+
+{{template "dao_gorm_getall.go.tmpl" .}}
+{{template "dao_gorm_get.go.tmpl" .}}
+{{template "dao_gorm_add.go.tmpl" .}}
+{{template "dao_gorm_update.go.tmpl" .}}
+{{template "dao_gorm_delete.go.tmpl" .}}
 

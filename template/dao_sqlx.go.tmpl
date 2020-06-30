@@ -41,10 +41,11 @@ selectMultiSql         : {{.selectMultiSql}}
 
 */
 
-{{template "getall" .}}
-{{template "get" .}}
-{{template "add" .}}
-{{template "update" .}}
-{{template "delete" .}}
+
+{{template "dao_sqlx_getall.go.tmpl" .}}
+{{template "dao_sqlx_get.go.tmpl" .}}
+{{template "dao_sqlx_add.go.tmpl" .}}
+{{template "dao_sqlx_update.go.tmpl" .}}
+{{template "dao_sqlx_delete.go.tmpl" .}}
 
 

@@ -70,6 +70,7 @@ var (
 	daoGenerate      = goopt.Flag([]string{"--generate-dao"}, []string{}, "Generate dao functions", "")
 	projectGenerate  = goopt.Flag([]string{"--generate-proj"}, []string{}, "Generate project readme and gitignore", "")
 	restAPIGenerate  = goopt.Flag([]string{"--rest"}, []string{}, "Enable generating RESTful api", "")
+	runGoFmt         = goopt.Flag([]string{"--run-gofmt"}, []string{}, "run gofmt on output dir", "")
 
 	serverHost          = goopt.String([]string{"--host"}, "localhost", "host for server")
 	serverPort          = goopt.Int([]string{"--port"}, 8080, "port for server")
@@ -93,9 +94,9 @@ func init() {
 	goopt.Description = func() string {
 		return "ORM and RESTful API generator for SQl databases"
 	}
-	goopt.Version = "v0.9.16 (06/29/2020)"
+	goopt.Version = "v0.9.17 (06/30/2020)"
 	goopt.Summary = `gen [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> --module=example.com/example [--json] [--gorm] [--guregu] [--generate-dao] [--generate-proj]
-
+git fetch up
            sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
 
 `
@@ -392,9 +393,16 @@ func executeCustomScript(conf *dbmeta.Config) error {
 		fmt.Printf("Error Loading exec script: %s, error: %v\n", *execCustomScript, err)
 		return err
 	}
-	content := string(b)
 	data := map[string]interface{}{}
-	err = execTemplate(conf, "exec", content, data)
+
+	absPath, err := filepath.Abs(*execCustomScript)
+	if err != nil {
+		absPath = *execCustomScript
+	}
+
+	tpl := &dbmeta.GenTemplate{Name: absPath, Content: string(b)}
+
+	err = execTemplate(conf, tpl, data)
 	if err != nil {
 		fmt.Printf("Error Loading exec script: %s, error: %v\n", *execCustomScript, err)
 		return err
@@ -403,7 +411,7 @@ func executeCustomScript(conf *dbmeta.Config) error {
 	return nil
 }
 
-func execTemplate(conf *dbmeta.Config, name, templateStr string, data map[string]interface{}) error {
+func execTemplate(conf *dbmeta.Config, genTemplate *dbmeta.GenTemplate, data map[string]interface{}) error {
 
 	data["DatabaseName"] = *sqlDatabase
 	data["module"] = *module
@@ -423,15 +431,15 @@ func execTemplate(conf *dbmeta.Config, name, templateStr string, data map[string
 	data["outDir"] = *outDir
 	data["Config"] = conf
 
-	rt, err := conf.GetTemplate(name, templateStr)
+	rt, err := conf.GetTemplate(genTemplate)
 	if err != nil {
-		fmt.Printf("Error in loading %s template, error: %v\n", name, err)
+		fmt.Printf("Error in loading %s template, error: %v\n", genTemplate.Name, err)
 		return err
 	}
 	var buf bytes.Buffer
 	err = rt.Execute(&buf, data)
 	if err != nil {
-		fmt.Printf("Error in rendering %s: %s\n", name, err.Error())
+		fmt.Printf("Error in rendering %s: %s\n", genTemplate.Name, err.Error())
 		return err
 	}
 
@@ -475,14 +483,13 @@ func generate(conf *dbmeta.Config) error {
 			return err
 		}
 	}
-	var ModelTmpl string
-	var ModelBaseTmpl string
-	var ControllerTmpl string
-	var DaoTmpl string
-	var DaoFileName string
+	var ModelTmpl *dbmeta.GenTemplate
+	var ModelBaseTmpl *dbmeta.GenTemplate
+	var ControllerTmpl *dbmeta.GenTemplate
+	var DaoTmpl *dbmeta.GenTemplate
 
-	var DaoInitTmpl string
-	var GoModuleTmpl string
+	var DaoInitTmpl *dbmeta.GenTemplate
+	var GoModuleTmpl *dbmeta.GenTemplate
 
 	if ControllerTmpl, err = LoadTemplate("api.go.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
@@ -490,8 +497,7 @@ func generate(conf *dbmeta.Config) error {
 	}
 
 	if *addGormAnnotation {
-		DaoFileName = "dao_gorm.go.tmpl"
-		if DaoTmpl, err = LoadTemplate(DaoFileName); err != nil {
+		if DaoTmpl, err = LoadTemplate("dao_gorm.go.tmpl"); err != nil {
 			fmt.Printf("Error loading template %v\n", err)
 			return err
 		}
@@ -500,8 +506,7 @@ func generate(conf *dbmeta.Config) error {
 			return err
 		}
 	} else {
-		DaoFileName = "dao_sqlx.go.tmpl"
-		if DaoTmpl, err = LoadTemplate(DaoFileName); err != nil {
+		if DaoTmpl, err = LoadTemplate("dao_sqlx.go.tmpl"); err != nil {
 			fmt.Printf("Error loading template %v\n", err)
 			return err
 		}
@@ -542,17 +547,17 @@ func generate(conf *dbmeta.Config) error {
 		modelInfo := conf.CreateContextForTableFile(tableInfo)
 
 		modelFile := filepath.Join(modelDir, CreateGoSrcFileName(tableName))
-		conf.WriteTemplate("model.go.tmpl", ModelTmpl, modelInfo, modelFile, true)
+		conf.WriteTemplate(ModelTmpl, modelInfo, modelFile, true)
 
 		if *restAPIGenerate {
 			restFile := filepath.Join(apiDir, CreateGoSrcFileName(tableName))
-			conf.WriteTemplate("api.go.tmpl", ControllerTmpl, modelInfo, restFile, true)
+			conf.WriteTemplate(ControllerTmpl, modelInfo, restFile, true)
 		}
 
 		if *daoGenerate {
 			//write dao
 			outputFile := filepath.Join(daoDir, CreateGoSrcFileName(tableName))
-			conf.WriteTemplate(DaoFileName, DaoTmpl, modelInfo, outputFile, true)
+			conf.WriteTemplate(DaoTmpl, modelInfo, outputFile, true)
 		}
 	}
 
@@ -565,13 +570,13 @@ func generate(conf *dbmeta.Config) error {
 	}
 
 	if *daoGenerate {
-		conf.WriteTemplate("daoBase", DaoInitTmpl, data, filepath.Join(daoDir, "dao_base.go"), true)
+		conf.WriteTemplate(DaoInitTmpl, data, filepath.Join(daoDir, "dao_base.go"), true)
 	}
 
-	conf.WriteTemplate("modelBase", ModelBaseTmpl, data, filepath.Join(modelDir, "model_base.go"), true)
+	conf.WriteTemplate(ModelBaseTmpl, data, filepath.Join(modelDir, "model_base.go"), true)
 
 	if *modGenerate {
-		conf.WriteTemplate("go.mod", GoModuleTmpl, data, filepath.Join(*outDir, "go.mod"), false)
+		conf.WriteTemplate(GoModuleTmpl, data, filepath.Join(*outDir, "go.mod"), false)
 	}
 
 	if *makefileGenerate {
@@ -610,14 +615,18 @@ func generate(conf *dbmeta.Config) error {
 		}
 	}
 
+	if *runGoFmt {
+		GoFmt(conf.OutDir)
+	}
+
 	return nil
 }
 
 func generateRestBaseFiles(conf *dbmeta.Config, apiDir string) (err error) {
 
 	data := map[string]interface{}{}
-	var RouterTmpl string
-	var HTTPUtilsTmpl string
+	var RouterTmpl *dbmeta.GenTemplate
+	var HTTPUtilsTmpl *dbmeta.GenTemplate
 
 	if HTTPUtilsTmpl, err = LoadTemplate("http_utils.go.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
@@ -628,13 +637,13 @@ func generateRestBaseFiles(conf *dbmeta.Config, apiDir string) (err error) {
 		return
 	}
 
-	conf.WriteTemplate("router", RouterTmpl, data, filepath.Join(apiDir, "router.go"), true)
-	conf.WriteTemplate("example server", HTTPUtilsTmpl, data, filepath.Join(apiDir, "http_utils.go"), true)
+	conf.WriteTemplate(RouterTmpl, data, filepath.Join(apiDir, "router.go"), true)
+	conf.WriteTemplate(HTTPUtilsTmpl, data, filepath.Join(apiDir, "http_utils.go"), true)
 	return nil
 }
 
 func generateMakefile(conf *dbmeta.Config) (err error) {
-	var MakefileTmpl string
+	var MakefileTmpl *dbmeta.GenTemplate
 
 	if MakefileTmpl, err = LoadTemplate("Makefile.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
@@ -651,7 +660,7 @@ func generateMakefile(conf *dbmeta.Config) (err error) {
 		populateProtoCinContext(conf, data)
 	}
 
-	conf.WriteTemplate("makefile", MakefileTmpl, data, filepath.Join(*outDir, "Makefile"), false)
+	conf.WriteTemplate(MakefileTmpl, data, filepath.Join(*outDir, "Makefile"), false)
 	return nil
 }
 
@@ -665,7 +674,7 @@ func generateProtobufDefinitionFile(conf *dbmeta.Config, data map[string]interfa
 		return
 	}
 
-	var ProtobufTmpl string
+	var ProtobufTmpl *dbmeta.GenTemplate
 
 	if ProtobufTmpl, err = LoadTemplate("protobuf.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
@@ -673,7 +682,7 @@ func generateProtobufDefinitionFile(conf *dbmeta.Config, data map[string]interfa
 	}
 
 	protofile := fmt.Sprintf("%s.proto", *sqlDatabase)
-	conf.WriteTemplate("protobuf", ProtobufTmpl, data, filepath.Join(*outDir, protofile), false)
+	conf.WriteTemplate(ProtobufTmpl, data, filepath.Join(*outDir, protofile), false)
 
 	compileOutput, err := CompileProtoC(*outDir, moduleDir, filepath.Join(*outDir, protofile))
 	if err != nil {
@@ -690,14 +699,14 @@ func generateProtobufDefinitionFile(conf *dbmeta.Config, data map[string]interfa
 		return err
 	}
 
-	conf.WriteTemplate("protobuf", ProtobufTmpl, data, filepath.Join(serverDir, "main.go"), true)
+	conf.WriteTemplate(ProtobufTmpl, data, filepath.Join(serverDir, "main.go"), true)
 
 	if ProtobufTmpl, err = LoadTemplate("protoserver.go.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
 		return err
 	}
 
-	conf.WriteTemplate("protobuf", ProtobufTmpl, data, filepath.Join(serverDir, "protoserver.go"), true)
+	conf.WriteTemplate(ProtobufTmpl, data, filepath.Join(serverDir, "protoserver.go"), true)
 
 	return nil
 }
@@ -766,21 +775,39 @@ func CompileProtoC(protoBufDir, protoBufOutDir, protoBufFile string) (string, er
 	return string(stdoutStderr), nil
 }
 
+// GoFmt exec gofmt for a code dir
+func GoFmt(codeDir string) (string, error) {
+	args := []string{"-s", "-d", "-w", "-l", codeDir}
+	cmd := exec.Command("gofmt", args...)
+
+	cmdLineArgs := strings.Join(args, " ")
+	fmt.Printf("gofmt %s\n", cmdLineArgs)
+
+	stdoutStderr, err := cmd.CombinedOutput()
+	if err != nil {
+		fmt.Printf("error calling protoc: %T %v\n", err, err)
+		fmt.Printf("%s\n", stdoutStderr)
+		return "", err
+	}
+
+	return string(stdoutStderr), nil
+}
+
 func generateProjectFiles(conf *dbmeta.Config, data map[string]interface{}) (err error) {
 
-	var GitIgnoreTmpl string
+	var GitIgnoreTmpl *dbmeta.GenTemplate
 	if GitIgnoreTmpl, err = LoadTemplate("gitignore.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
 		return
 	}
-	var ReadMeTmpl string
+	var ReadMeTmpl *dbmeta.GenTemplate
 	if ReadMeTmpl, err = LoadTemplate("README.md.tmpl"); err != nil {
 		fmt.Printf("Error loading template %v\n", err)
 		return
 	}
 	populateProtoCinContext(conf, data)
-	conf.WriteTemplate("gitignore", GitIgnoreTmpl, data, filepath.Join(*outDir, ".gitignore"), false)
-	conf.WriteTemplate("readme", ReadMeTmpl, data, filepath.Join(*outDir, "README.md"), false)
+	conf.WriteTemplate(GitIgnoreTmpl, data, filepath.Join(*outDir, ".gitignore"), false)
+	conf.WriteTemplate(ReadMeTmpl, data, filepath.Join(*outDir, "README.md"), false)
 	return nil
 }
 
@@ -798,7 +825,7 @@ func populateProtoCinContext(conf *dbmeta.Config, data map[string]interface{}) {
 }
 func generateServerCode(conf *dbmeta.Config) (err error) {
 	data := map[string]interface{}{}
-	var MainServerTmpl string
+	var MainServerTmpl *dbmeta.GenTemplate
 
 	if *addGormAnnotation {
 		if MainServerTmpl, err = LoadTemplate("main_gorm.go.tmpl"); err != nil {
@@ -818,7 +845,7 @@ func generateServerCode(conf *dbmeta.Config) (err error) {
 		fmt.Printf("unable to create serverDir: %s error: %v\n", serverDir, err)
 		return
 	}
-	conf.WriteTemplate("example server", MainServerTmpl, data, filepath.Join(serverDir, "main.go"), true)
+	conf.WriteTemplate(MainServerTmpl, data, filepath.Join(serverDir, "main.go"), true)
 	return nil
 }
 
@@ -998,24 +1025,34 @@ func CreateGoSrcFileName(tableName string) string {
 }
 
 // LoadTemplate return template from template dir, falling back to the embedded templates
-func LoadTemplate(filename string) (content string, err error) {
+func LoadTemplate(filename string) (tpl *dbmeta.GenTemplate, err error) {
+	baseName := filepath.Base(filename)
+	// fmt.Printf("LoadTemplate: %s / %s\n", filename, baseName)
+
 	if *templateDir != "" {
 		fpath := filepath.Join(*templateDir, filename)
 		var b []byte
 		b, err = ioutil.ReadFile(fpath)
 		if err == nil {
+
+			absPath, err := filepath.Abs(fpath)
+			if err != nil {
+				absPath = fpath
+			}
 			// fmt.Printf("Loaded template from file: %s\n", fpath)
-			content = string(b)
-			return content, nil
+			tpl = &dbmeta.GenTemplate{Name: "file://" + absPath, Content: string(b)}
+			return tpl, nil
 		}
 	}
-	content, err = baseTemplates.FindString(filename)
+
+	content, err := baseTemplates.FindString(baseName)
 	if err != nil {
-		return "", fmt.Errorf("%s not found", filename)
+		return nil, fmt.Errorf("%s not found internally", baseName)
 	}
 	if *verbose {
 		fmt.Printf("Loaded template from app: %s\n", filename)
 	}
 
-	return content, nil
+	tpl = &dbmeta.GenTemplate{Name: "internal://" + filename, Content: content}
+	return tpl, nil
 }

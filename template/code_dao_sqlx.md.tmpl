@@ -17,25 +17,25 @@ The code generation, will generate functions for
 
 ## Retrieve Paged Records
 ```go
-{{template "getall" .}}
+{{template "dao_sqlx_getall.go.tmpl" .}}
 ```
 
 ## Retrieve record
 ```go
-{{template "get" .}}
+{{template "dao_sqlx_get.go.tmpl" .}}
 ```
 
 ## Create record
 ```go
-{{template "add" .}}
+{{template "dao_sqlx_add.go.tmpl" .}}
 ```
 
 ## Update record
 ```go
-{{template "update" .}}
+{{template "dao_sqlx_update.go.tmpl" .}}
 ```
 
 ## Delete record
 ```go
-{{template "delete" .}}
+{{template "dao_sqlx_delete.go.tmpl" .}}
 ```

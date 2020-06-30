@@ -32,7 +32,7 @@ func init() {
 	goopt.Description = func() string {
 		return "ORM and RESTful meta data viewer for SQl databases"
 	}
-	goopt.Version = "v0.9.16 (06/29/2020)"
+	goopt.Version = "v0.9.17 (06/30/2020)"
 	goopt.Summary = `dbmeta [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> 
 
            sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
@@ -134,11 +134,7 @@ func genreadme(conf *dbmeta.Config, templateName, outputFile string, ctx map[str
 {{- end }}
 `
 	ctx["AdvancesSample"] = sample
-
-	if template != "" {
-		// fmt.Printf("%s\n", template)
-		conf.WriteTemplate(templateName, template, ctx, outputFile, false)
-	}
+	conf.WriteTemplate(template, ctx, outputFile, false)
 }
 
 func initialize(conf *dbmeta.Config) {
@@ -221,22 +217,31 @@ func loadDefaultDBMappings() error {
 }
 
 // LoadTemplate return template from template dir, falling back to the embedded templates
-func LoadTemplate(filename string) (content string, err error) {
+func LoadTemplate(filename string) (tpl *dbmeta.GenTemplate, err error) {
+	baseName := filepath.Base(filename)
+	// fmt.Printf("LoadTemplate: %s / %s\n", filename, baseName)
+
 	if *templateDir != "" {
 		fpath := filepath.Join(*templateDir, filename)
 		var b []byte
 		b, err = ioutil.ReadFile(fpath)
 		if err == nil {
-			fmt.Printf("Loaded template from file: %s\n", fpath)
-			content = string(b)
-			return content, nil
+
+			absPath, err := filepath.Abs(fpath)
+			if err != nil {
+				absPath = fpath
+			}
+			// fmt.Printf("Loaded template from file: %s\n", fpath)
+			tpl = &dbmeta.GenTemplate{Name: "file://" + absPath, Content: string(b)}
+			return tpl, nil
 		}
 	}
-	content, err = baseTemplates.FindString(filename)
-	if err != nil {
-		return "", fmt.Errorf("%s not found", filename)
-	}
-	fmt.Printf("Loaded template from app: %s\n", filename)
 
-	return content, nil
+	content, err := baseTemplates.FindString(baseName)
+	if err != nil {
+		return nil, fmt.Errorf("%s not found internally", baseName)
+	}
+
+	tpl = &dbmeta.GenTemplate{Name: "internal://" + filename, Content: content}
+	return tpl, nil
 }
