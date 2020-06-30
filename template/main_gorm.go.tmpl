@@ -95,7 +95,7 @@ func main() {
         {{range $tableName, $codeInfo := .tableInfos}} &{{ $modelPackage}}.{{$codeInfo.StructName}}{},
         {{end}} )
 
-	daos.Logger = func(ctx context.Context, sql string) {
+	{{.daoPackageName}}.Logger = func(ctx context.Context, sql string) {
 		fmt.Printf("SQL: %s\n", sql)
 	}
 
