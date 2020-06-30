@@ -31,8 +31,8 @@ func configGin{{.StructName}}Router(router gin.IRoutes) {
 	router.DELETE("/{{.StructName | toLower}}{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}/:{{$field.PrimaryKeyArgName}}{{end}}{{end -}}", ConverHttprouterToGin(Delete{{.StructName}}))
 }
 
-{{template "getall" .}}
-{{template "get" .}}
-{{template "add" .}}
-{{template "update" .}}
-{{template "delete" .}}
+{{template "api_getall.go.tmpl" .}}
+{{template "api_get.go.tmpl" .}}
+{{template "api_add.go.tmpl" .}}
+{{template "api_update.go.tmpl" .}}
+{{template "api_delete.go.tmpl" .}}

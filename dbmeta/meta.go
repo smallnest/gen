@@ -7,6 +7,7 @@ import (
 	"fmt"
 	"io/ioutil"
 	"os"
+	"path/filepath"
 	"reflect"
 	"runtime"
 	"strings"
@@ -313,9 +314,9 @@ func LoadMeta(sqlType string, db *sql.DB, sqlDatabase, tableName string) (DbTabl
 	}
 
 	dbMeta, err := dbMetaFunc(db, sqlType, sqlDatabase, tableName)
-	if err != nil {
-		fmt.Printf("Error calling func: %s error: %v\n", GetFunctionName(dbMetaFunc), err)
-	}
+	//if err != nil {
+	//	fmt.Printf("Error calling func: %s error: %v\n", GetFunctionName(dbMetaFunc), err)
+	//}
 	return dbMeta, err
 }
 
@@ -572,7 +573,13 @@ func LoadMappings(mappingFileName string, verbose bool) error {
 		fmt.Printf("Error loading mapping file %s error: %v\n", mappingFileName, err)
 		return err
 	}
-	return ProcessMappings(mappingFileName, byteValue, verbose)
+
+	absPath, err := filepath.Abs(mappingFileName)
+	if err != nil {
+		absPath = mappingFileName
+	}
+
+	return ProcessMappings(absPath, byteValue, verbose)
 }
 
 // SQLTypeToGoType map a sql type to a go type
@@ -686,7 +693,7 @@ func LoadTableInfo(db *sql.DB, dbTables []string, excludeDbTables []string, conf
 
 		dbMeta, err := LoadMeta(conf.SQLType, db, conf.SQLDatabase, tableName)
 		if err != nil {
-			fmt.Printf("LoadMeta Error getting table info for %s error: %v\n", tableName, err)
+			fmt.Printf("Warning - LoadMeta skipping table info for %s error: %v\n", tableName, err)
 			continue
 		}
 

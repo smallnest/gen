@@ -1,4 +1,4 @@
-{{define "get"}}
+{{define "dao_gorm_get.go.tmpl"}}
 // Get{{.StructName}} is a function to get a single record from the {{.TableName}} table in the {{.DatabaseName}} database
 // error - ErrNotFound, db Find error
 func Get{{.StructName}}(ctx context.Context,{{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}} {{$field.GoFieldType}},{{end}}{{end -}}) (record *{{.modelPackageName}}.{{.StructName}}, err error) {

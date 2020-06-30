@@ -1,4 +1,4 @@
-{{define "get"}}
+{{define "api_get.go.tmpl"}}
 // Get{{.StructName}} is a function to get a single record from the {{.TableName}} table in the {{.DatabaseName}} database
 // @Summary Get record from table {{.StructName}} by {{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}} {{ $field.PrimaryKeyArgName }} {{end}}{{end}}
 // @Tags {{.StructName}}

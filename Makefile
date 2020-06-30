@@ -83,6 +83,7 @@ generate_example: clean_example ## generate example project code from sqlite db 
 		--overwrite \
 		--out ./ \
 		--templateDir=../template \
+		--mapping=../template/mapping.json \
 		--json \
 		--db \
 		--generate-dao \
@@ -94,6 +95,7 @@ generate_example: clean_example ## generate example project code from sqlite db 
 		--mod \
 		--server \
 		--makefile \
+		--run-gofmt \
 		--copy-templates
 
 test_exec: clean_example ## test example using sqlite db in ./examples
