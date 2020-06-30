@@ -47,7 +47,7 @@ func (s *Server) Get{{ $tableInfo.StructName }}(context context.Context, request
 
     response := &{{$.modelPackageName}}.Get{{ $tableInfo.StructName }}Response{}
     response.Data = result
-    response.Result=&models.Result{Result: models.Result_Success}
+    response.Result=&{{$.modelPackageName}}.Result{Result: {{$.modelPackageName}}.Result_Success}
     return response, nil
 }
 
@@ -62,7 +62,7 @@ func (s *Server) Add{{ $tableInfo.StructName }}(context context.Context, request
 
     response := &{{$.modelPackageName}}.Add{{ $tableInfo.StructName }}Response{}
     response.Data = result
-    response.Result = &models.Result{Result: models.Result_Success}
+    response.Result = &{{$.modelPackageName}}.Result{Result: {{$.modelPackageName}}.Result_Success}
     response.RowsAffected = rowsAffected
     return response, nil
 }
@@ -80,7 +80,7 @@ func (s *Server) Update{{ $tableInfo.StructName }}(context context.Context, requ
 
     response := &{{$.modelPackageName}}.Update{{ $tableInfo.StructName }}Response{}
     response.Data = result
-    response.Result = &models.Result{Result: models.Result_Success}
+    response.Result = &{{$.modelPackageName}}.Result{Result: {{$.modelPackageName}}.Result_Success}
     response.RowsAffected = rowsAffected
     return response, nil
 }

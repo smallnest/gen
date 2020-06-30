@@ -86,6 +86,9 @@ generate_example: clean_example ## generate example project code from sqlite db 
 		--mapping=../template/mapping.json \
 		--json \
 		--db \
+      	--api=apis \
+      	--dao=daos \
+      	--model=models \
 		--generate-dao \
 		--generate-proj \
 		--protobuf \
@@ -120,6 +123,7 @@ run_example: example ## run example project server
 
 
 clean_example: ## remove generated example code
+	mkdir -p ./example
 	rm -rf ./example/Makefile \
 	 ./example/README.md \
 	 ./example/api \

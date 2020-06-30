@@ -32,7 +32,7 @@ type CrudAPI struct {
 	UpdateURL       string           `json:"update_url"`
 	DeleteURL       string           `json:"delete_url"`
 	FetchDDLURL     string           `json:"fetch_ddl_url"`
-	TableInfo       *{{$.modelPackageName}}.TableInfo `json:"table_info"`
+	TableInfo       *{{.modelPackageName}}.TableInfo `json:"table_info"`
 }
 
 
@@ -294,7 +294,7 @@ func GetDdl(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 	argID := ps.ByName("argID")
 
-	if err := ValidateRequest(ctx, r, "ddl", {{$.modelPackageName}}.FetchDDL); err != nil {
+	if err := ValidateRequest(ctx, r, "ddl", {{.modelPackageName}}.FetchDDL); err != nil {
 		returnError(ctx, w, r, err)
 		return
 	}
@@ -322,7 +322,7 @@ func GetDdl(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 func GetDdlEndpoints(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := initializeContext(r)
 
-	if err := ValidateRequest(ctx, r, "ddl", {{$.modelPackageName}}.FetchDDL); err != nil {
+	if err := ValidateRequest(ctx, r, "ddl", {{.modelPackageName}}.FetchDDL); err != nil {
 		returnError(ctx, w, r, err)
 		return
 	}
@@ -344,7 +344,8 @@ func init() {
 		DeleteURL: "/{{$tableInfo.StructName | toLower}}",
 		FetchDDLURL: "/ddl/{{$tableName}}",
 	}
-	tmp.TableInfo, _ = {{$.modelPackageName}}.GetTableInfo("{{$tableName}}")
+
+	tmp.TableInfo, _ = {{.modelPackageName}}.GetTableInfo("{{$tableName}}")
 	crudEndpoints["{{$tableName}}"] = tmp
 
 	{{end}}
