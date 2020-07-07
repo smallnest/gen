@@ -60,7 +60,7 @@ var _ = func() error {
 	g.DefaultResolver = hgr
 
 	func() {
-		b := packr.New("gen", "../template")
+		b := packr.New("gen", "./template")
 		b.SetResolver("GEN_README.md.tmpl", packr.Pointer{ForwardBox: gk, ForwardPath: "a2d5586edb9ff79f53fe610c4e91de3d"})
 		b.SetResolver("Makefile.tmpl", packr.Pointer{ForwardBox: gk, ForwardPath: "3ceb52e1f1f3624e5a1a43ca87b692d5"})
 		b.SetResolver("README.md.tmpl", packr.Pointer{ForwardBox: gk, ForwardPath: "b90aee21f6dfc810704f9344330644a8"})
