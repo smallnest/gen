@@ -345,7 +345,7 @@ func init() {
 		FetchDDLURL: "/ddl/{{$tableName}}",
 	}
 
-	tmp.TableInfo, _ = {{.modelPackageName}}.GetTableInfo("{{$tableName}}")
+	tmp.TableInfo, _ = {{$.modelPackageName}}.GetTableInfo("{{$tableName}}")
 	crudEndpoints["{{$tableName}}"] = tmp
 
 	{{end}}
