@@ -487,9 +487,20 @@ func (c *Config) WriteTemplate(genTemplate *GenTemplate, data map[string]interfa
 			fmt.Printf("Error in formatting template: %s outputfile: %s source: %s\n", genTemplate.Name, outputFile, err.Error())
 			formattedSource = buf.Bytes()
 		}
-		err = ioutil.WriteFile(outputFile, formattedSource, 0777)
+
+		fileContents := NormalizeNewlines(formattedSource)
+		if c.LineEndingCRLF {
+			fileContents = CRLFNewlines(formattedSource)
+		}
+
+		err = ioutil.WriteFile(outputFile, fileContents, 0777)
 	} else {
-		err = ioutil.WriteFile(outputFile, buf.Bytes(), 0777)
+		fileContents := NormalizeNewlines(buf.Bytes())
+		if c.LineEndingCRLF {
+			fileContents = CRLFNewlines(fileContents)
+		}
+
+		err = ioutil.WriteFile(outputFile, fileContents, 0777)
 	}
 
 	if err != nil {
@@ -500,6 +511,23 @@ func (c *Config) WriteTemplate(genTemplate *GenTemplate, data map[string]interfa
 	if c.Verbose {
 		fmt.Printf("writing %s\n", outputFile)
 	}
+}
+
+// NormalizeNewlines normalizes \r\n (windows) and \r (mac)
+// into \n (unix)
+func NormalizeNewlines(d []byte) []byte {
+	// replace CR LF \r\n (windows) with LF \n (unix)
+	d = bytes.Replace(d, []byte{13, 10}, []byte{10}, -1)
+	// replace CF \r (mac) with LF \n (unix)
+	d = bytes.Replace(d, []byte{13}, []byte{10}, -1)
+	return d
+}
+
+// CRLFNewlines transforms \n to \r\n (windows)
+func CRLFNewlines(d []byte) []byte {
+	// replace LF (unix) with CR LF \r\n (windows)
+	d = bytes.Replace(d, []byte{10}, []byte{13, 10}, -1)
+	return d
 }
 
 // Exists reports whether the named file or directory exists.
@@ -579,6 +607,7 @@ type Config struct {
 	Verbose               bool
 	OutDir                string
 	Overwrite             bool
+	LineEndingCRLF        bool
 	CmdLine               string
 	CmdLineWrapped        string
 	CmdLineArgs           []string

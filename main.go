@@ -39,12 +39,14 @@ var (
 	fieldNamingTemplate = goopt.String([]string{"--field_naming"}, "{{FmtFieldName (stringifyFirstChar .) }}", "field naming template to name structs")
 	fileNamingTemplate  = goopt.String([]string{"--file_naming"}, "{{.}}", "file_naming template to name files")
 
-	daoPackageName   = goopt.String([]string{"--dao"}, "dao", "name to set for dao package")
-	apiPackageName   = goopt.String([]string{"--api"}, "api", "name to set for api package")
-	grpcPackageName  = goopt.String([]string{"--grpc"}, "grpc", "name to set for grpc package")
-	outDir           = goopt.String([]string{"--out"}, ".", "output dir")
-	module           = goopt.String([]string{"--module"}, "example.com/example", "module path")
-	overwrite        = goopt.Flag([]string{"--overwrite"}, []string{"--no-overwrite"}, "Overwrite existing files (default)", "disable overwriting files")
+	daoPackageName  = goopt.String([]string{"--dao"}, "dao", "name to set for dao package")
+	apiPackageName  = goopt.String([]string{"--api"}, "api", "name to set for api package")
+	grpcPackageName = goopt.String([]string{"--grpc"}, "grpc", "name to set for grpc package")
+	outDir          = goopt.String([]string{"--out"}, ".", "output dir")
+	module          = goopt.String([]string{"--module"}, "example.com/example", "module path")
+	overwrite       = goopt.Flag([]string{"--overwrite"}, []string{"--no-overwrite"}, "Overwrite existing files (default)", "disable overwriting files")
+	windows         = goopt.Flag([]string{"--windows"}, []string{}, "use windows line endings in generated files", "")
+
 	contextFileName  = goopt.String([]string{"--context"}, "", "context file (json) to populate context with")
 	mappingFileName  = goopt.String([]string{"--mapping"}, "", "mapping file (json) to map sql types to golang/protobuf etc")
 	execCustomScript = goopt.String([]string{"--exec"}, "", "execute script for custom code generation")
@@ -332,11 +334,11 @@ func initialize(conf *dbmeta.Config) {
 	conf.Verbose = *verbose
 	conf.OutDir = *outDir
 	conf.Overwrite = *overwrite
+	conf.LineEndingCRLF = *windows
 
 	conf.SQLConnStr = *sqlConnStr
 	conf.ServerPort = *serverPort
 	conf.ServerHost = *serverHost
-	conf.Overwrite = *overwrite
 
 	conf.Module = *module
 	conf.ModelPackageName = *modelPackageName
