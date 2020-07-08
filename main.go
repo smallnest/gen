@@ -5,11 +5,11 @@ import (
 	"database/sql"
 	"encoding/json"
 	"fmt"
+	"go/build"
 	"io"
 	"io/ioutil"
 	"os"
 	"os/exec"
-	"os/user"
 	"path/filepath"
 	"strings"
 
@@ -20,6 +20,7 @@ import (
 	"github.com/jimsmart/schema"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/lib/pq"
+	"github.com/logrusorgru/aurora"
 	_ "github.com/mattn/go-sqlite3"
 
 	"github.com/smallnest/gen/dbmeta"
@@ -46,6 +47,7 @@ var (
 	module          = goopt.String([]string{"--module"}, "example.com/example", "module path")
 	overwrite       = goopt.Flag([]string{"--overwrite"}, []string{"--no-overwrite"}, "Overwrite existing files (default)", "disable overwriting files")
 	windows         = goopt.Flag([]string{"--windows"}, []string{}, "use windows line endings in generated files", "")
+	noColorOutput   = goopt.Flag([]string{"--no-color"}, []string{}, "disable color output", "")
 
 	contextFileName  = goopt.String([]string{"--context"}, "", "context file (json) to populate context with")
 	mappingFileName  = goopt.String([]string{"--mapping"}, "", "mapping file (json) to map sql types to golang/protobuf etc")
@@ -89,6 +91,7 @@ var (
 
 	baseTemplates *packr.Box
 	tableInfos    map[string]*dbmeta.ModelInfo
+	au            aurora.Aurora
 )
 
 func init() {
@@ -147,6 +150,7 @@ func main() {
 	//for i, arg := range os.Args {
 	//	fmt.Printf("[%2d] %s\n", i, arg)
 	//}
+	au = aurora.NewAurora(!*noColorOutput)
 
 	baseTemplates = packr.New("gen", "./template")
 
@@ -722,26 +726,24 @@ func createProtocCmdLine(protoBufDir, protoBufOutDir, protoBufFile string) ([]st
 		}
 	}
 
-	usr, err := user.Current()
-	if err == nil {
-		dir := usr.HomeDir
-		srcPath := filepath.Join(dir, "go/src")
-
-		//srcDirExists := dbmeta.Exists(srcPath)
-
-		gogoPath := filepath.Join(dir, "go/src/github.com/gogo/protobuf/gogoproto/gogo.proto")
-		gogoImportExists := dbmeta.Exists(gogoPath)
-
-		//fmt.Printf("path    : %s   srcDirExists: %t\n", srcPath, srcDirExists)
-		//fmt.Printf("gogoPath: %s   gogoImportExists: %t\n", gogoPath, gogoImportExists)
-
-		if !gogoImportExists {
-			fmt.Printf("github.com/gogo/protobuf/gogoproto/gogo.proto does not exist on path - install with\ngo get -u github.com/gogo/protobuf/proto\n\n")
-			return nil, fmt.Errorf("github.com/gogo/protobuf/gogoproto/gogo.proto does not exist")
-		}
-
-		*gogoProtoImport = srcPath
+	gopath := os.Getenv("GOPATH")
+	if gopath == "" {
+		gopath = build.Default.GOPATH
 	}
+
+	srcPath := filepath.Join(gopath, "src")
+	gogoPath := filepath.Join(gopath, "src/github.com/gogo/protobuf/gogoproto/gogo.proto")
+	gogoImportExists := dbmeta.Exists(gogoPath)
+
+	//fmt.Printf("path    : %s   srcDirExists: %t\n", srcPath, srcDirExists)
+	//fmt.Printf("gogoPath: %s   gogoImportExists: %t\n", gogoPath, gogoImportExists)
+
+	if !gogoImportExists {
+		fmt.Print(au.Red("github.com/gogo/protobuf/gogoproto/gogo.proto does not exist on path - install with\ngo get -u github.com/gogo/protobuf/proto\n\n"))
+		return nil, fmt.Errorf("github.com/gogo/protobuf/gogoproto/gogo.proto does not exist")
+	}
+
+	*gogoProtoImport = srcPath
 
 	fmt.Printf("----------------------------\n")
 

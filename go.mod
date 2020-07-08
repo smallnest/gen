@@ -24,6 +24,7 @@ require (
 	github.com/karrick/godirwalk v1.15.6 // indirect
 	github.com/kr/pretty v0.2.0 // indirect
 	github.com/lib/pq v1.3.0
+	github.com/logrusorgru/aurora v2.0.3+incompatible // indirect
 	github.com/mattn/go-sqlite3 v2.0.3+incompatible
 	github.com/mwitkow/go-proto-validators v0.3.0 // indirect
 	github.com/ompluscator/dynamic-struct v1.2.0
