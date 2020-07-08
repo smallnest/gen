@@ -390,7 +390,7 @@ func (c *Config) GenerateTableFile(tableInfos map[string]*ModelInfo, tableName, 
 
 	outputFile := filepath.Join(fileOutDir, outputFileName)
 	buf.WriteString(fmt.Sprintf("Writing %s -> %s\n", templateFilename, outputFile))
-	c.WriteTemplate(tpl, data, outputFile, formatOutput)
+	err = c.WriteTemplate(tpl, data, outputFile, formatOutput)
 	return buf.String()
 }
 
@@ -439,10 +439,10 @@ func (c *Config) CreateContextForTableFile(tableInfo *ModelInfo) map[string]inte
 }
 
 // WriteTemplate write a template out
-func (c *Config) WriteTemplate(genTemplate *GenTemplate, data map[string]interface{}, outputFile string, formatOutput bool) {
+func (c *Config) WriteTemplate(genTemplate *GenTemplate, data map[string]interface{}, outputFile string, formatOutput bool) error{
 	if !c.Overwrite && Exists(outputFile) {
 		fmt.Printf("not overwriting %s\n", outputFile)
-		return
+		return nil
 	}
 
 	for key, value := range c.ContextMap {
@@ -471,21 +471,18 @@ func (c *Config) WriteTemplate(genTemplate *GenTemplate, data map[string]interfa
 
 	rt, err := c.GetTemplate(genTemplate)
 	if err != nil {
-		fmt.Printf("Error in loading %s template, error: %v\n", genTemplate.Name, err)
-		return
+		return fmt.Errorf("Error in loading %s template, error: %v\n", genTemplate.Name, err)
 	}
 	var buf bytes.Buffer
 	err = rt.Execute(&buf, data)
 	if err != nil {
-		fmt.Printf("Error in rendering %s: %s\n", genTemplate.Name, err.Error())
-		return
+		return fmt.Errorf("Error in rendering %s: %s\n", genTemplate.Name, err.Error())
 	}
 
 	if formatOutput {
 		formattedSource, err := format.Source(buf.Bytes())
 		if err != nil {
-			fmt.Printf("Error in formatting template: %s outputfile: %s source: %s\n", genTemplate.Name, outputFile, err.Error())
-			formattedSource = buf.Bytes()
+			return fmt.Errorf("Error in formatting template: %s outputfile: %s source: %s\n", genTemplate.Name, outputFile, err.Error())
 		}
 
 		fileContents := NormalizeNewlines(formattedSource)
@@ -504,13 +501,13 @@ func (c *Config) WriteTemplate(genTemplate *GenTemplate, data map[string]interfa
 	}
 
 	if err != nil {
-		fmt.Printf("error writing %s - error: %v\n", outputFile, err)
-		return
+		return fmt.Errorf("error writing %s - error: %v\n", outputFile, err)
 	}
 
 	if c.Verbose {
 		fmt.Printf("writing %s\n", outputFile)
 	}
+	return nil
 }
 
 // NormalizeNewlines normalizes \r\n (windows) and \r (mac)
@@ -561,7 +558,10 @@ func (c *Config) GenerateFile(templateFilename, outDir, outputDirectory, outputF
 
 	outputFile := filepath.Join(fileOutDir, outputFileName)
 	buf.WriteString(fmt.Sprintf("Writing %s -> %s\n", templateFilename, outputFile))
-	c.WriteTemplate(tpl, data, outputFile, formatOutput)
+	err = c.WriteTemplate(tpl, data, outputFile, formatOutput)
+	if err != nil {
+		buf.WriteString(fmt.Sprintf("Error calling WriteTemplate %s -> %v\n", templateFilename, err))
+	}
 	return buf.String()
 }
 

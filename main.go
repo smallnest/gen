@@ -99,7 +99,7 @@ func init() {
 	goopt.Description = func() string {
 		return "ORM and RESTful API generator for SQl databases"
 	}
-	goopt.Version = "v0.9.21 (07/07/2020)"
+	goopt.Version = "v0.9.22 (07/08/2020)"
 	goopt.Summary = `gen [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> --module=example.com/example [--json] [--gorm] [--guregu] [--generate-dao] [--generate-proj]
 git fetch up
            sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
@@ -188,20 +188,20 @@ func main() {
 
 	// Username is required
 	if sqlConnStr == nil || *sqlConnStr == "" || *sqlConnStr == "nil" {
-		fmt.Printf("sql connection string is required! Add it with --connstr=s\n\n")
+		fmt.Print(au.Red("sql connection string is required! Add it with --connstr=s\n\n"))
 		fmt.Println(goopt.Usage())
 		return
 	}
 
 	if sqlDatabase == nil || *sqlDatabase == "" || *sqlDatabase == "nil" {
-		fmt.Printf("Database can not be null\n\n")
+		fmt.Print(au.Red("Database can not be null\n\n"))
 		fmt.Println(goopt.Usage())
 		return
 	}
 
 	db, err := initializeDB()
 	if err != nil {
-		fmt.Printf("Error in initializing db %v\n", err)
+		fmt.Print(au.Red(fmt.Sprintf("Error in initializing db %v\n", err)))
 		os.Exit(1)
 		return
 	}
@@ -215,7 +215,7 @@ func main() {
 	} else {
 		dbTables, err = schema.TableNames(db)
 		if err != nil {
-			fmt.Printf("Error in fetching tables information from %s information schema from %s\n", *sqlType, *sqlConnStr)
+			fmt.Print(au.Red(fmt.Sprintf("Error in fetching tables information from %s information schema from %s\n", *sqlType, *sqlConnStr)))
 			os.Exit(1)
 			return
 		}
@@ -237,7 +237,7 @@ func main() {
 
 	err = loadDefaultDBMappings(conf)
 	if err != nil {
-		fmt.Printf("Error processing default mapping file error: %v\n", err)
+		fmt.Print(au.Red(fmt.Sprintf("Error processing default mapping file error: %v\n", err)))
 		os.Exit(1)
 		return
 	}
@@ -245,7 +245,7 @@ func main() {
 	if *mappingFileName != "" {
 		err := dbmeta.LoadMappings(*mappingFileName, *verbose)
 		if err != nil {
-			fmt.Printf("Error loading mappings file %s error: %v\n", *mappingFileName, err)
+			fmt.Print(au.Red(fmt.Sprintf("Error loading mappings file %s error: %v\n", *mappingFileName, err)))
 			os.Exit(1)
 			return
 		}
@@ -258,7 +258,7 @@ func main() {
 	tableInfos = dbmeta.LoadTableInfo(db, dbTables, excludeDbTables, conf)
 
 	if len(tableInfos) == 0 {
-		fmt.Printf("No tables loaded\n")
+		fmt.Print(au.Red(fmt.Sprintf("No tables loaded\n")))
 		os.Exit(1)
 	}
 
@@ -274,7 +274,7 @@ func main() {
 	if *execCustomScript != "" {
 		err = executeCustomScript(conf)
 		if err != nil {
-			fmt.Printf("Error in executing custom script %v\n", err)
+			fmt.Print(au.Red(fmt.Sprintf("Error in executing custom script %v\n", err)))
 			os.Exit(1)
 		}
 		os.Exit(0)
@@ -283,7 +283,7 @@ func main() {
 
 	err = generate(conf)
 	if err != nil {
-		fmt.Printf("Error in executing generate %v\n", err)
+		fmt.Print(au.Red(fmt.Sprintf("Error in executing generate %v\n", err)))
 		os.Exit(1)
 	}
 
@@ -294,13 +294,13 @@ func initializeDB() (db *sql.DB, err error) {
 
 	db, err = sql.Open(*sqlType, *sqlConnStr)
 	if err != nil {
-		fmt.Printf("Error in open database: %v\n\n", err.Error())
+		fmt.Print(au.Red(fmt.Sprintf("Error in open database: %v\n\n", err.Error())))
 		return nil, err
 	}
 
 	err = db.Ping()
 	if err != nil {
-		fmt.Printf("Error pinging database: %v\n\n", err.Error())
+		fmt.Print(au.Red(fmt.Sprintf("Error pinging database: %v\n\n", err.Error())))
 		return
 	}
 
@@ -439,7 +439,7 @@ func execTemplate(conf *dbmeta.Config, genTemplate *dbmeta.GenTemplate, data map
 
 	rt, err := conf.GetTemplate(genTemplate)
 	if err != nil {
-		fmt.Printf("Error in loading %s template, error: %v\n", genTemplate.Name, err)
+		fmt.Print(au.Red(fmt.Sprintf("Error in loading %s template, error: %v\n", genTemplate.Name, err)))
 		return err
 	}
 	var buf bytes.Buffer
@@ -464,20 +464,20 @@ func generate(conf *dbmeta.Config) error {
 
 	err = os.MkdirAll(*outDir, 0777)
 	if err != nil && !*overwrite {
-		fmt.Printf("unable to create outDir: %s error: %v\n", *outDir, err)
+		fmt.Print(au.Red(fmt.Sprintf("unable to create outDir: %s error: %v\n", *outDir, err)))
 		return err
 	}
 
 	err = os.MkdirAll(modelDir, 0777)
 	if err != nil && !*overwrite {
-		fmt.Printf("unable to create modelDir: %s error: %v\n", modelDir, err)
+		fmt.Print(au.Red(fmt.Sprintf("unable to create modelDir: %s error: %v\n", modelDir, err)))
 		return err
 	}
 
 	if *daoGenerate {
 		err = os.MkdirAll(daoDir, 0777)
 		if err != nil && !*overwrite {
-			fmt.Printf("unable to create daoDir: %s error: %v\n", daoDir, err)
+			fmt.Print(au.Red(fmt.Sprintf("unable to create daoDir: %s error: %v\n", daoDir, err)))
 			return err
 		}
 	}
@@ -485,7 +485,7 @@ func generate(conf *dbmeta.Config) error {
 	if *restAPIGenerate {
 		err = os.MkdirAll(apiDir, 0777)
 		if err != nil && !*overwrite {
-			fmt.Printf("unable to create apiDir: %s error: %v\n", apiDir, err)
+			fmt.Print(au.Red(fmt.Sprintf("unable to create apiDir: %s error: %v\n", apiDir, err)))
 			return err
 		}
 	}
@@ -498,41 +498,41 @@ func generate(conf *dbmeta.Config) error {
 	var GoModuleTmpl *dbmeta.GenTemplate
 
 	if ControllerTmpl, err = LoadTemplate("api.go.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
+		fmt.Print(au.Red(fmt.Sprintf("Error loading template %v\n", err)))
 		return err
 	}
 
 	if *addGormAnnotation {
 		if DaoTmpl, err = LoadTemplate("dao_gorm.go.tmpl"); err != nil {
-			fmt.Printf("Error loading template %v\n", err)
+			fmt.Print(au.Red(fmt.Sprintf("Error loading template %v\n", err)))
 			return err
 		}
 		if DaoInitTmpl, err = LoadTemplate("dao_gorm_init.go.tmpl"); err != nil {
-			fmt.Printf("Error loading template %v\n", err)
+			fmt.Print(au.Red(fmt.Sprintf("Error loading template %v\n", err)))
 			return err
 		}
 	} else {
 		if DaoTmpl, err = LoadTemplate("dao_sqlx.go.tmpl"); err != nil {
-			fmt.Printf("Error loading template %v\n", err)
+			fmt.Print(au.Red(fmt.Sprintf("Error loading template %v\n", err)))
 			return err
 		}
 		if DaoInitTmpl, err = LoadTemplate("dao_sqlx_init.go.tmpl"); err != nil {
-			fmt.Printf("Error loading template %v\n", err)
+			fmt.Print(au.Red(fmt.Sprintf("Error loading template %v\n", err)))
 			return err
 		}
 	}
 
 	if GoModuleTmpl, err = LoadTemplate("gomod.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
+		fmt.Print(au.Red(fmt.Sprintf("Error loading template %v\n", err)))
 		return err
 	}
 
 	if ModelTmpl, err = LoadTemplate("model.go.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
+		fmt.Print(au.Red(fmt.Sprintf("Error loading template %v\n", err)))
 		return err
 	}
 	if ModelBaseTmpl, err = LoadTemplate("model_base.go.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
+		fmt.Print(au.Red(fmt.Sprintf("Error loading template %v\n", err)))
 		return err
 	}
 
@@ -553,17 +553,30 @@ func generate(conf *dbmeta.Config) error {
 		modelInfo := conf.CreateContextForTableFile(tableInfo)
 
 		modelFile := filepath.Join(modelDir, CreateGoSrcFileName(tableName))
-		conf.WriteTemplate(ModelTmpl, modelInfo, modelFile, true)
+		err = conf.WriteTemplate(ModelTmpl, modelInfo, modelFile, true)
+		if err != nil {
+			fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
+			os.Exit(1)
+		}
 
 		if *restAPIGenerate {
 			restFile := filepath.Join(apiDir, CreateGoSrcFileName(tableName))
-			conf.WriteTemplate(ControllerTmpl, modelInfo, restFile, true)
+			err = conf.WriteTemplate(ControllerTmpl, modelInfo, restFile, true)
+			if err != nil {
+				fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
+				os.Exit(1)
+			}
+
 		}
 
 		if *daoGenerate {
 			//write dao
 			outputFile := filepath.Join(daoDir, CreateGoSrcFileName(tableName))
-			conf.WriteTemplate(DaoTmpl, modelInfo, outputFile, true)
+			err = conf.WriteTemplate(DaoTmpl, modelInfo, outputFile, true)
+			if err != nil {
+				fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
+				os.Exit(1)
+			}
 		}
 	}
 
@@ -576,13 +589,26 @@ func generate(conf *dbmeta.Config) error {
 	}
 
 	if *daoGenerate {
-		conf.WriteTemplate(DaoInitTmpl, data, filepath.Join(daoDir, "dao_base.go"), true)
+		err = conf.WriteTemplate(DaoInitTmpl, data, filepath.Join(daoDir, "dao_base.go"), true)
+		if err != nil {
+			fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
+			os.Exit(1)
+		}
 	}
 
-	conf.WriteTemplate(ModelBaseTmpl, data, filepath.Join(modelDir, "model_base.go"), true)
+	err = conf.WriteTemplate(ModelBaseTmpl, data, filepath.Join(modelDir, "model_base.go"), true)
+	if err != nil {
+		fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
+		os.Exit(1)
+	}
+
 
 	if *modGenerate {
-		conf.WriteTemplate(GoModuleTmpl, data, filepath.Join(*outDir, "go.mod"), false)
+		err = conf.WriteTemplate(GoModuleTmpl, data, filepath.Join(*outDir, "go.mod"), false)
+		if err != nil {
+			fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
+			os.Exit(1)
+		}
 	}
 
 	if *makefileGenerate {
@@ -635,16 +661,26 @@ func generateRestBaseFiles(conf *dbmeta.Config, apiDir string) (err error) {
 	var HTTPUtilsTmpl *dbmeta.GenTemplate
 
 	if HTTPUtilsTmpl, err = LoadTemplate("http_utils.go.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
+		fmt.Print(au.Red(fmt.Sprintf("Error loading template %v\n", err)))
 		return
 	}
 	if RouterTmpl, err = LoadTemplate("router.go.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
+		fmt.Print(au.Red(fmt.Sprintf("Error loading template %v\n", err)))
 		return
 	}
 
-	conf.WriteTemplate(RouterTmpl, data, filepath.Join(apiDir, "router.go"), true)
-	conf.WriteTemplate(HTTPUtilsTmpl, data, filepath.Join(apiDir, "http_utils.go"), true)
+	err = conf.WriteTemplate(RouterTmpl, data, filepath.Join(apiDir, "router.go"), true)
+	if err != nil {
+		fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
+		os.Exit(1)
+	}
+
+	err = conf.WriteTemplate(HTTPUtilsTmpl, data, filepath.Join(apiDir, "http_utils.go"), true)
+	if err != nil {
+		fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
+		os.Exit(1)
+	}
+
 	return nil
 }
 
@@ -652,7 +688,7 @@ func generateMakefile(conf *dbmeta.Config) (err error) {
 	var MakefileTmpl *dbmeta.GenTemplate
 
 	if MakefileTmpl, err = LoadTemplate("Makefile.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
+		fmt.Print(au.Red(fmt.Sprintf("Error loading template %v\n", err)))
 		return
 	}
 
@@ -666,7 +702,12 @@ func generateMakefile(conf *dbmeta.Config) (err error) {
 		populateProtoCinContext(conf, data)
 	}
 
-	conf.WriteTemplate(MakefileTmpl, data, filepath.Join(*outDir, "Makefile"), false)
+	err = conf.WriteTemplate(MakefileTmpl, data, filepath.Join(*outDir, "Makefile"), false)
+	if err != nil {
+		fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
+		os.Exit(1)
+	}
+
 	return nil
 }
 
@@ -676,23 +717,28 @@ func generateProtobufDefinitionFile(conf *dbmeta.Config, data map[string]interfa
 	serverDir := filepath.Join(*outDir, conf.GrpcPackageName)
 	err = os.MkdirAll(serverDir, 0777)
 	if err != nil {
-		fmt.Printf("unable to create serverDir: %s error: %v\n", serverDir, err)
+		fmt.Print(au.Red(fmt.Sprintf("unable to create serverDir: %s error: %v\n", serverDir, err)))
 		return
 	}
 
 	var ProtobufTmpl *dbmeta.GenTemplate
 
 	if ProtobufTmpl, err = LoadTemplate("protobuf.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
+		fmt.Print(au.Red(fmt.Sprintf("Error loading template %v\n", err)))
 		return err
 	}
 
 	protofile := fmt.Sprintf("%s.proto", *sqlDatabase)
-	conf.WriteTemplate(ProtobufTmpl, data, filepath.Join(*outDir, protofile), false)
+	err = conf.WriteTemplate(ProtobufTmpl, data, filepath.Join(*outDir, protofile), false)
+	if err != nil {
+		fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
+		os.Exit(1)
+	}
+
 
 	compileOutput, err := CompileProtoC(*outDir, moduleDir, filepath.Join(*outDir, protofile))
 	if err != nil {
-		fmt.Printf("Error compiling proto file %v\n", err)
+		fmt.Print(au.Red(fmt.Sprintf("Error compiling proto file %v\n", err)))
 		return err
 	}
 	fmt.Printf("----------------------------\n")
@@ -701,18 +747,28 @@ func generateProtobufDefinitionFile(conf *dbmeta.Config, data map[string]interfa
 	// protoc -I./  --go_out=plugins=grpc:./   ./dvdrental.proto
 
 	if ProtobufTmpl, err = LoadTemplate("protomain.go.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
+		fmt.Print(au.Red(fmt.Sprintf("Error loading template %v\n", err)))
 		return err
 	}
 
-	conf.WriteTemplate(ProtobufTmpl, data, filepath.Join(serverDir, "main.go"), true)
+	err = conf.WriteTemplate(ProtobufTmpl, data, filepath.Join(serverDir, "main.go"), true)
+	if err != nil {
+		fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
+		os.Exit(1)
+	}
+
 
 	if ProtobufTmpl, err = LoadTemplate("protoserver.go.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
+		fmt.Print(au.Red(fmt.Sprintf("Error loading template %v\n", err)))
 		return err
 	}
 
-	conf.WriteTemplate(ProtobufTmpl, data, filepath.Join(serverDir, "protoserver.go"), true)
+	err = conf.WriteTemplate(ProtobufTmpl, data, filepath.Join(serverDir, "protoserver.go"), true)
+	if err != nil {
+		fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
+		os.Exit(1)
+	}
+
 
 	return nil
 }
@@ -721,7 +777,7 @@ func createProtocCmdLine(protoBufDir, protoBufOutDir, protoBufFile string) ([]st
 
 	if *gogoProtoImport != "" {
 		if !dbmeta.Exists(*gogoProtoImport) {
-			fmt.Printf("%s does not exist on path - install with\ngo get -u github.com/gogo/protobuf/proto\n\n", *gogoProtoImport)
+			fmt.Print(au.Red(fmt.Sprintf("%s does not exist on path - install with\ngo get -u github.com/gogo/protobuf/proto\n\n", *gogoProtoImport)))
 			return nil, fmt.Errorf("supplied gogo proto location does  not exist")
 		}
 	}
@@ -771,8 +827,8 @@ func CompileProtoC(protoBufDir, protoBufOutDir, protoBufFile string) (string, er
 
 	stdoutStderr, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Printf("error calling protoc: %T %v\n", err, err)
-		fmt.Printf("%s\n", stdoutStderr)
+		fmt.Print(au.Red(fmt.Sprintf("error calling protoc: %T %v\n", err, err)))
+		fmt.Print(au.Red(fmt.Sprintf("%s\n", stdoutStderr)))
 		return "", err
 	}
 
@@ -789,8 +845,8 @@ func GoFmt(codeDir string) (string, error) {
 
 	stdoutStderr, err := cmd.CombinedOutput()
 	if err != nil {
-		fmt.Printf("error calling protoc: %T %v\n", err, err)
-		fmt.Printf("%s\n", stdoutStderr)
+		fmt.Print(au.Red(fmt.Sprintf("error calling protoc: %T %v\n", err, err)))
+		fmt.Print(au.Red(fmt.Sprintf("%s\n", stdoutStderr)))
 		return "", err
 	}
 
@@ -801,17 +857,27 @@ func generateProjectFiles(conf *dbmeta.Config, data map[string]interface{}) (err
 
 	var GitIgnoreTmpl *dbmeta.GenTemplate
 	if GitIgnoreTmpl, err = LoadTemplate("gitignore.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
+		fmt.Print(au.Red(fmt.Sprintf("Error loading template %v\n", err)))
 		return
 	}
 	var ReadMeTmpl *dbmeta.GenTemplate
 	if ReadMeTmpl, err = LoadTemplate("README.md.tmpl"); err != nil {
-		fmt.Printf("Error loading template %v\n", err)
+		fmt.Print(au.Red(fmt.Sprintf("Error loading template %v\n", err)))
 		return
 	}
 	populateProtoCinContext(conf, data)
-	conf.WriteTemplate(GitIgnoreTmpl, data, filepath.Join(*outDir, ".gitignore"), false)
-	conf.WriteTemplate(ReadMeTmpl, data, filepath.Join(*outDir, "README.md"), false)
+	err = conf.WriteTemplate(GitIgnoreTmpl, data, filepath.Join(*outDir, ".gitignore"), false)
+	if err != nil {
+		fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
+		os.Exit(1)
+	}
+
+	err = conf.WriteTemplate(ReadMeTmpl, data, filepath.Join(*outDir, "README.md"), false)
+	if err != nil {
+		fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
+		os.Exit(1)
+	}
+
 	return nil
 }
 
@@ -833,12 +899,12 @@ func generateServerCode(conf *dbmeta.Config) (err error) {
 
 	if *addGormAnnotation {
 		if MainServerTmpl, err = LoadTemplate("main_gorm.go.tmpl"); err != nil {
-			fmt.Printf("Error loading template %v\n", err)
+			fmt.Print(au.Red(fmt.Sprintf("Error loading template %v\n", err)))
 			return
 		}
 	} else {
 		if MainServerTmpl, err = LoadTemplate("main_sqlx.go.tmpl"); err != nil {
-			fmt.Printf("Error loading template %v\n", err)
+			fmt.Print(au.Red(fmt.Sprintf("Error loading template %v\n", err)))
 			return
 		}
 	}
@@ -846,10 +912,15 @@ func generateServerCode(conf *dbmeta.Config) (err error) {
 	serverDir := filepath.Join(*outDir, "app/server")
 	err = os.MkdirAll(serverDir, 0777)
 	if err != nil {
-		fmt.Printf("unable to create serverDir: %s error: %v\n", serverDir, err)
+		fmt.Print(au.Red(fmt.Sprintf("unable to create serverDir: %s error: %v\n", serverDir, err)))
 		return
 	}
-	conf.WriteTemplate(MainServerTmpl, data, filepath.Join(serverDir, "main.go"), true)
+	err = conf.WriteTemplate(MainServerTmpl, data, filepath.Join(serverDir, "main.go"), true)
+	if err != nil {
+		fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
+		os.Exit(1)
+	}
+
 	return nil
 }
 
@@ -857,14 +928,14 @@ func copyTemplatesToTarget() (err error) {
 	templatesDir := filepath.Join(*outDir, "templates")
 	err = os.MkdirAll(templatesDir, 0777)
 	if err != nil && !*overwrite {
-		fmt.Printf("unable to create templatesDir: %s error: %v\n", templatesDir, err)
+		fmt.Print(au.Red(fmt.Sprintf("unable to create templatesDir: %s error: %v\n", templatesDir, err)))
 		return
 	}
 
 	fmt.Printf("Saving templates to %s\n", templatesDir)
 	err = SaveAssets(templatesDir, baseTemplates)
 	if err != nil {
-		fmt.Printf("Error saving: %v\n", err)
+		fmt.Print(au.Red(fmt.Sprintf("Error saving: %v\n", err)))
 	}
 	return nil
 }
