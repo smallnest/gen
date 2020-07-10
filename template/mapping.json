@@ -38,6 +38,7 @@
     },
     {
       "sql_type": "smallint",
+      "size": 2,
       "go_type": "int32",
       "json_type": "Integer",
       "protobuf_type": "int32",
@@ -316,6 +317,16 @@
       "swagger_type": "float64"
     },
     {
+      "sql_type": "float4",
+      "go_type": "float64",
+      "json_type": "Float",
+      "protobuf_type": "float",
+      "guregu_type": "null.Float",
+      "go_nullable_type": "sql.NullFloat64",
+      "swagger_type": "float64"
+    },
+
+    {
       "sql_type": "float",
       "go_type": "float32",
       "json_type": "Float",
@@ -522,6 +533,39 @@
       "guregu_type": "null.Float",
       "go_nullable_type": "sql.NullFloat64",
       "swagger_type": "float32"
+    },
+    {
+      "sql_type": "smallserial",
+      "size": 2,
+      "custom": "postgres",
+      "go_type": "int32",
+      "json_type": "Integer",
+      "protobuf_type": "int32",
+      "guregu_type": "null.Int",
+      "go_nullable_type": "sql.NullInt64",
+      "swagger_type": "int"
+    },
+    {
+      "sql_type": "serial",
+      "size": 4,
+      "custom": "postgres",
+      "go_type": "int32",
+      "json_type": "Integer",
+      "protobuf_type": "int32",
+      "guregu_type": "null.Int",
+      "go_nullable_type": "sql.NullInt64",
+      "swagger_type": "int"
+    },
+    {
+      "sql_type": "bigserial",
+      "size": 8,
+      "custom": "postgres",
+      "go_type": "int32",
+      "json_type": "Integer",
+      "protobuf_type": "int32",
+      "guregu_type": "null.Int",
+      "go_nullable_type": "sql.NullInt64",
+      "swagger_type": "int"
     }
   ]
 }
