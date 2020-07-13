@@ -439,7 +439,7 @@ func (c *Config) CreateContextForTableFile(tableInfo *ModelInfo) map[string]inte
 }
 
 // WriteTemplate write a template out
-func (c *Config) WriteTemplate(genTemplate *GenTemplate, data map[string]interface{}, outputFile string, formatOutput bool) error{
+func (c *Config) WriteTemplate(genTemplate *GenTemplate, data map[string]interface{}, outputFile string, formatOutput bool) error {
 	if !c.Overwrite && Exists(outputFile) {
 		fmt.Printf("not overwriting %s\n", outputFile)
 		return nil

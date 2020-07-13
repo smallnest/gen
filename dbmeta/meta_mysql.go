@@ -62,7 +62,9 @@ func LoadMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 		if commentIdx > -1 {
 			re := regexp.MustCompile("COMMENT '(.*?)'")
 			match := re.FindStringSubmatch(colDDL)
-			comment = match[1]
+			if len(match) > 0 {
+				comment = match[1]
+			}
 		}
 
 		if infoSchema != nil {

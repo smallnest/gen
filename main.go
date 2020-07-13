@@ -99,7 +99,7 @@ func init() {
 	goopt.Description = func() string {
 		return "ORM and RESTful API generator for SQl databases"
 	}
-	goopt.Version = "v0.9.23 (07/10/2020)"
+	goopt.Version = "v0.9.24 (07/13/2020)"
 	goopt.Summary = `gen [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> --module=example.com/example [--json] [--gorm] [--guregu] [--generate-dao] [--generate-proj]
 git fetch up
            sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
@@ -602,7 +602,6 @@ func generate(conf *dbmeta.Config) error {
 		os.Exit(1)
 	}
 
-
 	if *modGenerate {
 		err = conf.WriteTemplate(GoModuleTmpl, data, filepath.Join(*outDir, "go.mod"), false)
 		if err != nil {
@@ -735,7 +734,6 @@ func generateProtobufDefinitionFile(conf *dbmeta.Config, data map[string]interfa
 		os.Exit(1)
 	}
 
-
 	compileOutput, err := CompileProtoC(*outDir, moduleDir, filepath.Join(*outDir, protofile))
 	if err != nil {
 		fmt.Print(au.Red(fmt.Sprintf("Error compiling proto file %v\n", err)))
@@ -757,7 +755,6 @@ func generateProtobufDefinitionFile(conf *dbmeta.Config, data map[string]interfa
 		os.Exit(1)
 	}
 
-
 	if ProtobufTmpl, err = LoadTemplate("protoserver.go.tmpl"); err != nil {
 		fmt.Print(au.Red(fmt.Sprintf("Error loading template %v\n", err)))
 		return err
@@ -768,7 +765,6 @@ func generateProtobufDefinitionFile(conf *dbmeta.Config, data map[string]interfa
 		fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
 		os.Exit(1)
 	}
-
 
 	return nil
 }
