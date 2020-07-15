@@ -28,7 +28,7 @@ func LoadMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 	}
 
 	m.ddl = ddl
-	colsDDL, primaryKey := mysqlParseDDL(ddl)
+	colsDDL, primaryKeys := mysqlParseDDL(ddl)
 
 	infoSchema, err := LoadTableInfoFromMSSqlInformationSchema(db, tableName)
 	if err != nil {
@@ -48,7 +48,7 @@ func LoadMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 		isAutoIncrement := strings.Index(colDDL, "AUTO_INCREMENT") > -1
 		isUnsigned := strings.Index(colDDL, " unsigned ") > -1 || strings.Index(colDDL, " UNSIGNED ") > -1
 
-		isPrimaryKey := v.Name() == primaryKey
+		_, isPrimaryKey := find(primaryKeys, v.Name())
 		defaultVal := ""
 		columnType, columnLen := ParseSQLType(v.DatabaseTypeName())
 
@@ -129,10 +129,9 @@ func mysqlLoadDDL(db *sql.DB, tableName string) (ddl string, err error) {
 
 }
 
-func mysqlParseDDL(ddl string) (colsDDL map[string]string, primaryKey string) {
+func mysqlParseDDL(ddl string) (colsDDL map[string]string, primaryKeys []string) {
 	colsDDL = make(map[string]string)
 	lines := strings.Split(ddl, "\n")
-	primaryKey = ""
 	for _, line := range lines {
 		line = strings.Trim(line, " \t")
 		if strings.HasPrefix(line, "CREATE TABLE") || strings.HasPrefix(line, "(") || strings.HasPrefix(line, ")") {
@@ -147,12 +146,34 @@ func mysqlParseDDL(ddl string) (colsDDL map[string]string, primaryKey string) {
 				colsDDL[name] = colDDL
 			}
 		} else if strings.HasPrefix(line, "PRIMARY KEY") {
-			idx := strings.Index(line, "`")
-			idx1 := indexAt(line, "`", idx+1)
-			primaryKey = line[idx+1 : idx1]
+			var primaryKeyNums = strings.Count(line, "`")/2
+			var count = 0
+			var currentIdx = 0
+			var idxL = 0
+			var idxR = 0
+			for {
+				if count >= primaryKeyNums {
+					break
+				}
+				count++
+			    idxL = indexAt(line, "`", currentIdx)
+				currentIdx = idxL+1
+			    idxR = indexAt(line, "`", currentIdx)
+				currentIdx = idxR + 1
+				primaryKeys = append(primaryKeys, line[idxL+1:idxR])
+			}
 		}
 	}
-	return
+	return 
+}
+
+func find(slice []string, val string) (int, bool) {
+	for i, item := range slice {
+		if item == val {
+			return i, true
+		}
+	}
+	return -1, false
 }
 
 /*
