@@ -76,6 +76,8 @@ var (
 	restAPIGenerate  = goopt.Flag([]string{"--rest"}, []string{}, "Enable generating RESTful api", "")
 	runGoFmt         = goopt.Flag([]string{"--run-gofmt"}, []string{}, "run gofmt on output dir", "")
 
+	serverListen        = goopt.String([]string{"--listen"}, "", "listen address e.g. :8080")
+	serverScheme        = goopt.String([]string{"--scheme"}, "http", "scheme for server url")
 	serverHost          = goopt.String([]string{"--host"}, "localhost", "host for server")
 	serverPort          = goopt.Int([]string{"--port"}, 8080, "port for server")
 	swaggerVersion      = goopt.String([]string{"--swagger_version"}, "1.0", "swagger version")
@@ -161,6 +163,13 @@ func main() {
 	if *saveTemplateDir != "" {
 		saveTemplates()
 		return
+	}
+
+	if *serverListen == "" {
+		*serverListen = fmt.Sprintf(":%d", *serverPort)
+	}
+	if *serverScheme != "http" && *serverScheme != "https" {
+		*serverScheme = "http"
 	}
 
 	if *nameTest != "" {
@@ -343,6 +352,8 @@ func initialize(conf *dbmeta.Config) {
 	conf.SQLConnStr = *sqlConnStr
 	conf.ServerPort = *serverPort
 	conf.ServerHost = *serverHost
+	conf.ServerScheme = *serverScheme
+	conf.ServerListen = *serverListen
 
 	conf.Module = *module
 	conf.ModelPackageName = *modelPackageName
@@ -369,7 +380,11 @@ func initialize(conf *dbmeta.Config) {
 	conf.Swagger.ContactName = *swaggerContactName
 	conf.Swagger.ContactURL = *swaggerContactURL
 	conf.Swagger.ContactEmail = *swaggerContactEmail
-	conf.Swagger.Host = fmt.Sprintf("%s:%d", *serverHost, *serverPort)
+	if *serverPort == 80 {
+		conf.Swagger.Host = *serverHost
+	} else {
+		conf.Swagger.Host = fmt.Sprintf("%s:%d", *serverHost, *serverPort)
+	}
 
 	conf.JSONNameFormat = strings.ToLower(conf.JSONNameFormat)
 	conf.XMLNameFormat = strings.ToLower(conf.XMLNameFormat)
@@ -431,6 +446,7 @@ func execTemplate(conf *dbmeta.Config, genTemplate *dbmeta.GenTemplate, data map
 	data["sqlConnStr"] = *sqlConnStr
 	data["serverPort"] = *serverPort
 	data["serverHost"] = *serverHost
+	data["serverListen"] = *serverListen
 	data["SwaggerInfo"] = conf.Swagger
 	data["tableInfos"] = tableInfos
 	data["CommandLine"] = conf.CmdLine

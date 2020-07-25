@@ -10,7 +10,7 @@
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
 // @Failure 404 {object} {{.apiPackageName}}.HTTPError
 // @Router /{{.StructName | toLower}} [post]
-// echo '{{ToJSON .TableInfo.Instance 0}}' | http POST "http://{{$.serverHost}}:{{$.serverPort}}/{{.StructName | toLower}}" X-Api-User:user123
+// echo '{{ToJSON .TableInfo.Instance 0}}' | http POST "{{$.serverScheme}}://{{$.serverHost}}{{if ne $.serverPort 80}}:{{$.serverPort}}{{end}}/{{.StructName | toLower}}" X-Api-User:user123
 func Add{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := initializeContext(r)
 	{{.StructName | toLower}} := &{{.modelPackageName}}.{{.StructName}}{}

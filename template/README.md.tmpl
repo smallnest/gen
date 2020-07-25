@@ -40,16 +40,16 @@ Will create a binary `./bin/example`
 ```.bash
 ./bin/example
 ```
-This will launch the web server on {{$.serverHost}}:{{$.serverPort}}
+This will launch the web server on {{$.serverHost}}{{if ne $.serverPort 80}}:{{$.serverPort}}{{end}}
 
 ## Swagger
 The swagger web ui contains the documentation for the http server, it also provides an interactive interface to exercise the api and view results.
-http://{{.serverHost}}:{{.serverPort}}/swagger/index.html
+{{$.serverScheme}}://{{$.serverHost}}{{if ne $.serverPort 80}}:{{$.serverPort}}{{end}}/swagger/index.html
 
 ## REST urls for fetching data
 
 {{range $tableName, $codeInfo := .tableInfos}}
-* http://{{$.serverHost}}:{{$.serverPort}}/{{$codeInfo.StructName | toLower}}{{ end }}
+* {{$.serverScheme}}://{{$.serverHost}}{{if ne $.serverPort 80}}:{{$.serverPort}}{{end}}/{{$codeInfo.StructName | toLower}}{{ end }}
 
 ## Project Generated Details
 {{markdownCodeBlock ".bash" (.Config.CmdLineWrapped)}}
