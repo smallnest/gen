@@ -142,8 +142,10 @@ Options:
   --generate-proj                                          Generate project readme and gitignore
   --rest                                                   Enable generating RESTful api
   --run-gofmt                                              run gofmt on output dir
+  --scheme=http                                            URL scheme for server
   --host=localhost                                         host for server
   --port=8080                                              port for server
+  --listen=                                                listen address for server e.g. 0.0.0.0:8080
   --swagger_version=1.0                                    swagger version
   --swagger_path=/                                         swagger base path
   --swagger_tos=                                           swagger tos url

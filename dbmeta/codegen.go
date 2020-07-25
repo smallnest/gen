@@ -465,6 +465,8 @@ func (c *Config) WriteTemplate(genTemplate *GenTemplate, data map[string]interfa
 	data["sqlConnStr"] = c.SQLConnStr
 	data["serverPort"] = c.ServerPort
 	data["serverHost"] = c.ServerHost
+	data["serverScheme"] = c.ServerScheme
+	data["serverListen"] = c.ServerListen
 	data["SwaggerInfo"] = c.Swagger
 	data["outDir"] = c.OutDir
 	data["Config"] = c
@@ -604,6 +606,8 @@ type Config struct {
 	Swagger               *SwaggerInfoDetails
 	ServerPort            int
 	ServerHost            string
+	ServerScheme          string
+	ServerListen          string
 	Verbose               bool
 	OutDir                string
 	Overwrite             bool
@@ -669,6 +673,8 @@ func NewConfig(templateLoader TemplateLoader) *Config {
 
 	conf.ServerPort = 8080
 	conf.ServerHost = "127.0.0.1"
+	conf.ServerScheme = "http"
+	conf.ServerListen = ":8080"
 	conf.Overwrite = true
 
 	conf.Module = module
@@ -676,7 +682,11 @@ func NewConfig(templateLoader TemplateLoader) *Config {
 	conf.DaoFQPN = module + "/" + daoPackageName
 	conf.APIFQPN = module + "/" + apiPackageName
 
-	conf.Swagger.Host = fmt.Sprintf("%s:%d", conf.ServerHost, conf.ServerPort)
+	if conf.ServerPort == 80 {
+		conf.Swagger.Host = conf.ServerHost
+	} else {
+		conf.Swagger.Host = fmt.Sprintf("%s:%d", conf.ServerHost, conf.ServerPort)
+	}
 
 	return conf
 }

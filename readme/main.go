@@ -166,6 +166,8 @@ func initialize(conf *dbmeta.Config) {
 	conf.SQLConnStr = *sqlConnStr
 	conf.ServerPort = 8080
 	conf.ServerHost = "127.0.0.1"
+	conf.ServerListen = ":8080"
+	conf.ServerScheme = "http"
 	conf.Overwrite = true
 
 	conf.Module = module
@@ -181,7 +183,11 @@ func initialize(conf *dbmeta.Config) {
 	conf.Swagger.ContactName = ""
 	conf.Swagger.ContactURL = ""
 	conf.Swagger.ContactEmail = ""
-	conf.Swagger.Host = fmt.Sprintf("%s:%d", conf.ServerHost, conf.ServerPort)
+	if conf.ServerPort == 80 {
+		conf.Swagger.Host = conf.ServerHost
+	} else {
+		conf.Swagger.Host = fmt.Sprintf("%s:%d", conf.ServerHost, conf.ServerPort)
+	}
 }
 
 func initializeDB() (db *sql.DB, err error) {

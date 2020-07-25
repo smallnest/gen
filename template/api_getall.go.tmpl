@@ -12,7 +12,7 @@
 // @Failure 400 {object} {{.apiPackageName}}.HTTPError
 // @Failure 404 {object} {{.apiPackageName}}.HTTPError
 // @Router /{{.StructName | toLower}} [get]
-// http "http://{{$.serverHost}}:{{$.serverPort}}/{{.StructName | toLower}}?page=0&pagesize=20" X-Api-User:user123
+// http "{{$.serverScheme}}://{{$.serverHost}}{{if ne $.serverPort 80}}:{{$.serverPort}}{{end}}/{{.StructName | toLower}}?page=0&pagesize=20" X-Api-User:user123
 func GetAll{{.StructName}}(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 	ctx := initializeContext(r)
     page, err := readInt(r, "page", 0)

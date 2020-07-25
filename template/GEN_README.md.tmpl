@@ -81,7 +81,7 @@ $ cp ../../sample.db  .
 $ ./example
 
 
-## Open a browser to http://localhost:8080/swagger/index.html
+## Open a browser to {{$.serverScheme}}://{{$.serverHost}}{{if ne $.serverPort 80}}:{{$.serverPort}}{{end}}/swagger/index.html
 
 ## Use wget/curl/httpie to fetch via command line
 http http://localhost:8080/albums
