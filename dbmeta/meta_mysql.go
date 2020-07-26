@@ -146,7 +146,7 @@ func mysqlParseDDL(ddl string) (colsDDL map[string]string, primaryKeys []string)
 				colsDDL[name] = colDDL
 			}
 		} else if strings.HasPrefix(line, "PRIMARY KEY") {
-			var primaryKeyNums = strings.Count(line, "`")/2
+			var primaryKeyNums = strings.Count(line, "`") / 2
 			var count = 0
 			var currentIdx = 0
 			var idxL = 0
@@ -156,15 +156,15 @@ func mysqlParseDDL(ddl string) (colsDDL map[string]string, primaryKeys []string)
 					break
 				}
 				count++
-			    idxL = indexAt(line, "`", currentIdx)
-				currentIdx = idxL+1
-			    idxR = indexAt(line, "`", currentIdx)
+				idxL = indexAt(line, "`", currentIdx)
+				currentIdx = idxL + 1
+				idxR = indexAt(line, "`", currentIdx)
 				currentIdx = idxR + 1
 				primaryKeys = append(primaryKeys, line[idxL+1:idxR])
 			}
 		}
 	}
-	return 
+	return
 }
 
 func find(slice []string, val string) (int, bool) {

@@ -176,3 +176,6 @@ gen_readme: ## generate readme file
 		--connstr "./example/sample.db" \
 		--database main \
 		--table invoices
+
+
+release: fmt gen install example gen_readme ## prepare release
