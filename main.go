@@ -101,7 +101,7 @@ func init() {
 	goopt.Description = func() string {
 		return "ORM and RESTful API generator for SQl databases"
 	}
-	goopt.Version = "v0.9.24 (07/13/2020)"
+	goopt.Version = "v0.9.25 (07/26/2020)"
 	goopt.Summary = `gen [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> --module=example.com/example [--json] [--gorm] [--guregu] [--generate-dao] [--generate-proj]
 git fetch up
            sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
@@ -1016,6 +1016,9 @@ func regenCmdLine() []string {
 	if *restAPIGenerate {
 		cmdLine = append(cmdLine, fmt.Sprintf(" --rest"))
 	}
+
+	cmdLine = append(cmdLine, fmt.Sprintf(" --listen=%s", *serverListen))
+	cmdLine = append(cmdLine, fmt.Sprintf(" --scheme=%s", *serverScheme))
 
 	if *daoGenerate {
 		cmdLine = append(cmdLine, fmt.Sprintf(" --generate-dao"))

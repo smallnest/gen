@@ -55,7 +55,8 @@ func GetAllInvoices(ctx context.Context, page, pagesize int64, order string) (re
 // GetInvoices is a function to get a single record from the invoices table in the main database
 // error - ErrNotFound, db Find error
 func GetInvoices(ctx context.Context,  argInvoiceID int32,        ) (record *model.Invoices, err error) {
-	if err = DB.First(&record,   argInvoiceID,        ).Error; err != nil {
+	record = &model.Invoices{}
+	if err = DB.First(record,   argInvoiceID,        ).Error; err != nil {
 	    err = ErrNotFound
 		return record, err
 	}
