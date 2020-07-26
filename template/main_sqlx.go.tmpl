@@ -13,6 +13,7 @@ import (
 	ginSwagger "github.com/swaggo/gin-swagger"
 	"github.com/swaggo/gin-swagger/swaggerFiles"
 	"github.com/gin-gonic/gin"
+	"github.com/droundy/goopt"
 
     _ "github.com/denisenkom/go-mssqldb"
     _ "github.com/go-sql-driver/mysql"
@@ -95,6 +96,17 @@ func GinServer() (err error){
 // @BasePath {{.SwaggerInfo.BasePath}}
 func main() {
     OsSignal = make(chan os.Signal, 1)
+
+	// Define version information
+	goopt.Version = fmt.Sprintf(
+`Application build information
+  Build date      : %s
+  Build number    : %s
+  Git commit      : %s
+  Runtime version : %s
+  Built on OS     : %s
+`, BuildDate, BuildNumber, LatestCommit, RuntimeVer, BuiltOnOs)
+	goopt.Parse(nil)
 
 	db, err := sqlx.Open("{{.sqlType}}", "{{.sqlConnStr}}")
 	if err != nil {

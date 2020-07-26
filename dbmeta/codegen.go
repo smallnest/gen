@@ -356,6 +356,21 @@ func escape(content string) string {
 	return content
 }
 
+// JSONFieldName convert name to appropriate case
+func (c *Config) JSONFieldName(name string) string {
+	return formatFieldName(c.JSONNameFormat, name)
+}
+
+// JSONTag converts name to `json:"name"` respecting json-fmt option
+func (c *Config) JSONTag(name string) string {
+	return fmt.Sprintf("`json:\"%s\"`", c.JSONFieldName(name))
+}
+
+// JSONTagOmitEmpty converts name to JSON tag with omitempty
+func (c *Config) JSONTagOmitEmpty(name string) string {
+	return fmt.Sprintf("`json:\"%s,omitempty\"`", c.JSONFieldName(name))
+}
+
 // GenerateTableFile generate file from template using specific table used within templates
 func (c *Config) GenerateTableFile(tableInfos map[string]*ModelInfo, tableName, templateFilename, outputDirectory, outputFileName string, formatOutput bool) string {
 	buf := bytes.Buffer{}
