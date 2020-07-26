@@ -17,6 +17,7 @@ import (
 	"github.com/jinzhu/gorm"
 	"github.com/swaggo/files"       // swagger embed files
 	"github.com/swaggo/gin-swagger" // gin-swagger middleware
+	"github.com/droundy/goopt"
 
 	"{{.module}}/{{.apiPackageName}}"
     "{{.module}}/{{.daoPackageName}}"
@@ -81,6 +82,17 @@ func GinServer() (err error){
 // @BasePath {{.SwaggerInfo.BasePath}}
 func main() {
     OsSignal = make(chan os.Signal, 1)
+
+	// Define version information
+	goopt.Version = fmt.Sprintf(
+`Application build information
+  Build date      : %s
+  Build number    : %s
+  Git commit      : %s
+  Runtime version : %s
+  Built on OS     : %s
+`, BuildDate, BuildNumber, LatestCommit, RuntimeVer, BuiltOnOs)
+	goopt.Parse(nil)
 
 	db, err := gorm.Open("{{.sqlType}}", "{{.sqlConnStr}}")
 	if err != nil {

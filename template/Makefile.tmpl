@@ -7,6 +7,7 @@ export BUILT_ON_IP := $(shell [ $$(uname) = Linux ] && hostname -i || hostname )
 export BIN_DIR=./bin
 export PACKR2_EXECUTABLE := $(shell command -v packr2  2> /dev/null)
 export SWAG_EXECUTABLE := $(shell command -v swag  2> /dev/null)
+export RUNTIME_VER := $(shell go version)
 
 export BUILT_ON_OS=$(shell uname -a)
 ifeq ($(BRANCH),)
@@ -15,11 +16,12 @@ endif
 
 export COMMIT_CNT := $(shell git rev-list HEAD | wc -l | sed 's/ //g' )
 export BUILD_NUMBER := ${BRANCH}-${COMMIT_CNT}
-export COMPILE_LDFLAGS=-s -X "main.DATE=${DATE}" \
-                          -X "main.LATEST_COMMIT=${LATEST_COMMIT}" \
-                          -X "main.BUILD_NUMBER=${BUILD_NUMBER}" \
-                          -X "main.BUILT_ON_IP=${BUILT_ON_IP}" \
-                          -X "main.BUILT_ON_OS=${BUILT_ON_OS}"
+export COMPILE_LDFLAGS=-s -X "main.BuildDate=${DATE}" \
+                          -X "main.LatestCommit=${LATEST_COMMIT}" \
+                          -X "main.BuildNumber=${BUILD_NUMBER}" \
+                          -X "main.BuiltOnIP=${BUILT_ON_IP}" \
+                          -X "main.BuiltOnOs=${BUILT_ON_OS}" \
+						  -X "main.RuntimeVer=${RUNTIME_VER}"
 
 build_info: check_prereq ## Build the container
 	@echo ''
@@ -35,6 +37,7 @@ build_info: check_prereq ## Build the container
 	@echo 'PATH              $(PATH)'
 	@echo 'PACKR2_EXECUTABLE $(PACKR2_EXECUTABLE)'
 	@echo 'SWAG_EXECUTABLE   $(SWAG_EXECUTABLE)'
+	@echo 'RUNTIME_VER       $(RUNTIME_VER)'
 	@echo '---------------------------------------------------------'
 	@echo ''
 

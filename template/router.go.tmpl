@@ -25,29 +25,29 @@ var (
 
 // CrudAPI describes requests available for tables in the database
 type CrudAPI struct {
-	Name            string           `json:"name"`
-	CreateURL       string           `json:"create_url"`
-	RetrieveOneURL  string           `json:"retrieve_one_url"`
-	RetrieveManyURL string           `json:"retrieve_many_url"`
-	UpdateURL       string           `json:"update_url"`
-	DeleteURL       string           `json:"delete_url"`
-	FetchDDLURL     string           `json:"fetch_ddl_url"`
-	TableInfo       *{{.modelPackageName}}.TableInfo `json:"table_info"`
+	Name            string           {{ .Config.JSONTag "name" }}
+	CreateURL       string           {{ .Config.JSONTag "create_url" }}
+	RetrieveOneURL  string           {{ .Config.JSONTag "retrieve_one_url" }}
+	RetrieveManyURL string           {{ .Config.JSONTag "retrieve_many_url" }}
+	UpdateURL       string           {{ .Config.JSONTag "update_url" }}
+	DeleteURL       string           {{ .Config.JSONTag "delete_url" }}
+	FetchDDLURL     string           {{ .Config.JSONTag "fetch_ddl_url" }}
+	TableInfo       *{{.modelPackageName}}.TableInfo {{ .Config.JSONTag "table_info" }}
 }
 
 
 // PagedResults results for pages GetAll results.
 type PagedResults struct {
-	Page         int64       `json:"page"`
-	PageSize     int64       `json:"page_size"`
-	Data         interface{} `json:"data"`
-    TotalRecords int         `json:"total_records"`
+	Page         int64       {{ .Config.JSONTag "page" }}
+	PageSize     int64       {{ .Config.JSONTag "page_size" }}
+	Data         interface{} {{ .Config.JSONTag "data" }}
+    TotalRecords int         {{ .Config.JSONTag "total_records" }}
 }
 
 // HTTPError example
 type HTTPError struct {
-	Code    int    `json:"code" example:"400"`
-	Message string `json:"message" example:"status bad request"`
+	Code    int    `json:"{{ .Config.JSONFieldName "code" }}" example:"400"`
+	Message string `json:"{{ .Config.JSONFieldName "message"}}" example:"status bad request"`
 }
 
 
