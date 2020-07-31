@@ -32,7 +32,7 @@ func init() {
 	goopt.Description = func() string {
 		return "ORM and RESTful meta data viewer for SQl databases"
 	}
-	goopt.Version = "v0.9.25 (07/26/2020)"
+	goopt.Version = "v0.9.26 (07/31/2020)"
 	goopt.Summary = `dbmeta [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> 
 
            sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
@@ -134,7 +134,23 @@ func genreadme(conf *dbmeta.Config, templateName, outputFile string, ctx map[str
 {{- end }}
 `
 	ctx["AdvancesSample"] = sample
+
+	releaseHistory := loadFile("release.history")
+	ctx["ReleaseHistory"] = releaseHistory
 	conf.WriteTemplate(template, ctx, outputFile, false)
+}
+
+func loadFile(src string) string {
+	// Read entire file content, giving us little control but
+	// making it very simple. No need to close the file.
+	content, err := ioutil.ReadFile(src)
+	if err != nil {
+		return fmt.Sprintf("error loading %s error: %v", src, err)
+	}
+
+	// Convert []byte to string and print to screen
+	text := string(content)
+	return text
 }
 
 func initialize(conf *dbmeta.Config) {

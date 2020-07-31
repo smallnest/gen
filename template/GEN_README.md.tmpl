@@ -178,18 +178,73 @@ The `gen` tool provides functionality to layout your own project format. Users h
 via the command `gen --save ./mytemplates`. This will save the embedded templates for local editing. Then you would specify the `--templateDir=` option when generating a project.
 
 * Passing `--exec=../sample.gen` on the command line will load the `sample.gen` script and execute it. The script has access to the table information and other info passed to `gen`. This allows developers to customize the generation of code. You could loop through the list of tables and invoke
-`GenerateTableFile` or  `GenerateFile`.
-
-You can also populate the context used by templates with extra data by passing the `--contect=<json file>` option. The json file will be used to populate the context used when parsing templates.
+`GenerateTableFile` or  `GenerateFile`. You can also perform operations such as mkdir, copy, touch, pwd.
 
 
+### Example - generate files from a template looping thru a map of tables.
+Loop thru map of tables, key is the table name and value is ModelInfo. Creating a file using the table ModelInfo.
 
+`tableInfos := map[string]*ModelInfo`
+
+`GenerateTableFile(tableInfos map[string]*ModelInfo, tableName, templateFilename, outputDirectory, outputFileName string, formatOutput bool)`
+
+```
+{{`
+{{ range $tableName , $table := .tableInfos }}
+   {{$i := inc }}
+   {{$name := toUpper $table.TableName -}}
+   {{$filename  := printf "My%s.go" $name -}}
+
+   {{ GenerateTableFile $.tableInfos $table.TableName  "custom.go.tmpl" "test" $filename true}}{{- end }}
+`}}
+```
+
+### Example - generate file from a template.
+`GenerateFile(templateFilename, outputDirectory, outputFileName string, formatOutput bool, overwrite bool)`
+```
+{{`
+{{ GenerateFile "custom.md.tmpl" "test" "custom.md" false false }}
+`}}
+```
+
+### Example - make a directory.
+```
+{{`
+{{ mkdir "test/alex/test/mkdir" }}
+`}}
+```
+
+### Example - touch a file.
+```
+{{`
+{{ touch "test/alex/test/mkdir/alex.txt" }}
+`}}
+```
+
+### Example - display working directory.
+```
+{{`
+{{ pwd }}
+`}}
+```
+
+### Example - copy a file or directory from source to a target directory.
+```
+{{`
+{{ copy "../_test" "test" }}
+`}}
+```
+
+
+You can also populate the context used by templates with extra data by passing the `--context=<json file>` option. The json file will be used to populate the context used when parsing templates.
+
+### File Generation
 ```gotemplate
 // Loop through tables and print out table name and various forms of the table name
 {{.AdvancesSample}}
 
-// GenerateTableFile(tableName, templateFilename, outputDirectory, outputFileName string, formatOutput bool)
-// GenerateFile(templateFilename, outputDirectory, outputFileName string, formatOutput bool) string
+// GenerateTableFile(tableInfos map[string]*ModelInfo, tableName, templateFilename, outputDirectory, outputFileName string, formatOutput bool)
+// GenerateFile(templateFilename, outputDirectory, outputFileName string, formatOutput bool, overwrite bool)
 
 The following info is available within use of the exec template.
 
@@ -199,7 +254,7 @@ The following info is available within use of the exec template.
 
 ```
 
-## Struct naming
+### Struct naming
 The ability exists to set a template that will be used for generating a struct name. By passing the flag `--model_naming={{"{{.}}"}}`
 The struct will be named the table name. Various functions can be used in the template to modify the name such as
 
@@ -249,96 +304,7 @@ Table Name: registration_source
 |ms sql   |y   | y  | y  | y  | y | y| n
 
 ## Version History
-- v0.9.25 (07/26/2020)
-    - Adhere json-fmt flag for all JSON response so when camel or lower_camel is specified, fields name in GetAll variant and DDL info will also have the same name format
-    - Fix: Build information embedded through linker in Makefile is not consistent with the variable defined in main file.
-    - Added --scheme and --listen options. This allows compiled binary to be used behind reverse proxy.
-    - In addition, template for generating URL was fixed, i.e. when PORT is 80, then PORT is omitted from URL segment.
-- v0.9.24 (07/13/2020)
-    - Fixed array bounds issue parsing mysql db meta
-- v0.9.23 (07/10/2020)
-    - Added postgres types: bigserial, serial, smallserial, bigserial, float4 to mapping.json
-- v0.9.22 (07/08/2020)
-    - Modified gogo.proto check to use GOPATH not hardcoded.
-    - Updated gen to error exit on first error encountered
-    - Added color output for error
-    - Added --no-color option for non colorized output
-- v0.9.21 (07/07/2020)
-    - Repacking templates, update version number in info.
-- v0.9.20 (07/07/2020)
-    - Fixed render error in router.go.tmpl
-    - upgraded project to use go.mod 1.14
-- v0.9.19 (07/07/2020)
-    - Added --windows flag to write files with CRLF windows line endings, otherwise they are all unix based LF line endings
-- v0.9.18 (06/30/2020)
-    - Fixed naming in templates away from hard coded model package.
-- v0.9.17 (06/30/2020)
-    - Refactored template loading, to better report error in template
-    - Added option to run gofmt on output directory
-- v0.9.16 (06/29/2020)
-    - Fixes to router.go.tmpl from calvinchengx
-    - Added postgres db support for inet and timestamptz
-- v0.9.15 (06/23/2020)
-    - Code cleanup using gofmt name suggestions.
-    - Template updates for generated code cleanup using gofmt name suggestions.
-- v0.9.14 (06/23/2020)
-    - Added model comment on field line if available from database.
-    - Added exposing TableInfo via api call.
-- v0.9.13 (06/22/2020)
-    - fixed closing of connections via defer
-    - bug fixes in sqlx generated code
-- v0.9.12 (06/14/2020)
-    - SQLX changed MustExec to Exec and checking/returning error
-    - Updated field renaming if duplicated, need more elegant renaming solution.
-    - Added exclude to test.sh
-- v0.9.11 (06/13/2020)
-    - Added ability to pass field, model and file naming format
-    - updated test scripts
-    - Fixed sqlx sql query placeholders
-- v0.9.10 (06/11/2020)
-    - Bug fix with retrieving varchar length from mysql
-    - Added support for mysql unsigned decimal - maps to float
-- v0.9.9 (06/11/2020)
-    - Fixed issue with mysql and table named `order`
-    - Fixed internals in GetAll generation in gorm and sqlx.
-- v0.9.8 (06/10/2020)
-    - Added ability to set file naming convention for models, dao, apis and grpc  `--file_naming={{"{{.}}"}}`
-    - Added ability to set struct naming convention `--model_naming={{"{{.}}"}}`
-    - Fixed bug with Makefile generation removing quoted conn string in `make regen`
-- v0.9.7 (06/09/2020)
-    - Added grpc server generation - WIP (looking for code improvements)
-    - Added ability to exclude tables
-    - Added support for unsigned from mysql ddl.
-- v0.9.6 (06/08/2020)
-    - Updated SQLX codegen
-    - Updated templates to split code gen functions into seperate files
-    - Added code_dao_gorm, code_dao_sqlx to be generated from templates
-- v0.9.5 (05/16/2020)
-    - Added SQLX codegen by default, split dao templates.
-    - Renamed templates
-- v0.9.4 (05/15/2020)
-    - Documentation updates, samples etc.
-- v0.9.3 (05/14/2020)
-    - Template bug fixes, when using custom api, dao and model package.
-    - Set primary key if not set to the first column
-    - Skip code gen if primary key column is not int or string
-    - validated codegen for mysql, mssql, postgres and sqlite3
-    - Fixed file naming if table ends with _test.go renames to _tst.go
-    - Fix for duplicate field names in struct due to renaming
-    - Added Notes for columns and tables for situations where a primary key is set since not defined in db
-    - Fixed issue when model contained field that had were named the same as funcs within model.
-
-- v0.9.2 (05/12/2020)
-    - Code cleanup gofmt, etc.
-- v0.9.1 (05/12/2020)
-- v0.9 (05/12/2020)
-    - updated db meta data loading fetching default values
-    - added default value to GORM tags
-    - Added protobuf .proto generation
-    - Added test app to display meta data
-    - Cleanup DDL generation
-    - Added support for varchar2, datetime2, float8, USER_DEFINED
-- v0.5
+{{.ReleaseHistory}}
 
 
 ## Contributors

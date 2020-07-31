@@ -20,8 +20,7 @@
    "tables"               [[]string] []string{"albums", "artists", "customers", "employees", "genres", "invoices", "invoice_items", "media_types", "playlists", "playlist_track", "tracks"}
 
 
-GenerateTableFile(tableName, templateFilename, outputDirectory, outputFileName string, formatOutput bool)
-GenerateFile(templateFilename, outputDirectory, outputFileName string, formatOutput bool) string
+GenerateTableFile(tableInfos map[string]*ModelInfo, tableName, templateFilename, outputDirectory, outputFileName string, formatOutput bool) 
 
 		"FmtFieldName":      dbmeta.FmtFieldName,
 		"singular":          inflection.Singular,
@@ -37,7 +36,13 @@ GenerateFile(templateFilename, outputDirectory, outputFileName string, formatOut
 
 
 {{ range $key, $value := . }}
-   {{ printf "%#-20v" $key }}   {{ printf "[%T] %#v" $value $value }}{{ end }}
+   {{ printf "%#-20v    [%T] %#v" $key $value $value }}{{ end }}
+
+
+
+func (c *Config) GenerateFile(templateFilename, outDir, outputDirectory, outputFileName string, formatOutput bool, overwrite bool) string {
+
+
 */}}
 
 
@@ -50,9 +55,21 @@ GenerateFile(templateFilename, outputDirectory, outputFileName string, formatOut
     {{$snakeCase  := toSnakeCase $table -}}
     {{ printf "[%-2d] %-20s %-20s %-20s %-20s %-20s %-20s %-20s" $i $table $singular $plural $title $lower $lowerCamel $snakeCase}}{{- end }}
 
-
-{{ range $i, $table := .tables }}
-   {{$name := toUpper $table -}}
+{{ $i := 0 }}
+{{ range $tableName , $table := .tableInfos }}
+   {{$i := inc }}
+   {{$name := toUpper $table.TableName -}}
    {{$filename  := printf "My%s.go" $name -}}
-   {{ printf "[%-2d] %-20s %-20s" $i $table $filename}}
-   {{ GenerateTableFile $table  "custom.go.tmpl" "test" $filename true}}{{- end }}
+   {{ printf "[%-2d] %-20s %-20s" $i $name $filename}}
+   {{ GenerateTableFile $.tableInfos $table.TableName  "custom.go.tmpl" "test" $filename true}}{{- end }}
+
+{{ GenerateFile "custom.md.tmpl" "test" "custom.md" false false }}
+
+
+{{ mkdir "test/alex/test/mkdir" }}
+{{ touch "test/alex/test/mkdir/alex.txt" }}
+{{ pwd }}
+{{ copy "../_test" "test" }}
+
+
+ 
