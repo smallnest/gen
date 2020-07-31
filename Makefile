@@ -169,10 +169,10 @@ test_sqlite3: ## test sqlite3 code generation
 
 
 
-set_ralease: ## populate release info
+set_release: ## populate release info
 	./release.sh
 
-gen_readme: set_ralease ## generate readme file
+gen_readme: set_release ## generate readme file
 	go run github.com/smallnest/gen/readme \
 		--sqltype=sqlite3 \
 		--connstr "./example/sample.db" \
