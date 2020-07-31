@@ -3,10 +3,14 @@ package dbmeta
 import (
 	"errors"
 	"fmt"
+	"os"
 	"reflect"
 	"strconv"
 	"strings"
+	"time"
 	"unicode"
+
+	filecopy "github.com/otiai10/copy"
 )
 
 // commonInitialisms is a set of common initialisms.
@@ -242,4 +246,47 @@ func Copy(dst interface{}, src interface{}) error {
 
 func isZeroOfUnderlyingType(x interface{}) bool {
 	return x == nil || reflect.DeepEqual(x, reflect.Zero(reflect.TypeOf(x)).Interface())
+}
+
+func FileSystemCopy(src, dst string) string {
+	err := filecopy.Copy(src, dst)
+	if err != nil {
+		return fmt.Sprintf("copy returned an error %v", err)
+
+	}
+	return fmt.Sprintf("copy %s %s", src, dst)
+}
+func Mkdir(dst string) string {
+	err := os.MkdirAll(dst, os.ModePerm)
+	if err != nil {
+		return fmt.Sprintf("mkdir returned an error %v", err)
+
+	}
+	return fmt.Sprintf("mkdir %s", dst)
+}
+
+func Touch(dst string) string {
+	_, err := os.Stat(dst)
+	if os.IsNotExist(err) {
+		file, err := os.Create(dst)
+		if err != nil {
+			return fmt.Sprintf("mkdir returned an error %v", err)
+		}
+		defer file.Close()
+	} else {
+		currentTime := time.Now().Local()
+		err = os.Chtimes(dst, currentTime, currentTime)
+		if err != nil {
+			return fmt.Sprintf("mkdir returned an error %v", err)
+		}
+	}
+	return fmt.Sprintf("touch %s", dst)
+}
+
+func Pwd() string {
+	currentWorkingDirectory, err := os.Getwd()
+	if err != nil {
+		return fmt.Sprintf("pwd returned an error %v", err)
+	}
+	return currentWorkingDirectory
 }

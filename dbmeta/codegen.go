@@ -111,6 +111,10 @@ func (c *Config) GetTemplate(genTemplate *GenTemplate) (*template.Template, erro
 		"replace":                    replace,
 		"hasField":                   hasField,
 		"FmtFieldName":               FmtFieldName,
+		"copy":                       FileSystemCopy,
+		"mkdir":                      Mkdir,
+		"touch":                      Touch,
+		"pwd":                        Pwd,
 	}
 
 	baseName := filepath.Base(genTemplate.Name)
@@ -555,10 +559,10 @@ func Exists(name string) bool {
 }
 
 // GenerateFile generate file from template, non table used within templates
-func (c *Config) GenerateFile(templateFilename, outDir, outputDirectory, outputFileName string, formatOutput bool, overwrite bool) string {
+func (c *Config) GenerateFile(templateFilename, outputDirectory, outputFileName string, formatOutput bool, overwrite bool) string {
 	buf := bytes.Buffer{}
 	buf.WriteString(fmt.Sprintf("GenerateFile( %s, %s, %s)\n", templateFilename, outputDirectory, outputFileName))
-	fileOutDir := filepath.Join(outDir, outputDirectory)
+	fileOutDir := outputDirectory
 	err := os.MkdirAll(fileOutDir, 0777)
 	if err != nil && !overwrite {
 		buf.WriteString(fmt.Sprintf("unable to create fileOutDir: %s error: %v\n", fileOutDir, err))

@@ -101,7 +101,7 @@ func init() {
 	goopt.Description = func() string {
 		return "ORM and RESTful API generator for SQl databases"
 	}
-	goopt.Version = "v0.9.25 (07/26/2020)"
+	goopt.Version = "v0.9.26 (07/31/2020)"
 	goopt.Summary = `gen [-v] --sqltype=mysql --connstr "user:password@/dbname" --database <databaseName> --module=example.com/example [--json] [--gorm] [--guregu] [--generate-dao] [--generate-proj]
 git fetch up
            sqltype - sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]
@@ -452,6 +452,13 @@ func execTemplate(conf *dbmeta.Config, genTemplate *dbmeta.GenTemplate, data map
 	data["CommandLine"] = conf.CmdLine
 	data["outDir"] = *outDir
 	data["Config"] = conf
+
+	tables := make([]string, 0, len(tableInfos))
+	for k := range tableInfos {
+		tables = append(tables, k)
+	}
+
+	data["tables"] = tables
 
 	rt, err := conf.GetTemplate(genTemplate)
 	if err != nil {

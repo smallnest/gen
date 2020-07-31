@@ -169,8 +169,10 @@ test_sqlite3: ## test sqlite3 code generation
 
 
 
+set_release: ## populate release info
+	./release.sh
 
-gen_readme: ## generate readme file
+gen_readme: set_release ## generate readme file
 	go run github.com/smallnest/gen/readme \
 		--sqltype=sqlite3 \
 		--connstr "./example/sample.db" \
@@ -178,4 +180,10 @@ gen_readme: ## generate readme file
 		--table invoices
 
 
-release: fmt gen install example gen_readme ## prepare release
+release: gen_readme fmt gen install example  ## prepare release
+	$(info ************  Release completed)
+
+git_sync: ## git sync upstream
+	git fetch upstream
+	git checkout master
+	git merge upstream/maste

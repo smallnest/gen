@@ -1,0 +1,11 @@
+custom.md
+
+{{ range $key, $value := . }}
+   {{ $desc := spew $value }}
+   {{ printf "%#-20v" $key }}   {{ printf "[%T] %#v" $value $value }}{{ end }}
+
+
+
+
+
+
