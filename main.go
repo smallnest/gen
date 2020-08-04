@@ -126,11 +126,10 @@ func listTemplates() {
 	}
 }
 
-func loadContextMapping(conf *dbmeta.Config) {
+func loadContextMapping(conf *dbmeta.Config) error {
 	contextFile, err := os.Open(*contextFileName)
 	if err != nil {
-		fmt.Printf("Error loading context file %s error: %v\n", *contextFileName, err)
-		return
+		return err
 	}
 
 	defer contextFile.Close()
@@ -138,14 +137,14 @@ func loadContextMapping(conf *dbmeta.Config) {
 
 	err = jsonParser.Decode(&conf.ContextMap)
 	if err != nil {
-		fmt.Printf("Error loading context file %s error: %v\n", *contextFileName, err)
-		return
+		return err
 	}
 
 	fmt.Printf("Loaded Context from %s with %d defaults\n", *contextFileName, len(conf.ContextMap))
 	for key, value := range conf.ContextMap {
-		fmt.Printf("    Context:%s -> %s\n", key, value)
+		fmt.Printf("    Context:%s -> %v\n", key, value)
 	}
+	return nil
 }
 
 func main() {
@@ -153,12 +152,9 @@ func main() {
 	//	fmt.Printf("[%2d] %s\n", i, arg)
 	//}
 	au = aurora.NewAurora(!*noColorOutput)
+	dbmeta.InitColorOutput(au)
 
 	baseTemplates = packr.New("gen", "./template")
-
-	if *verbose {
-		listTemplates()
-	}
 
 	if *saveTemplateDir != "" {
 		saveTemplates()
@@ -261,7 +257,12 @@ func main() {
 	}
 
 	if *contextFileName != "" {
-		loadContextMapping(conf)
+		err = loadContextMapping(conf)
+		if err != nil {
+			fmt.Print(au.Red(fmt.Sprintf("Error loading context file %s error: %v\n", *contextFileName, err)))
+			os.Exit(1)
+			return
+		}
 	}
 
 	tableInfos = dbmeta.LoadTableInfo(db, dbTables, excludeDbTables, conf)
@@ -278,6 +279,7 @@ func main() {
 		i++
 	}
 
+	conf.TableInfos = tableInfos
 	conf.ContextMap["tableInfos"] = tableInfos
 
 	if *execCustomScript != "" {
@@ -288,6 +290,10 @@ func main() {
 		}
 		os.Exit(0)
 		return
+	}
+
+	if *verbose {
+		listTemplates()
 	}
 
 	err = generate(conf)
@@ -576,7 +582,7 @@ func generate(conf *dbmeta.Config) error {
 		modelInfo := conf.CreateContextForTableFile(tableInfo)
 
 		modelFile := filepath.Join(modelDir, CreateGoSrcFileName(tableName))
-		err = conf.WriteTemplate(ModelTmpl, modelInfo, modelFile, true)
+		err = conf.WriteTemplate(ModelTmpl, modelInfo, modelFile)
 		if err != nil {
 			fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
 			os.Exit(1)
@@ -584,7 +590,7 @@ func generate(conf *dbmeta.Config) error {
 
 		if *restAPIGenerate {
 			restFile := filepath.Join(apiDir, CreateGoSrcFileName(tableName))
-			err = conf.WriteTemplate(ControllerTmpl, modelInfo, restFile, true)
+			err = conf.WriteTemplate(ControllerTmpl, modelInfo, restFile)
 			if err != nil {
 				fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
 				os.Exit(1)
@@ -595,7 +601,7 @@ func generate(conf *dbmeta.Config) error {
 		if *daoGenerate {
 			//write dao
 			outputFile := filepath.Join(daoDir, CreateGoSrcFileName(tableName))
-			err = conf.WriteTemplate(DaoTmpl, modelInfo, outputFile, true)
+			err = conf.WriteTemplate(DaoTmpl, modelInfo, outputFile)
 			if err != nil {
 				fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
 				os.Exit(1)
@@ -612,21 +618,21 @@ func generate(conf *dbmeta.Config) error {
 	}
 
 	if *daoGenerate {
-		err = conf.WriteTemplate(DaoInitTmpl, data, filepath.Join(daoDir, "dao_base.go"), true)
+		err = conf.WriteTemplate(DaoInitTmpl, data, filepath.Join(daoDir, "dao_base.go"))
 		if err != nil {
 			fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
 			os.Exit(1)
 		}
 	}
 
-	err = conf.WriteTemplate(ModelBaseTmpl, data, filepath.Join(modelDir, "model_base.go"), true)
+	err = conf.WriteTemplate(ModelBaseTmpl, data, filepath.Join(modelDir, "model_base.go"))
 	if err != nil {
 		fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
 		os.Exit(1)
 	}
 
 	if *modGenerate {
-		err = conf.WriteTemplate(GoModuleTmpl, data, filepath.Join(*outDir, "go.mod"), false)
+		err = conf.WriteTemplate(GoModuleTmpl, data, filepath.Join(*outDir, "go.mod"))
 		if err != nil {
 			fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
 			os.Exit(1)
@@ -691,13 +697,13 @@ func generateRestBaseFiles(conf *dbmeta.Config, apiDir string) (err error) {
 		return
 	}
 
-	err = conf.WriteTemplate(RouterTmpl, data, filepath.Join(apiDir, "router.go"), true)
+	err = conf.WriteTemplate(RouterTmpl, data, filepath.Join(apiDir, "router.go"))
 	if err != nil {
 		fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
 		os.Exit(1)
 	}
 
-	err = conf.WriteTemplate(HTTPUtilsTmpl, data, filepath.Join(apiDir, "http_utils.go"), true)
+	err = conf.WriteTemplate(HTTPUtilsTmpl, data, filepath.Join(apiDir, "http_utils.go"))
 	if err != nil {
 		fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
 		os.Exit(1)
@@ -724,7 +730,7 @@ func generateMakefile(conf *dbmeta.Config) (err error) {
 		populateProtoCinContext(conf, data)
 	}
 
-	err = conf.WriteTemplate(MakefileTmpl, data, filepath.Join(*outDir, "Makefile"), false)
+	err = conf.WriteTemplate(MakefileTmpl, data, filepath.Join(*outDir, "Makefile"))
 	if err != nil {
 		fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
 		os.Exit(1)
@@ -751,7 +757,7 @@ func generateProtobufDefinitionFile(conf *dbmeta.Config, data map[string]interfa
 	}
 
 	protofile := fmt.Sprintf("%s.proto", *sqlDatabase)
-	err = conf.WriteTemplate(ProtobufTmpl, data, filepath.Join(*outDir, protofile), false)
+	err = conf.WriteTemplate(ProtobufTmpl, data, filepath.Join(*outDir, protofile))
 	if err != nil {
 		fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
 		os.Exit(1)
@@ -772,7 +778,7 @@ func generateProtobufDefinitionFile(conf *dbmeta.Config, data map[string]interfa
 		return err
 	}
 
-	err = conf.WriteTemplate(ProtobufTmpl, data, filepath.Join(serverDir, "main.go"), true)
+	err = conf.WriteTemplate(ProtobufTmpl, data, filepath.Join(serverDir, "main.go"))
 	if err != nil {
 		fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
 		os.Exit(1)
@@ -783,7 +789,7 @@ func generateProtobufDefinitionFile(conf *dbmeta.Config, data map[string]interfa
 		return err
 	}
 
-	err = conf.WriteTemplate(ProtobufTmpl, data, filepath.Join(serverDir, "protoserver.go"), true)
+	err = conf.WriteTemplate(ProtobufTmpl, data, filepath.Join(serverDir, "protoserver.go"))
 	if err != nil {
 		fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
 		os.Exit(1)
@@ -885,13 +891,13 @@ func generateProjectFiles(conf *dbmeta.Config, data map[string]interface{}) (err
 		return
 	}
 	populateProtoCinContext(conf, data)
-	err = conf.WriteTemplate(GitIgnoreTmpl, data, filepath.Join(*outDir, ".gitignore"), false)
+	err = conf.WriteTemplate(GitIgnoreTmpl, data, filepath.Join(*outDir, ".gitignore"))
 	if err != nil {
 		fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
 		os.Exit(1)
 	}
 
-	err = conf.WriteTemplate(ReadMeTmpl, data, filepath.Join(*outDir, "README.md"), false)
+	err = conf.WriteTemplate(ReadMeTmpl, data, filepath.Join(*outDir, "README.md"))
 	if err != nil {
 		fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
 		os.Exit(1)
@@ -934,7 +940,7 @@ func generateServerCode(conf *dbmeta.Config) (err error) {
 		fmt.Print(au.Red(fmt.Sprintf("unable to create serverDir: %s error: %v\n", serverDir, err)))
 		return
 	}
-	err = conf.WriteTemplate(MainServerTmpl, data, filepath.Join(serverDir, "main.go"), true)
+	err = conf.WriteTemplate(MainServerTmpl, data, filepath.Join(serverDir, "main.go"))
 	if err != nil {
 		fmt.Print(au.Red(fmt.Sprintf("Error writing file: %v\n", err)))
 		os.Exit(1)

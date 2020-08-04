@@ -3,10 +3,19 @@ package dbmeta
 import (
 	"database/sql"
 	"fmt"
+	"github.com/logrusorgru/aurora"
 	"regexp"
 	"strconv"
 	"strings"
 )
+
+var (
+	au aurora.Aurora
+)
+
+func InitColorOutput(_au aurora.Aurora) {
+	au = _au
+}
 
 // ParseSQLType parse sql type and return raw type and length
 func ParseSQLType(dbType string) (resultType string, dbTypeLen int64) {
@@ -244,7 +253,12 @@ func updateDefaultPrimaryKey(m *dbTableMeta) *dbTableMeta {
 
 	if !hasPrimary && len(m.columns) > 0 {
 		comments := fmt.Sprintf("Warning table: %s does not have a primary key defined, setting col position 1 %s as primary key\n", m.tableName, m.columns[0].Name())
-		fmt.Printf(comments)
+		if au != nil {
+			fmt.Print(au.Yellow(comments))
+		} else {
+			fmt.Printf(comments)
+		}
+
 		primaryKeyPos = 0
 		m.columns[0].isPrimaryKey = true
 		m.columns[0].notes = m.columns[0].notes + comments
@@ -252,7 +266,13 @@ func updateDefaultPrimaryKey(m *dbTableMeta) *dbTableMeta {
 
 	if m.columns[primaryKeyPos].nullable {
 		comments := fmt.Sprintf("Warning table: %s primary key column %s is nullable column, setting it as NOT NULL\n", m.tableName, m.columns[primaryKeyPos].Name())
-		fmt.Printf(comments)
+
+		if au != nil {
+			fmt.Print(au.Yellow(comments))
+		} else {
+			fmt.Printf(comments)
+		}
+
 		m.columns[primaryKeyPos].nullable = false
 		m.columns[0].notes = m.columns[0].notes + comments
 	}
