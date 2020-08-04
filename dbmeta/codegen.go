@@ -5,6 +5,9 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
+	"github.com/smallnest/gen/utils"
+	"time"
+
 	"go/format"
 	"io/ioutil"
 	"os"
@@ -19,6 +22,7 @@ import (
 	"github.com/serenize/snaker"
 )
 
+// GenTemplate template info struct
 type GenTemplate struct {
 	Name    string
 	Content string
@@ -111,10 +115,11 @@ func (c *Config) GetTemplate(genTemplate *GenTemplate) (*template.Template, erro
 		"replace":                    replace,
 		"hasField":                   hasField,
 		"FmtFieldName":               FmtFieldName,
-		"copy":                       FileSystemCopy,
-		"mkdir":                      Mkdir,
-		"touch":                      Touch,
+		"copy":                       c.FileSystemCopy,
+		"mkdir":                      c.Mkdir,
+		"touch":                      c.Touch,
 		"pwd":                        Pwd,
+		"config":                     c.DisplayConfig,
 	}
 
 	baseName := filepath.Base(genTemplate.Name)
@@ -376,12 +381,12 @@ func (c *Config) JSONTagOmitEmpty(name string) string {
 }
 
 // GenerateTableFile generate file from template using specific table used within templates
-func (c *Config) GenerateTableFile(tableInfos map[string]*ModelInfo, tableName, templateFilename, outputDirectory, outputFileName string, formatOutput bool) string {
+func (c *Config) GenerateTableFile(tableName, templateFilename, outputDirectory, outputFileName string) string {
 	buf := bytes.Buffer{}
 
-	buf.WriteString(fmt.Sprintf("GenerateTableFile( %s, %s, %s, %s, %t)\n", tableName, templateFilename, outputDirectory, outputFileName, formatOutput))
+	buf.WriteString(fmt.Sprintf("GenerateTableFile( %s, %s, %s, %)\n", tableName, templateFilename, outputDirectory, outputFileName))
 
-	tableInfo, ok := tableInfos[tableName]
+	tableInfo, ok := c.TableInfos[tableName]
 	if !ok {
 		buf.WriteString(fmt.Sprintf("Table: %s - No tableInfo found\n", tableName))
 		return buf.String()
@@ -409,7 +414,7 @@ func (c *Config) GenerateTableFile(tableInfos map[string]*ModelInfo, tableName, 
 
 	outputFile := filepath.Join(fileOutDir, outputFileName)
 	buf.WriteString(fmt.Sprintf("Writing %s -> %s\n", templateFilename, outputFile))
-	err = c.WriteTemplate(tpl, data, outputFile, formatOutput)
+	err = c.WriteTemplate(tpl, data, outputFile)
 	return buf.String()
 }
 
@@ -458,7 +463,9 @@ func (c *Config) CreateContextForTableFile(tableInfo *ModelInfo) map[string]inte
 }
 
 // WriteTemplate write a template out
-func (c *Config) WriteTemplate(genTemplate *GenTemplate, data map[string]interface{}, outputFile string, formatOutput bool) error {
+func (c *Config) WriteTemplate(genTemplate *GenTemplate, data map[string]interface{}, outputFile string) error {
+	//fmt.Printf("WriteTemplate %s\n", outputFile)
+
 	if !c.Overwrite && Exists(outputFile) {
 		fmt.Printf("not overwriting %s\n", outputFile)
 		return nil
@@ -467,6 +474,13 @@ func (c *Config) WriteTemplate(genTemplate *GenTemplate, data map[string]interfa
 	for key, value := range c.ContextMap {
 		data[key] = value
 	}
+
+	dir := filepath.Dir(outputFile)
+	parent := filepath.Base(dir)
+
+	data["File"] = outputFile
+	data["Dir"] = dir
+	data["Parent"] = parent
 
 	data["DatabaseName"] = c.SQLDatabase
 	data["module"] = c.Module
@@ -492,43 +506,50 @@ func (c *Config) WriteTemplate(genTemplate *GenTemplate, data map[string]interfa
 
 	rt, err := c.GetTemplate(genTemplate)
 	if err != nil {
-		return fmt.Errorf("Error in loading %s template, error: %v\n", genTemplate.Name, err)
+		return fmt.Errorf("error in loading %s template, error: %v", genTemplate.Name, err)
 	}
 	var buf bytes.Buffer
 	err = rt.Execute(&buf, data)
 	if err != nil {
-		return fmt.Errorf("Error in rendering %s: %s\n", genTemplate.Name, err.Error())
+		return fmt.Errorf("error in rendering %s: %s", genTemplate.Name, err.Error())
 	}
 
-	if formatOutput {
-		formattedSource, err := format.Source(buf.Bytes())
-		if err != nil {
-			return fmt.Errorf("Error in formatting template: %s outputfile: %s source: %s\n", genTemplate.Name, outputFile, err.Error())
-		}
-
-		fileContents := NormalizeNewlines(formattedSource)
-		if c.LineEndingCRLF {
-			fileContents = CRLFNewlines(formattedSource)
-		}
-
-		err = ioutil.WriteFile(outputFile, fileContents, 0777)
-	} else {
-		fileContents := NormalizeNewlines(buf.Bytes())
-		if c.LineEndingCRLF {
-			fileContents = CRLFNewlines(fileContents)
-		}
-
-		err = ioutil.WriteFile(outputFile, fileContents, 0777)
-	}
-
+	fileContents, err := c.format(genTemplate, buf.Bytes(), outputFile)
 	if err != nil {
-		return fmt.Errorf("error writing %s - error: %v\n", outputFile, err)
+		return fmt.Errorf("error writing %s - error: %v", outputFile, err)
+	}
+
+	err = ioutil.WriteFile(outputFile, fileContents, 0777)
+	if err != nil {
+		return fmt.Errorf("error writing %s - error: %v", outputFile, err)
 	}
 
 	if c.Verbose {
 		fmt.Printf("writing %s\n", outputFile)
 	}
 	return nil
+}
+
+func (c *Config) format(genTemplate *GenTemplate, content []byte, outputFile string) ([]byte, error) {
+	extension := filepath.Ext(outputFile)
+	if extension == ".go" {
+		formattedSource, err := format.Source([]byte(content))
+		if err != nil {
+			return nil, fmt.Errorf("error in formatting template: %s outputfile: %s source: %s", genTemplate.Name, outputFile, err.Error())
+		}
+
+		fileContents := NormalizeNewlines(formattedSource)
+		if c.LineEndingCRLF {
+			fileContents = CRLFNewlines(formattedSource)
+		}
+		return fileContents, nil
+	}
+
+	fileContents := NormalizeNewlines([]byte(content))
+	if c.LineEndingCRLF {
+		fileContents = CRLFNewlines(fileContents)
+	}
+	return fileContents, nil
 }
 
 // NormalizeNewlines normalizes \r\n (windows) and \r (mac)
@@ -559,7 +580,7 @@ func Exists(name string) bool {
 }
 
 // GenerateFile generate file from template, non table used within templates
-func (c *Config) GenerateFile(templateFilename, outputDirectory, outputFileName string, formatOutput bool, overwrite bool) string {
+func (c *Config) GenerateFile(templateFilename, outputDirectory, outputFileName string, overwrite bool) string {
 	buf := bytes.Buffer{}
 	buf.WriteString(fmt.Sprintf("GenerateFile( %s, %s, %s)\n", templateFilename, outputDirectory, outputFileName))
 	fileOutDir := outputDirectory
@@ -579,11 +600,189 @@ func (c *Config) GenerateFile(templateFilename, outputDirectory, outputFileName 
 
 	outputFile := filepath.Join(fileOutDir, outputFileName)
 	buf.WriteString(fmt.Sprintf("Writing %s -> %s\n", templateFilename, outputFile))
-	err = c.WriteTemplate(tpl, data, outputFile, formatOutput)
+	err = c.WriteTemplate(tpl, data, outputFile)
 	if err != nil {
 		buf.WriteString(fmt.Sprintf("Error calling WriteTemplate %s -> %v\n", templateFilename, err))
 	}
 	return buf.String()
+}
+
+// DisplayConfig display config info
+func (c *Config) DisplayConfig() string {
+
+	info := fmt.Sprintf(
+		`DisplayConfig
+  SQLType      : %s
+  SQLConnStr   : %s
+  SQLDatabase  : %s
+  Module       : %s
+  OutDir       : %s
+`, c.SQLType, c.SQLConnStr, c.SQLDatabase, c.Module, c.OutDir)
+
+	return info
+}
+
+type copyRules struct {
+	result  bool
+	pattern string
+	r       *regexp.Regexp
+}
+
+// FileSystemCopy template command to copy files, directories and to pass --include XXX and --exclude YYY regular expressions. Files ending in .tmpl will be processed as a template.
+// Files ending in .table.tmpl will be processed as a template iterating through all the tables
+func (c *Config) FileSystemCopy(src, dst string, options ...string) string {
+	dstDir := filepath.Join(c.OutDir, dst)
+
+	patterns := make([]*copyRules, 0)
+
+	for _, o := range options {
+
+		if strings.HasPrefix(o, "--exclude ") {
+			pattern := o[len("--exclude "):]
+			r, _ := regexp.Compile(pattern)
+			if r != nil {
+				patterns = append(patterns, &copyRules{result: false, r: r, pattern: pattern})
+			}
+		}
+
+		if strings.HasPrefix(o, "--include ") {
+			pattern := o[len("--include "):]
+			r, _ := regexp.Compile(pattern)
+			if r != nil {
+				patterns = append(patterns, &copyRules{result: true, r: r, pattern: pattern})
+			}
+		}
+	}
+
+	opt := utils.DefaultCopyOptions()
+
+	opt.ShouldCopy = func(info os.FileInfo) bool {
+		name := info.Name()
+
+		for _, r := range patterns {
+			if r.r.Match([]byte(name)) {
+				//fmt.Printf("copy ShouldCopy %s  pattern: [%s]  result: %t\n", name, r.pattern, r.result)
+				return r.result
+			}
+		}
+
+		return true
+	}
+
+	opt.FileHandler = func(src, dest string, info os.FileInfo) utils.FileHandlerFunc {
+
+		if !opt.ShouldCopy(info) {
+			return func(src, dest string, info os.FileInfo, opt utils.Options, results *utils.Results) (err error) {
+				results.Info.WriteString(fmt.Sprintf("CopyFile Skipping %s\n", src))
+				return nil
+			}
+		}
+
+		if strings.HasSuffix(src, ".table.tmpl") {
+			//fmt.Printf("@@ HandleTableTemplateFile: src: %s  dest: %s Name: %s\n", src, dest, info.Name())
+			return c.tableFileHandlerFunc
+		}
+		if strings.HasSuffix(src, ".tmpl") {
+			//fmt.Printf("@@ HandleTemplateFile: src: %s  dest: %s Name: %s\n", src, dest, info.Name())
+			return c.fileHandlerFunc
+		}
+
+		return func(src, dest string, info os.FileInfo, opt utils.Options, results *utils.Results) (err error) {
+			results.Info.WriteString(fmt.Sprintf("CopyFile %s\n", dest))
+			return utils.DefaultFileCopy(src, dest, info, opt, results)
+		}
+	}
+
+	result, err := utils.Copy(src, dstDir, opt)
+	if err != nil {
+		return fmt.Sprintf("copy returned an error %v", err)
+	}
+	return fmt.Sprintf("copy %s %s\n%s\n", src, dstDir, result.String())
+}
+
+// Mkdir template command to mkdir under the output directory
+func (c *Config) Mkdir(dst string) string {
+	dstDir := filepath.Join(c.OutDir, dst)
+
+	err := os.MkdirAll(dstDir, os.ModePerm)
+	if err != nil {
+		return fmt.Sprintf("mkdir returned an error %v", err)
+
+	}
+	return fmt.Sprintf("mkdir %s", dstDir)
+}
+
+// Touch template command to touch a file under the output directory
+func (c *Config) Touch(dst string) string {
+	dstDir := filepath.Join(c.OutDir, dst)
+
+	_, err := os.Stat(dstDir)
+	if os.IsNotExist(err) {
+		file, err := os.Create(dstDir)
+		if err != nil {
+			return fmt.Sprintf("touch returned an error %v", err)
+		}
+		defer file.Close()
+	} else {
+		currentTime := time.Now().Local()
+		err = os.Chtimes(dstDir, currentTime, currentTime)
+		if err != nil {
+			return fmt.Sprintf("touch returned an error %v", err)
+		}
+	}
+	return fmt.Sprintf("touch %s", dstDir)
+}
+
+// ".tmpl"
+func (c *Config) fileHandlerFunc(src, dest string, info os.FileInfo, opt utils.Options, results *utils.Results) (err error) {
+	genTemplate := &GenTemplate{
+		Name:    info.Name(),
+		Content: loadFile(src),
+	}
+
+	data := make(map[string]interface{})
+
+	outputFile := dest[0 : len(dest)-5]
+	results.Info.WriteString(fmt.Sprintf("WriteTemplate %s\n", outputFile))
+	return c.WriteTemplate(genTemplate, data, outputFile)
+}
+
+// ".table.tmpl"
+func (c *Config) tableFileHandlerFunc(src, dest string, info os.FileInfo, opt utils.Options, results *utils.Results) (err error) {
+	genTemplate := &GenTemplate{
+		Name:    info.Name(),
+		Content: loadFile(src),
+	}
+
+	outputFile := dest[0 : len(dest)-11]
+
+	dir := filepath.Dir(outputFile)
+	tmplateName := filepath.Base(outputFile)
+	// parent := filepath.Base(dir)
+	results.Info.WriteString(fmt.Sprintf("WriteTableTemplate %s\n", src))
+
+	for tableName, tableInfo := range c.TableInfos {
+		data := c.CreateContextForTableFile(tableInfo)
+		// fileName := filepath.Join(dir, tableName+name)
+		name := c.ReplaceFileNamingTemplate(tableName) + filepath.Ext(tmplateName)
+		fileName := filepath.Join(dir, name)
+		results.Info.WriteString(fmt.Sprintf("    table: %-25s  %s\n", tableName, fileName))
+		c.WriteTemplate(genTemplate, data, fileName)
+	}
+	return nil
+}
+
+func loadFile(src string) string {
+	// Read entire file content, giving us little control but
+	// making it very simple. No need to close the file.
+	content, err := ioutil.ReadFile(src)
+	if err != nil {
+		return fmt.Sprintf("error loading %s error: %v", src, err)
+	}
+
+	// Convert []byte to string and print to screen
+	text := string(content)
+	return text
 }
 
 // SwaggerInfoDetails swagger details
@@ -637,9 +836,9 @@ type Config struct {
 	FileNamingTemplate    string
 	ModelNamingTemplate   string
 	FieldNamingTemplate   string
-	string
-	ContextMap     map[string]interface{}
-	TemplateLoader TemplateLoader
+	ContextMap            map[string]interface{}
+	TemplateLoader        TemplateLoader
+	TableInfos            map[string]*ModelInfo
 }
 
 // NewConfig create a new code config

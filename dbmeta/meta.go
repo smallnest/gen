@@ -38,7 +38,6 @@ type SQLMappings struct {
 
 // SQLMapping mapping
 type SQLMapping struct {
-
 	// SQLType sql type reported from db
 	SQLType string `json:"sql_type"`
 
@@ -554,6 +553,7 @@ func ProcessMappings(source string, mappingJsonstring []byte, verbose bool) erro
 
 		sqlMappings[value.SQLType] = value
 	}
+
 	return nil
 }
 
@@ -693,13 +693,25 @@ func LoadTableInfo(db *sql.DB, dbTables []string, excludeDbTables []string, conf
 
 		dbMeta, err := LoadMeta(conf.SQLType, db, conf.SQLDatabase, tableName)
 		if err != nil {
-			fmt.Printf("Warning - LoadMeta skipping table info for %s error: %v\n", tableName, err)
+			msg := fmt.Sprintf("Warning - LoadMeta skipping table info for %s error: %v\n", tableName, err)
+			if au != nil {
+				fmt.Print(au.Yellow(msg))
+			} else {
+				fmt.Printf(msg)
+			}
+
 			continue
 		}
 
 		modelInfo, err := GenerateModelInfo(tableInfos, dbMeta, tableName, conf)
 		if err != nil {
-			fmt.Printf("GenerateModelInfo Error getting table info for %s error: %v\n", tableName, err)
+			msg := fmt.Sprintf("Error - %v\n", err)
+			if au != nil {
+				fmt.Print(au.Red(msg))
+			} else {
+				fmt.Printf(msg)
+			}
+
 			continue
 		}
 
@@ -734,10 +746,11 @@ func GenerateModelInfo(tables map[string]*ModelInfo, dbMeta DbTableMeta,
 	}
 
 	if conf.Verbose {
-		fmt.Printf("tableName: %s\n", tableName)
+		fmt.Printf("\ntableName: %s\n", tableName)
 		for _, c := range dbMeta.Columns() {
 			fmt.Printf("    %s\n", c.String())
 		}
+		fmt.Print("\n")
 	}
 
 	generator := dynamicstruct.NewStruct()
