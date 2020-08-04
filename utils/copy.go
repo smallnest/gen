@@ -1,6 +1,7 @@
 package utils
 
 import (
+	"fmt"
 	"io"
 	"io/ioutil"
 	"os"
@@ -104,7 +105,8 @@ func DefaultFileCopy(src, dest string, info os.FileInfo, opt Options, results *R
 // with scanning contents inside the directory
 // and pass everything to "copy" recursively.
 func dcopy(srcdir, destdir string, info os.FileInfo, opt Options, results *Results) (err error) {
-	if opt.ShouldCopyDir != nil && !opt.ShouldCopyDir(info) {
+	if opt.ShouldCopy != nil && !opt.ShouldCopy(info) {
+		results.Info.WriteString(fmt.Sprintf("CopyDir Skipping %s\n", srcdir))
 		return nil
 	}
 

@@ -622,44 +622,75 @@ func (c *Config) DisplayConfig() string {
 	return info
 }
 
+type copyRules struct {
+	result  bool
+	pattern string
+	r       *regexp.Regexp
+}
+
 // FileSystemCopy template command to copy files, directories and to pass --include XXX and --exclude YYY regular expressions. Files ending in .tmpl will be processed as a template.
 // Files ending in .table.tmpl will be processed as a template iterating through all the tables
 func (c *Config) FileSystemCopy(src, dst string, options ...string) string {
 	dstDir := filepath.Join(c.OutDir, dst)
-	opt := utils.DefaultCopyOptions()
-	opt.FileHandler = c.handleFile
 
-	excludePattern := ""
-	includePattern := ""
+	patterns := make([]*copyRules, 0)
 
 	for _, o := range options {
+
 		if strings.HasPrefix(o, "--exclude ") {
-			excludePattern = o[len("--exclude "):]
+			pattern := o[len("--exclude "):]
+			r, _ := regexp.Compile(pattern)
+			if r != nil {
+				patterns = append(patterns, &copyRules{result: false, r: r, pattern: pattern})
+			}
 		}
+
 		if strings.HasPrefix(o, "--include ") {
-			includePattern = o[len("--include "):]
+			pattern := o[len("--include "):]
+			r, _ := regexp.Compile(pattern)
+			if r != nil {
+				patterns = append(patterns, &copyRules{result: true, r: r, pattern: pattern})
+			}
 		}
 	}
 
-	excludeRegex, _ := regexp.Compile(excludePattern)
-	if excludeRegex != nil {
-		fmt.Printf("copy excludePattern: [%s]\n", excludePattern)
-	}
-	includeRegex, _ := regexp.Compile(includePattern)
-	if includeRegex != nil {
-		fmt.Printf("copy includePattern: [%s]\n", includePattern)
-	}
+	opt := utils.DefaultCopyOptions()
 
-	opt.ShouldCopyDir = func(info os.FileInfo) bool {
+	opt.ShouldCopy = func(info os.FileInfo) bool {
 		name := info.Name()
 
-		if includeRegex != nil && includeRegex.Match([]byte(name)) {
-			return true
+		for _, r := range patterns {
+			if r.r.Match([]byte(name)) {
+				//fmt.Printf("copy ShouldCopy %s  pattern: [%s]  result: %t\n", name, r.pattern, r.result)
+				return r.result
+			}
 		}
-		if excludeRegex != nil && excludeRegex.Match([]byte(name)) {
-			return false
-		}
+
 		return true
+	}
+
+	opt.FileHandler = func(src, dest string, info os.FileInfo) utils.FileHandlerFunc {
+
+		if !opt.ShouldCopy(info) {
+			return func(src, dest string, info os.FileInfo, opt utils.Options, results *utils.Results) (err error) {
+				results.Info.WriteString(fmt.Sprintf("CopyFile Skipping %s\n", src))
+				return nil
+			}
+		}
+
+		if strings.HasSuffix(src, ".table.tmpl") {
+			//fmt.Printf("@@ HandleTableTemplateFile: src: %s  dest: %s Name: %s\n", src, dest, info.Name())
+			return c.tableFileHandlerFunc
+		}
+		if strings.HasSuffix(src, ".tmpl") {
+			//fmt.Printf("@@ HandleTemplateFile: src: %s  dest: %s Name: %s\n", src, dest, info.Name())
+			return c.fileHandlerFunc
+		}
+
+		return func(src, dest string, info os.FileInfo, opt utils.Options, results *utils.Results) (err error) {
+			results.Info.WriteString(fmt.Sprintf("CopyFile %s\n", dest))
+			return utils.DefaultFileCopy(src, dest, info, opt, results)
+		}
 	}
 
 	result, err := utils.Copy(src, dstDir, opt)
@@ -702,23 +733,6 @@ func (c *Config) Touch(dst string) string {
 	return fmt.Sprintf("touch %s", dstDir)
 }
 
-func (c *Config) handleFile(src, dest string, info os.FileInfo) utils.FileHandlerFunc {
-
-	if strings.HasSuffix(src, ".table.tmpl") {
-		//fmt.Printf("@@ HandleTableTemplateFile: src: %s  dest: %s Name: %s\n", src, dest, info.Name())
-		return c.tableFileHandlerFunc
-	}
-	if strings.HasSuffix(src, ".tmpl") {
-		//fmt.Printf("@@ HandleTemplateFile: src: %s  dest: %s Name: %s\n", src, dest, info.Name())
-		return c.fileHandlerFunc
-	}
-
-	return func(src, dest string, info os.FileInfo, opt utils.Options, results *utils.Results) (err error) {
-		results.Info.WriteString(fmt.Sprintf("CopyFile: %s\n", dest))
-		return utils.DefaultFileCopy(src, dest, info, opt, results)
-	}
-}
-
 // ".tmpl"
 func (c *Config) fileHandlerFunc(src, dest string, info os.FileInfo, opt utils.Options, results *utils.Results) (err error) {
 	genTemplate := &GenTemplate{
@@ -745,13 +759,14 @@ func (c *Config) tableFileHandlerFunc(src, dest string, info os.FileInfo, opt ut
 	dir := filepath.Dir(outputFile)
 	tmplateName := filepath.Base(outputFile)
 	// parent := filepath.Base(dir)
+	results.Info.WriteString(fmt.Sprintf("WriteTableTemplate %s\n", src))
 
 	for tableName, tableInfo := range c.TableInfos {
 		data := c.CreateContextForTableFile(tableInfo)
 		// fileName := filepath.Join(dir, tableName+name)
 		name := c.ReplaceFileNamingTemplate(tableName) + filepath.Ext(tmplateName)
 		fileName := filepath.Join(dir, name)
-		results.Info.WriteString(fmt.Sprintf("WriteTableTemplate %s\n", fileName))
+		results.Info.WriteString(fmt.Sprintf("    table: %-25s  %s\n", tableName, fileName))
 		c.WriteTemplate(genTemplate, data, fileName)
 	}
 	return nil

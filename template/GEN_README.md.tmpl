@@ -229,9 +229,16 @@ Loop thru map of tables, key is the table name and value is ModelInfo. Creating 
 ```
 
 ### Example - copy a file or directory from source to a target directory.
+copy function updated to provide --include and --exclude patterns. Patterns are processed in order, an include preceeding an exclude will take precedence. Multiple include and excludes can be specified. Files ending with .table.tmpl will be processed for each table. Output filenames will be stored in the proper directory, with a name of the table with the suffix of the template extension. Files ending with .tmpl will be processed as a template and the filename will be the name of the template stripped with the .tmpl suffix.
+
 ```
 {{`
 {{ copy "../_test" "test" }}
+
+{{ copy "./backend" "test/backend" "--exclude .idea|commands" "--exclude go.sum"  "--include .*" }}
+
+{{ copy "./backend" "test/backend" "--include backend" "--include go.mod" "--exclude .*"  }}
+
 `}}
 ```
 

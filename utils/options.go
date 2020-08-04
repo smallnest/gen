@@ -23,8 +23,8 @@ type Options struct {
 	// FileHandler - returns a handler for file - if nill will use the default copy handler
 	FileHandler func(src, dest string, info os.FileInfo) FileHandlerFunc
 
-	// ShouldCopyDir - return bool if dir should be copied
-	ShouldCopyDir func(opt os.FileInfo) bool
+	// ShouldCopy - return bool if dir or file should be copied
+	ShouldCopy func(opt os.FileInfo) bool
 }
 
 // SymlinkAction represents what to do on symlink.
