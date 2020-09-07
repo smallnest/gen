@@ -318,12 +318,12 @@
     },
     {
       "sql_type": "float4",
-      "go_type": "float64",
+      "go_type": "float32",
       "json_type": "Float",
       "protobuf_type": "float",
       "guregu_type": "null.Float",
       "go_nullable_type": "sql.NullFloat64",
-      "swagger_type": "float64"
+      "swagger_type": "float32"
     },
 
     {
@@ -337,12 +337,12 @@
     },
     {
       "sql_type": "float8",
-      "go_type": "float32",
+      "go_type": "float64",
       "json_type": "Float",
       "protobuf_type": "float",
       "guregu_type": "null.Float",
       "go_nullable_type": "sql.NullFloat64",
-      "swagger_type": "float32"
+      "swagger_type": "float64"
     },
 
     {
