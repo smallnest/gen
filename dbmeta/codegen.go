@@ -5,8 +5,10 @@ import (
 	"encoding/csv"
 	"encoding/json"
 	"fmt"
-	"github.com/smallnest/gen/utils"
+	"path"
 	"time"
+
+	"github.com/smallnest/gen/utils"
 
 	"go/format"
 	"io/ioutil"
@@ -120,6 +122,7 @@ func (c *Config) GetTemplate(genTemplate *GenTemplate) (*template.Template, erro
 		"touch":                      c.Touch,
 		"pwd":                        Pwd,
 		"config":                     c.DisplayConfig,
+		"insertFragment":             c.insertFragment,
 	}
 
 	baseName := filepath.Base(genTemplate.Name)
@@ -365,6 +368,76 @@ func escape(content string) string {
 	return content
 }
 
+// LoadFragments read all filed inside dirname to `fragments`
+func (c *Config) LoadFragments(dirname string) error {
+	c.FragmentsDir = dirname
+	files, err := ioutil.ReadDir(dirname)
+	if err != nil {
+		return err
+	}
+
+	c.fragments = &bytes.Buffer{}
+	for _, file := range files {
+		if !file.IsDir() {
+			filename := path.Join(dirname, file.Name())
+			content, err := ioutil.ReadFile(filename)
+			if err != nil {
+				return err
+			}
+			c.fragments.Write(content)
+			c.fragments.WriteRune('\n')
+		}
+	}
+	return nil
+}
+
+// Insert code fragment from file.
+// Within a single file, fragment can be marked as // fragment: <name> ... // end
+func (c *Config) insertFragment(name, defValue string) (string, error) {
+	if c.fragments == nil || c.fragments.Len() == 0 {
+		return defValue, nil
+	}
+	// pointer to fragment content
+	content := c.fragments.Bytes()
+
+	// if fragment name is not defined,
+	// return whole content
+	if name == "" {
+		return string(content), nil
+	}
+
+	// Use regex to extract fragment name from given file.
+	// Below is an example of code fragment.
+
+	/*
+		//fragment: <name>
+		func (w *Model) MyCode() {
+
+		}
+		// end
+	*/
+	begExp := fmt.Sprintf(`//[\s]{0,}fragment[\s]{0,}:[\s]{0,}%s[\s]{1,}`, name)
+	reBeg, err := regexp.Compile(begExp)
+	if err != nil {
+		return defValue, nil
+	}
+	begLoc := reBeg.FindIndex(content)
+	if begLoc == nil || begLoc[1] == len(content) {
+		// not found or no content specified after // fragment: <name>
+		return defValue, nil
+	}
+
+	fromIdx := begLoc[1]
+	subContent := content[fromIdx:]
+	reEnd := regexp.MustCompile(`//[\s]end[\s]{0,}`)
+	endLoc := reEnd.FindIndex(subContent)
+	if endLoc == nil {
+		// not found, return remaining content
+		return string(subContent), nil
+	}
+	return string(subContent[:endLoc[0]]), nil
+}
+
 // JSONFieldName convert name to appropriate case
 func (c *Config) JSONFieldName(name string) string {
 	return formatFieldName(c.JSONNameFormat, name)
@@ -384,7 +457,7 @@ func (c *Config) JSONTagOmitEmpty(name string) string {
 func (c *Config) GenerateTableFile(tableName, templateFilename, outputDirectory, outputFileName string) string {
 	buf := bytes.Buffer{}
 
-	buf.WriteString(fmt.Sprintf("GenerateTableFile( %s, %s, %s, %)\n", tableName, templateFilename, outputDirectory, outputFileName))
+	buf.WriteString(fmt.Sprintf("GenerateTableFile( %s, %s, %s, %s)\n", tableName, templateFilename, outputDirectory, outputFileName))
 
 	tableInfo, ok := c.TableInfos[tableName]
 	if !ok {
@@ -839,6 +912,8 @@ type Config struct {
 	ContextMap            map[string]interface{}
 	TemplateLoader        TemplateLoader
 	TableInfos            map[string]*ModelInfo
+	FragmentsDir          string
+	fragments             *bytes.Buffer
 }
 
 // NewConfig create a new code config

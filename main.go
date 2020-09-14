@@ -33,6 +33,7 @@ var (
 	sqlTable         = goopt.String([]string{"-t", "--table"}, "", "Table to build struct from")
 	excludeSQLTables = goopt.String([]string{"-x", "--exclude"}, "", "Table(s) to exclude")
 	templateDir      = goopt.String([]string{"--templateDir"}, "", "Template Dir")
+	fragmentsDir     = goopt.String([]string{"--fragmentsDir"}, "", "Code fragments Dir")
 	saveTemplateDir  = goopt.String([]string{"--save"}, "", "Save templates to dir")
 
 	modelPackageName    = goopt.String([]string{"--model"}, "model", "name to set for model package")
@@ -325,6 +326,11 @@ func initializeDB() (db *sql.DB, err error) {
 func initialize(conf *dbmeta.Config) {
 	if outDir == nil || *outDir == "" {
 		*outDir = "."
+	}
+
+	// load fragments if specified
+	if fragmentsDir != nil && *fragmentsDir != "" {
+		conf.LoadFragments(*fragmentsDir)
 	}
 
 	// if packageName is not set we need to default it
