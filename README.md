@@ -105,6 +105,7 @@ Options:
   -t, --table=                                             Table to build struct from
   -x, --exclude=                                           Table(s) to exclude
   --templateDir=                                           Template Dir
+  --fragmentsDir=                                          Code fragments Dir
   --save=                                                  Save templates to dir
   --model=model                                            name to set for model package
   --model_naming={{FmtFieldName .}}                        model naming template to name structs
