@@ -15,7 +15,6 @@ func LoadPostgresMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTab
 		sqlDatabase: sqlDatabase,
 		tableName:   tableName,
 	}
-
 	cols, err := schema.Table(db, m.tableName)
 	if err != nil {
 		return nil, err
@@ -60,12 +59,11 @@ func LoadPostgresMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTab
 		}
 
 		definedType := v.DatabaseTypeName()
-
+		colDDL := v.DatabaseTypeName()
 		if definedType == "" {
 			definedType = "USER_DEFINED"
+			colDDL = "VARCHAR"
 		}
-
-		colDDL := v.DatabaseTypeName()
 
 		colMeta := &columnMeta{
 			index:            i,

@@ -437,11 +437,11 @@
     },
     {
       "sql_type": "USER_DEFINED",
-      "go_type": "interface{}",
+      "go_type": "string",
       "json_type": "Text",
       "protobuf_type": "bytes",
       "guregu_type": "interface{}",
-      "go_nullable_type": "interface{}",
+      "go_nullable_type": "sql.NullString",
       "swagger_type": "string"
     },
     {
@@ -455,11 +455,11 @@
     },
     {
       "sql_type": "",
-      "go_type": "interface{}",
+      "go_type": "string",
       "json_type": "Text",
       "protobuf_type": "bytes",
       "guregu_type": "interface{}",
-      "go_nullable_type": "interface{}",
+      "go_nullable_type": "sql.NullString",
       "swagger_type": "string"
     },
     {
