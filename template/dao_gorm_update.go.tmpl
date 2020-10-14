@@ -5,7 +5,7 @@
 func Update{{.StructName}}(ctx context.Context, {{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}} {{$field.GoFieldType}},{{end}}{{end -}}updated *{{.modelPackageName}}.{{.StructName}}) (result *{{.modelPackageName}}.{{.StructName}}, RowsAffected int64, err error) {
 
    result = &{{.modelPackageName}}.{{.StructName}}{}
-   db := DB.First(result,{{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}},{{end}}{{end -}})
+   db := DB.First(result,{{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} "{{$field.ColumnMeta.Name}} = ?",{{$field.PrimaryKeyArgName}},{{end}}{{end -}})
    if err = db.Error; err != nil {
       return nil, -1, ErrNotFound
    }

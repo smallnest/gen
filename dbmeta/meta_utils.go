@@ -3,10 +3,11 @@ package dbmeta
 import (
 	"database/sql"
 	"fmt"
-	"github.com/logrusorgru/aurora"
 	"regexp"
 	"strconv"
 	"strings"
+
+	"github.com/logrusorgru/aurora"
 )
 
 var (
@@ -216,6 +217,9 @@ func cleanupDefault(val string) string {
 
 	if strings.LastIndex(val, "::") > -1 {
 		return cleanupDefault(val[0:strings.LastIndex(val, "::")])
+	}
+	if strings.HasPrefix(val, "'") && strings.HasSuffix(val, "'") {
+		return cleanupDefault(val[1 : len(val)-1])
 	}
 	// 'G'::mpaa_rating
 	// ('now'::text)::date

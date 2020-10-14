@@ -4,7 +4,7 @@
 // params - pagesize - number of records in a page  (defaults to 20)
 // params - order    - db sort order column
 // error - ErrNotFound, db Find error
-func GetAll{{.StructName}}(ctx context.Context, page, pagesize int64, order string) (results []*{{.modelPackageName}}.{{.StructName}}, totalRows int, err error) {
+func GetAll{{.StructName}}(ctx context.Context, page, pagesize int, order string) (results []*{{.modelPackageName}}.{{.StructName}}, totalRows int64, err error) {
 
 	resultOrm := DB.Model(&{{.modelPackageName}}.{{.StructName}}{})
     resultOrm.Count(&totalRows)
