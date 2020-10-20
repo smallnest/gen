@@ -15,7 +15,7 @@ import (
 
 	"github.com/bxcodec/faker/v3"
 	"github.com/iancoleman/strcase"
-	"github.com/ompluscator/dynamic-struct"
+	dynamicstruct "github.com/ompluscator/dynamic-struct"
 )
 
 type metaDataLoader func(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error)
@@ -764,7 +764,7 @@ func GenerateModelInfo(tables map[string]*ModelInfo, dbMeta DbTableMeta,
 		generator = generator.AddField(c.GoFieldName, fakeData, tag)
 		if meta.IsPrimaryKey() {
 			//c.PrimaryKeyArgName = RenameReservedName(strcase.ToLowerCamel(c.GoFieldName))
-			c.PrimaryKeyArgName = fmt.Sprintf("arg%s", strcase.ToCamel(c.GoFieldName))
+			c.PrimaryKeyArgName = fmt.Sprintf("arg%s", FmtFieldName(c.GoFieldName))
 			noOfPrimaryKeys++
 		}
 	}
