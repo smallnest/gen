@@ -73,6 +73,7 @@ var parsePrimaryKeys = map[string]string{
 	"int64":     "parseInt64",
 	"string":    "parseString",
 	"uuid.UUID": "parseUUID",
+	"time.Time": "parseTime",
 }
 
 var reservedFieldNames = map[string]bool{
