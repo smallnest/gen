@@ -74,6 +74,7 @@ var parsePrimaryKeys = map[string]string{
 	"string":    "parseString",
 	"uuid.UUID": "parseUUID",
 	"time.Time": "parseTime",
+	"varbinary": "parseBytes",
 }
 
 var reservedFieldNames = map[string]bool{
@@ -116,6 +117,7 @@ func FmtFieldName(s string) string {
 	// fmt.Printf("FmtFieldName:%s=%s\n", s, fieldName)
 	return fieldName
 }
+
 func isAllLower(name string) (allLower bool) {
 	allLower = true
 	for _, r := range name {
@@ -197,7 +199,6 @@ func lintMixedFieldName(name string) string {
 			// All the common initialisms are ASCII,
 			// so we can replace the bytes exactly.
 			copy(runes[w:], []rune(u))
-
 		} else if strings.ToLower(word) == word {
 			// already all lowercase, and not the first word, so uppercase the first character.
 			runes[w] = unicode.ToUpper(runes[w])
@@ -212,7 +213,6 @@ func stringifyFirstChar(str string) string {
 	first := str[:1]
 
 	i, err := strconv.ParseInt(first, 10, 8)
-
 	if err != nil {
 		return str
 	}

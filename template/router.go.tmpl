@@ -3,6 +3,7 @@ package {{.apiPackageName}}
 import (
 	"context"
 	"encoding/json"
+	"encoding/hex"
 	"fmt"
 	"io/ioutil"
 	"net/http"
@@ -271,6 +272,10 @@ func parseUUID(ps httprouter.Params, key string) (string, error) {
 	return idStr, nil
 }
 
+func parseBytes(ps httprouter.Params, key string) (string, error) {
+	idStr := ps.ByName(key)
+	return hex.DecodeString(idStr)
+}
 
 
 
