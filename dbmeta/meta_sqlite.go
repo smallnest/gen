@@ -10,7 +10,6 @@ import (
 
 // LoadSqliteMeta fetch db meta data for Sqlite3 database
 func LoadSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error) {
-
 	if tableName == "sqlite_sequence" || tableName == "sqlite_stat1" {
 		return nil, fmt.Errorf("unsupported table: %s", tableName)
 	}
@@ -35,7 +34,7 @@ func LoadSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTable
 
 	colsDDL := sqliteParseDDL(ddl)
 
-	cols, err := schema.Table(db, m.tableName)
+	cols, err := schema.ColumnTypes(db, sqlDatabase, tableName)
 	if err != nil {
 		return nil, err
 	}
@@ -106,14 +105,13 @@ func sqliteLoadPragma(db *sql.DB, tableName string) (colsInfos map[string]*sqlit
 		}
 		colsInfos[ci.name] = ci
 
-		//fmt.Printf("cid: |%2d| name: |%-20s| data_type: |%-20s| notnull: |%d| dflt_value: |%-10T| dflt_value: |%-10v| primary_key: |%d|\n",
+		// fmt.Printf("cid: |%2d| name: |%-20s| data_type: |%-20s| notnull: |%d| dflt_value: |%-10T| dflt_value: |%-10v| primary_key: |%d|\n",
 		//	ci.cid, ci.name, ci.data_type, ci.notnull, ci.dflt_value, ci.dflt_value, ci.primary_key)
 	}
 	return colsInfos, nil
 }
 
 func sqliteParseDDL(ddl string) map[string]string {
-
 	idx1 := strings.Index(ddl, "(")
 	idx2 := strings.LastIndex(ddl, ")")
 
@@ -149,7 +147,7 @@ func sqliteParseDDL(ddl string) map[string]string {
 			continue
 		}
 
-		//fmt.Printf("[%2d] %s\n", i, line)
+		// fmt.Printf("[%2d] %s\n", i, line)
 
 		parts := strings.Split(line, " ")
 		name := parts[0]

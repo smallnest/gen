@@ -17,7 +17,7 @@ func LoadMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 		tableName:   tableName,
 	}
 
-	cols, err := schema.Table(db, m.tableName)
+	cols, err := schema.ColumnTypes(db, sqlDatabase, tableName)
 	if err != nil {
 		return nil, err
 	}
@@ -126,7 +126,6 @@ func mysqlLoadDDL(db *sql.DB, tableName string) (ddl string, err error) {
 		}
 	}
 	return ddl2, nil
-
 }
 
 func mysqlParseDDL(ddl string) (colsDDL map[string]string, primaryKeys []string) {
@@ -146,11 +145,11 @@ func mysqlParseDDL(ddl string) (colsDDL map[string]string, primaryKeys []string)
 				colsDDL[name] = colDDL
 			}
 		} else if strings.HasPrefix(line, "PRIMARY KEY") {
-			var primaryKeyNums = strings.Count(line, "`") / 2
-			var count = 0
-			var currentIdx = 0
-			var idxL = 0
-			var idxR = 0
+			primaryKeyNums := strings.Count(line, "`") / 2
+			count := 0
+			currentIdx := 0
+			idxL := 0
+			idxR := 0
 			for {
 				if count >= primaryKeyNums {
 					break

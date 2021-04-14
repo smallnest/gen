@@ -15,7 +15,7 @@ func LoadPostgresMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTab
 		sqlDatabase: sqlDatabase,
 		tableName:   tableName,
 	}
-	cols, err := schema.Table(db, m.tableName)
+	cols, err := schema.ColumnTypes(db, sqlDatabase, tableName)
 	if err != nil {
 		return nil, err
 	}
@@ -122,11 +122,11 @@ func postgresLoadPrimaryKey(db *sql.DB, tableName string, colInfo map[string]*Po
 			return fmt.Errorf("unable to load identity info from ms sql Scan: %v", err)
 		}
 
-		//fmt.Printf("## PRIMARY KEY COLUMN_NAME: %s\n", columnName)
+		// fmt.Printf("## PRIMARY KEY COLUMN_NAME: %s\n", columnName)
 		colInfo, ok := colInfo[columnName]
 		if ok {
 			colInfo.PrimaryKey = true
-			//fmt.Printf("name: %s primary_key: %t\n", colInfo.name, colInfo.primary_key)
+			// fmt.Printf("name: %s primary_key: %t\n", colInfo.name, colInfo.primary_key)
 		}
 	}
 	return nil

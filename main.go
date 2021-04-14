@@ -109,7 +109,7 @@ git fetch up
 
 `
 
-	//Parse options
+	// Parse options
 	goopt.Parse(nil)
 }
 
@@ -119,8 +119,8 @@ func saveTemplates() {
 	if err != nil {
 		fmt.Printf("Error saving: %v\n", err)
 	}
-
 }
+
 func listTemplates() {
 	for i, file := range baseTemplates.List() {
 		fmt.Printf("   [%d] [%s]\n", i, file)
@@ -188,9 +188,9 @@ func main() {
 		return
 	}
 
-	//fmt.Printf("fieldNamingTemplate: %s\n", *fieldNamingTemplate)
-	//fmt.Printf("fileNamingTemplate: %s\n", *fileNamingTemplate)
-	//fmt.Printf("modelNamingTemplate: %s\n", *modelNamingTemplate)
+	// fmt.Printf("fieldNamingTemplate: %s\n", *fieldNamingTemplate)
+	// fmt.Printf("fileNamingTemplate: %s\n", *fileNamingTemplate)
+	// fmt.Printf("modelNamingTemplate: %s\n", *modelNamingTemplate)
 
 	// Username is required
 	if sqlConnStr == nil || *sqlConnStr == "" || *sqlConnStr == "nil" {
@@ -219,11 +219,14 @@ func main() {
 	if *sqlTable != "" {
 		dbTables = strings.Split(*sqlTable, ",")
 	} else {
-		dbTables, err = schema.TableNames(db)
+		schemaTables, err := schema.TableNames(db)
 		if err != nil {
 			fmt.Print(au.Red(fmt.Sprintf("Error in fetching tables information from %s information schema from %s\n", *sqlType, *sqlConnStr)))
 			os.Exit(1)
 			return
+		}
+		for _, st := range schemaTables {
+			dbTables = append(dbTables, st[1]) // s[0] == sqlDatabase
 		}
 	}
 
@@ -307,7 +310,6 @@ func main() {
 }
 
 func initializeDB() (db *sql.DB, err error) {
-
 	db, err = sql.Open(*sqlType, *sqlConnStr)
 	if err != nil {
 		fmt.Print(au.Red(fmt.Sprintf("Error in open database: %v\n\n", err.Error())))
@@ -445,7 +447,6 @@ func executeCustomScript(conf *dbmeta.Config) error {
 }
 
 func execTemplate(conf *dbmeta.Config, genTemplate *dbmeta.GenTemplate, data map[string]interface{}) error {
-
 	data["DatabaseName"] = *sqlDatabase
 	data["module"] = *module
 	data["modelFQPN"] = conf.ModelFQPN
@@ -605,7 +606,7 @@ func generate(conf *dbmeta.Config) error {
 		}
 
 		if *daoGenerate {
-			//write dao
+			// write dao
 			outputFile := filepath.Join(daoDir, CreateGoSrcFileName(tableName))
 			err = conf.WriteTemplate(DaoTmpl, modelInfo, outputFile)
 			if err != nil {
@@ -689,7 +690,6 @@ func generate(conf *dbmeta.Config) error {
 }
 
 func generateRestBaseFiles(conf *dbmeta.Config, apiDir string) (err error) {
-
 	data := map[string]interface{}{}
 	var RouterTmpl *dbmeta.GenTemplate
 	var HTTPUtilsTmpl *dbmeta.GenTemplate
@@ -746,7 +746,6 @@ func generateMakefile(conf *dbmeta.Config) (err error) {
 }
 
 func generateProtobufDefinitionFile(conf *dbmeta.Config, data map[string]interface{}) (err error) {
-
 	moduleDir := filepath.Join(*outDir, conf.ModelPackageName)
 	serverDir := filepath.Join(*outDir, conf.GrpcPackageName)
 	err = os.MkdirAll(serverDir, 0777)
@@ -805,7 +804,6 @@ func generateProtobufDefinitionFile(conf *dbmeta.Config, data map[string]interfa
 }
 
 func createProtocCmdLine(protoBufDir, protoBufOutDir, protoBufFile string) ([]string, error) {
-
 	if *gogoProtoImport != "" {
 		if !dbmeta.Exists(*gogoProtoImport) {
 			fmt.Print(au.Red(fmt.Sprintf("%s does not exist on path - install with\ngo get -u github.com/gogo/protobuf/proto\n\n", *gogoProtoImport)))
@@ -822,8 +820,8 @@ func createProtocCmdLine(protoBufDir, protoBufOutDir, protoBufFile string) ([]st
 	gogoPath := filepath.Join(gopath, "src/github.com/gogo/protobuf/gogoproto/gogo.proto")
 	gogoImportExists := dbmeta.Exists(gogoPath)
 
-	//fmt.Printf("path    : %s   srcDirExists: %t\n", srcPath, srcDirExists)
-	//fmt.Printf("gogoPath: %s   gogoImportExists: %t\n", gogoPath, gogoImportExists)
+	// fmt.Printf("path    : %s   srcDirExists: %t\n", srcPath, srcDirExists)
+	// fmt.Printf("gogoPath: %s   gogoImportExists: %t\n", gogoPath, gogoImportExists)
 
 	if !gogoImportExists {
 		fmt.Print(au.Red("github.com/gogo/protobuf/gogoproto/gogo.proto does not exist on path - install with\ngo get -u github.com/gogo/protobuf/proto\n\n"))
@@ -834,12 +832,14 @@ func createProtocCmdLine(protoBufDir, protoBufOutDir, protoBufFile string) ([]st
 
 	fmt.Printf("----------------------------\n")
 
-	args := []string{fmt.Sprintf("-I%s", *gogoProtoImport),
+	args := []string{
+		fmt.Sprintf("-I%s", *gogoProtoImport),
 		fmt.Sprintf("-I%s", protoBufDir),
 
 		fmt.Sprintf("--gogo_out=plugins=grpc,Mgoogle/protobuf/timestamp.proto=github.com/gogo/protobuf/types,Mgoogle/protobuf/duration.proto=github.com/gogo/protobuf/types,Mgoogle/protobuf/empty.proto=github.com/gogo/protobuf/types,Mgoogle/api/annotations.proto=github.com/gogo/googleapis/google/api,Mmodel.proto:%s", protoBufOutDir),
-		//fmt.Sprintf("--gogo_out=plugins=grpc:%s", protoBufOutDir),
-		fmt.Sprintf("%s", protoBufFile)}
+		// fmt.Sprintf("--gogo_out=plugins=grpc:%s", protoBufOutDir),
+		fmt.Sprintf("%s", protoBufFile),
+	}
 
 	return args, nil
 }
@@ -885,7 +885,6 @@ func GoFmt(codeDir string) (string, error) {
 }
 
 func generateProjectFiles(conf *dbmeta.Config, data map[string]interface{}) (err error) {
-
 	var GitIgnoreTmpl *dbmeta.GenTemplate
 	if GitIgnoreTmpl, err = LoadTemplate("gitignore.tmpl"); err != nil {
 		fmt.Print(au.Red(fmt.Sprintf("Error loading template %v\n", err)))
@@ -924,6 +923,7 @@ func populateProtoCinContext(conf *dbmeta.Config, data map[string]interface{}) {
 		data["ProtocCmdLine"] = strings.Join(protoC, " \\\n    ")
 	}
 }
+
 func generateServerCode(conf *dbmeta.Config) (err error) {
 	data := map[string]interface{}{}
 	var MainServerTmpl *dbmeta.GenTemplate
@@ -972,7 +972,8 @@ func copyTemplatesToTarget() (err error) {
 }
 
 func regenCmdLine() []string {
-	cmdLine := []string{"gen",
+	cmdLine := []string{
+		"gen",
 		fmt.Sprintf(" --sqltype=%s", *sqlType),
 		fmt.Sprintf(" --connstr='%s'", *sqlConnStr),
 		fmt.Sprintf(" --database=%s", *sqlDatabase),

@@ -16,7 +16,7 @@ func LoadMsSQLMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 		tableName:   tableName,
 	}
 
-	cols, err := schema.Table(db, m.tableName)
+	cols, err := schema.ColumnTypes(db, sqlDatabase, tableName)
 	if err != nil {
 		return nil, err
 	}
