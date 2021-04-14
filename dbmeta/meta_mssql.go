@@ -97,7 +97,6 @@ func LoadMsSQLMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 }
 
 func msSQLLoadPrimaryKey(db *sql.DB, tableName string, colInfo map[string]*msSQLColumnInfo) error {
-
 	primaryKeySQL := fmt.Sprintf(`
 SELECT Col.Column_Name from 
     INFORMATION_SCHEMA.TABLE_CONSTRAINTS Tab, 
@@ -121,11 +120,11 @@ WHERE
 			return fmt.Errorf("unable to load identity info from ms sql Scan: %v", err)
 		}
 
-		//fmt.Printf("## PRIMARY KEY COLUMN_NAME: %s\n", columnName)
+		// fmt.Printf("## PRIMARY KEY COLUMN_NAME: %s\n", columnName)
 		colInfo, ok := colInfo[columnName]
 		if ok {
 			colInfo.primaryKey = true
-			//fmt.Printf("name: %s primary_key: %t\n", colInfo.name, colInfo.primary_key)
+			// fmt.Printf("name: %s primary_key: %t\n", colInfo.name, colInfo.primary_key)
 		}
 	}
 	return nil
