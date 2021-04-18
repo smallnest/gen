@@ -163,6 +163,7 @@ Options:
 
 ## Building
 The project contains a makefile for easy building and common tasks.
+* `go get` - get the relevant dependencies as a "go" software
 * `make help` - list available targets
 * `make build` - generate the binary `./gen`
 * `make example` - run the gen process on the example SqlLite db located in ./examples place the sources in ./example

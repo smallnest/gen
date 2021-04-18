@@ -17,7 +17,10 @@ func LoadPostgresMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTab
 	}
 	cols, err := schema.ColumnTypes(db, sqlDatabase, tableName)
 	if err != nil {
-		return nil, err
+		cols, err = schema.ColumnTypes(db, "", tableName)
+		if err != nil {
+			return nil, err
+		}
 	}
 	m.columns = make([]*columnMeta, len(cols))
 
