@@ -22,6 +22,7 @@ import (
 	"github.com/davecgh/go-spew/spew"
 	"github.com/jinzhu/inflection"
 	"github.com/serenize/snaker"
+	"golang.org/x/tools/imports"
 )
 
 // GenTemplate template info struct
@@ -234,6 +235,10 @@ func camelToUpperCamel(s string) string {
 // FormatSource format source code contents
 func FormatSource(s string) string {
 	formattedSource, err := format.Source([]byte(s))
+	if err != nil {
+		return fmt.Sprintf("Error in formatting source: %s\n", err.Error())
+	}
+	formattedSource, err = imports.Process("", formattedSource, nil)
 	if err != nil {
 		return fmt.Sprintf("Error in formatting source: %s\n", err.Error())
 	}

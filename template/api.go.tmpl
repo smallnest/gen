@@ -11,10 +11,6 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-var (
-    _ = null.Bool{}
-)
-
 func config{{.StructName}}Router(router *httprouter.Router) {
 	router.GET("/{{.StructName | toLower}}", GetAll{{.StructName}})
 	router.POST("/{{.StructName | toLower}}", Add{{.StructName}})

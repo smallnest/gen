@@ -19,10 +19,7 @@ import (
 	"github.com/julienschmidt/httprouter"
 )
 
-var (
-    _ = time.Second // import time.Second for unknown usage in api
-	crudEndpoints map[string]*CrudAPI
-)
+var crudEndpoints map[string]*CrudAPI
 
 // CrudAPI describes requests available for tables in the database
 type CrudAPI struct {
