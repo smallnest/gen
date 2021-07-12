@@ -569,6 +569,8 @@ func (c *Config) WriteTemplate(genTemplate *GenTemplate, data map[string]interfa
 	data["daoFQPN"] = c.DaoFQPN
 	data["daoPackageName"] = c.DaoPackageName
 
+	data["UseGuregu"] = c.UseGureguTypes
+
 	data["apiFQPN"] = c.APIFQPN
 	data["apiPackageName"] = c.APIPackageName
 

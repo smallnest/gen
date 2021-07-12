@@ -5,7 +5,7 @@ import (
     "time"
 
     "github.com/satori/go.uuid"
-    "github.com/guregu/null"
+    {{if .UseGuregu}} "github.com/guregu/null" {{end}}
 	"gorm.io/gorm"
 )
 

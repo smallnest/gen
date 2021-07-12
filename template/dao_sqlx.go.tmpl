@@ -8,13 +8,13 @@ import (
 
 	"{{.modelFQPN}}"
 
-    "github.com/guregu/null"
+    {{if .UseGuregu}} "github.com/guregu/null" {{end}}
 	"github.com/satori/go.uuid"
 )
 
 var (
     _ = time.Second
-    _ = null.Bool{}
+    {{if .UseGuregu}} _ = null.Bool{} {{end}}
     _ = uuid.UUID{}
 )
 
