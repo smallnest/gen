@@ -48,7 +48,12 @@ Code generation for a complete CRUD rest project is possible with DAO crud funct
 ## Binary Installation
 ```BASH
 ## install gen tool (should be installed to ~/go/bin, make sure ~/go/bin is in your path.
+
+## go version < 1.17
 $ go get -u github.com/smallnest/gen
+
+## go version == 1.17
+$ go install github.com/smallnest/gen@latest
 
 ## download sample sqlite database
 $ wget https://github.com/smallnest/gen/raw/master/example/sample.db
