@@ -11,11 +11,12 @@ import (
 )
 
 // LoadUnknownMeta fetch db meta data for unknown database type
-func LoadUnknownMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error) {
+func LoadUnknownMeta(db *sql.DB, sqlType, sqlDatabase string, tableSchemaAndName TableSchemaAndName) (DbTableMeta, error) {
+	tableName := tableSchemaAndName.TableName
 	m := &dbTableMeta{
-		sqlType:     sqlType,
-		sqlDatabase: sqlDatabase,
-		tableName:   tableName,
+		sqlType:            sqlType,
+		sqlDatabase:        sqlDatabase,
+		tableSchemaAndName: tableSchemaAndName,
 	}
 
 	cols, err := schema.ColumnTypes(db, sqlDatabase, tableName)
@@ -84,7 +85,7 @@ func LoadUnknownMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTabl
 		m.columns[i] = colMeta
 	}
 
-	m.ddl = BuildDefaultTableDDL(tableName, m.columns)
+	m.ddl = BuildDefaultTableDDL(tableSchemaAndName, m.columns)
 	m = updateDefaultPrimaryKey(m)
 	return m, nil
 }

@@ -9,15 +9,16 @@ import (
 )
 
 // LoadSqliteMeta fetch db meta data for Sqlite3 database
-func LoadSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error) {
+func LoadSqliteMeta(db *sql.DB, sqlType, sqlDatabase string, tableSchemaAndName TableSchemaAndName) (DbTableMeta, error) {
+	tableName := tableSchemaAndName.TableName
 	if tableName == "sqlite_sequence" || tableName == "sqlite_stat1" {
 		return nil, fmt.Errorf("unsupported table: %s", tableName)
 	}
 
 	m := &dbTableMeta{
-		sqlType:     sqlType,
-		sqlDatabase: sqlDatabase,
-		tableName:   tableName,
+		sqlType:            sqlType,
+		sqlDatabase:        sqlDatabase,
+		tableSchemaAndName: tableSchemaAndName,
 	}
 
 	ddl, err := sqliteLoadDDL(db, tableName)
@@ -29,7 +30,7 @@ func LoadSqliteMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTable
 
 	colsInfos, err := sqliteLoadPragma(db, tableName)
 	if err != nil {
-		return nil, fmt.Errorf("unable to load PRAGMA table_info %s: %v", m.tableName, err)
+		return nil, fmt.Errorf("unable to load PRAGMA table_info %s: %v", m.tableSchemaAndName, err)
 	}
 
 	colsDDL := sqliteParseDDL(ddl)

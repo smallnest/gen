@@ -52,7 +52,7 @@ SELECT
 FROM
     INFORMATION_SCHEMA.COLUMNS
 WHERE
-  TABLE_SCHEMA = @SchemaName
+  TABLE_SCHEMA = @TableSchema
   AND TABLE_NAME = @TableName
   AND COLUMN_NAME = @ColumnName;
 */
@@ -103,20 +103,20 @@ type PostgresInformationSchema struct {
 }
 
 // LoadTableInfoFromPostgresInformationSchema fetch info from information_schema for postgres database
-func LoadTableInfoFromPostgresInformationSchema(db *sql.DB, tableName string) (primaryKey map[string]*PostgresInformationSchema, err error) {
+func LoadTableInfoFromPostgresInformationSchema(db *sql.DB, tableSchemaAndName TableSchemaAndName) (primaryKey map[string]*PostgresInformationSchema, err error) {
 	colInfo := make(map[string]*PostgresInformationSchema)
 
 	identitySQL := fmt.Sprintf(`
 SELECT TABLE_CATALOG, table_schema, table_name, ordinal_position, column_name, data_type, character_maximum_length,
 column_default, is_nullable, is_identity 
 FROM information_schema.columns
-WHERE table_name = '%s' 
+WHERE table_name = '%s' AND table_schema = '%s'
 ORDER BY table_name, ordinal_position;
-`, tableName)
+`, tableSchemaAndName.TableName, tableSchemaAndName.TableSchema)
 
 	res, err := db.Query(identitySQL)
 	if err != nil {
-		return nil, fmt.Errorf("unable to load ddl from %s: %v", tableName, err)
+		return nil, fmt.Errorf("unable to load ddl from %s: %v", tableSchemaAndName, err)
 	}
 	defer res.Close()
 	for res.Next() {
@@ -256,7 +256,7 @@ func updateDefaultPrimaryKey(m *dbTableMeta) *dbTableMeta {
 	}
 
 	if !hasPrimary && len(m.columns) > 0 {
-		comments := fmt.Sprintf("Warning table: %s does not have a primary key defined, setting col position 1 %s as primary key\n", m.tableName, m.columns[0].Name())
+		comments := fmt.Sprintf("Warning table: %s does not have a primary key defined, setting col position 1 %s as primary key\n", m.tableSchemaAndName, m.columns[0].Name())
 		if au != nil {
 			fmt.Print(au.Yellow(comments))
 		} else {
@@ -269,7 +269,7 @@ func updateDefaultPrimaryKey(m *dbTableMeta) *dbTableMeta {
 	}
 
 	if m.columns[primaryKeyPos].nullable {
-		comments := fmt.Sprintf("Warning table: %s primary key column %s is nullable column, setting it as NOT NULL\n", m.tableName, m.columns[primaryKeyPos].Name())
+		comments := fmt.Sprintf("Warning table: %s primary key column %s is nullable column, setting it as NOT NULL\n", m.tableSchemaAndName, m.columns[primaryKeyPos].Name())
 
 		if au != nil {
 			fmt.Print(au.Yellow(comments))

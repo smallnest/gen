@@ -18,7 +18,7 @@ import (
 	dynamicstruct "github.com/ompluscator/dynamic-struct"
 )
 
-type metaDataLoader func(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error)
+type metaDataLoader func(db *sql.DB, sqlType, sqlDatabase string, tableSchemaAndName TableSchemaAndName) (DbTableMeta, error)
 
 var metaDataFuncs = make(map[string]metaDataLoader)
 var sqlMappings = make(map[string]*SQLMapping)
@@ -176,6 +176,7 @@ type DbTableMeta interface {
 	Columns() []ColumnMeta
 	SQLType() string
 	SQLDatabase() string
+	TableSchema() string
 	TableName() string
 	DDL() string
 }
@@ -198,13 +199,26 @@ type ColumnMeta interface {
 	DefaultValue() string
 }
 
+type TableSchemaAndName struct {
+	TableSchema string
+	TableName   string
+}
+
+func (t TableSchemaAndName) String() string {
+	if len(t.TableSchema) == 0 {
+		return t.TableName
+	} else {
+		return t.TableSchema + "." + t.TableName
+	}
+}
+
 type dbTableMeta struct {
-	sqlType       string
-	sqlDatabase   string
-	tableName     string
-	columns       []*columnMeta
-	ddl           string
-	primaryKeyPos int
+	sqlType            string
+	sqlDatabase        string
+	tableSchemaAndName TableSchemaAndName
+	columns            []*columnMeta
+	ddl                string
+	primaryKeyPos      int
 }
 
 // PrimaryKeyPos ordinal pos of primary key
@@ -224,7 +238,12 @@ func (m *dbTableMeta) SQLDatabase() string {
 
 // TableName sql table name
 func (m *dbTableMeta) TableName() string {
-	return m.tableName
+	return m.tableSchemaAndName.TableName
+}
+
+// TableSchema sql table schema name
+func (m *dbTableMeta) TableSchema() string {
+	return m.tableSchemaAndName.TableSchema
 }
 
 // Columns ColumnMeta for columns in a sql table
@@ -244,16 +263,16 @@ func (m *dbTableMeta) DDL() string {
 
 // ModelInfo info for a sql table
 type ModelInfo struct {
-	Index           int
-	IndexPlus1      int
-	PackageName     string
-	StructName      string
-	ShortStructName string
-	TableName       string
-	Fields          []string
-	DBMeta          DbTableMeta
-	Instance        interface{}
-	CodeFields      []*FieldInfo
+	Index              int
+	IndexPlus1         int
+	PackageName        string
+	StructName         string
+	ShortStructName    string
+	TableSchemaAndName TableSchemaAndName
+	Fields             []string
+	DBMeta             DbTableMeta
+	Instance           interface{}
+	CodeFields         []*FieldInfo
 }
 
 // Notes notes on table generation
@@ -306,13 +325,13 @@ func GetFunctionName(i interface{}) string {
 }
 
 // LoadMeta loads the DbTableMeta data from the db connection for the table
-func LoadMeta(sqlType string, db *sql.DB, sqlDatabase, tableName string) (DbTableMeta, error) {
+func LoadMeta(sqlType string, db *sql.DB, sqlDatabase string, tableSchemaAndName TableSchemaAndName) (DbTableMeta, error) {
 	dbMetaFunc, haveMeta := metaDataFuncs[sqlType]
 	if !haveMeta {
 		dbMetaFunc = LoadUnknownMeta
 	}
 
-	dbMeta, err := dbMetaFunc(db, sqlType, sqlDatabase, tableName)
+	dbMeta, err := dbMetaFunc(db, sqlType, sqlDatabase, tableSchemaAndName)
 	//if err != nil {
 	//	fmt.Printf("Error calling func: %s error: %v\n", GetFunctionName(dbMetaFunc), err)
 	//}
@@ -524,9 +543,9 @@ func createGormAnnotation(c ColumnMeta) string {
 }
 
 // BuildDefaultTableDDL create a ddl mock using the ColumnMeta data
-func BuildDefaultTableDDL(tableName string, cols []*columnMeta) string {
+func BuildDefaultTableDDL(tableSchemaAndName TableSchemaAndName, cols []*columnMeta) string {
 	buf := bytes.Buffer{}
-	buf.WriteString(fmt.Sprintf("Table: %s\n", tableName))
+	buf.WriteString(fmt.Sprintf("Table: %s\n", tableSchemaAndName))
 
 	for _, ct := range cols {
 		buf.WriteString(fmt.Sprintf("%s\n", ct.String()))
@@ -673,27 +692,32 @@ func FindInSlice(slice []string, val string) (int, bool) {
 }
 
 // LoadTableInfo load table info from db connection, and list of tables
-func LoadTableInfo(db *sql.DB, dbTables []string, excludeDbTables []string, conf *Config) map[string]*ModelInfo {
+func LoadTableInfo(db *sql.DB, dbTables []TableSchemaAndName, excludeDbTables []string, conf *Config) map[string]*ModelInfo {
 
 	tableInfos := make(map[string]*ModelInfo)
 
 	// generate go files for each table
 	var tableIdx = 0
-	for i, tableName := range dbTables {
+	for i, tableSchemaAndName := range dbTables {
 
-		_, ok := FindInSlice(excludeDbTables, tableName)
+		_, ok := FindInSlice(excludeDbTables, tableSchemaAndName.TableName)
 		if ok {
-			fmt.Printf("Skipping excluded table %s\n", tableName)
+			fmt.Printf("Skipping excluded table %v\n", tableSchemaAndName)
 			continue
 		}
 
+		tableName := tableSchemaAndName.TableName
 		if strings.HasPrefix(tableName, "[") && strings.HasSuffix(tableName, "]") {
 			tableName = tableName[1 : len(tableName)-1]
+			tableSchemaAndName = TableSchemaAndName{
+				TableSchema: tableSchemaAndName.TableSchema,
+				TableName:   tableName,
+			}
 		}
 
-		dbMeta, err := LoadMeta(conf.SQLType, db, conf.SQLDatabase, tableName)
+		dbMeta, err := LoadMeta(conf.SQLType, db, conf.SQLDatabase, tableSchemaAndName)
 		if err != nil {
-			msg := fmt.Sprintf("Warning - LoadMeta skipping table info for %s error: %v\n", tableName, err)
+			msg := fmt.Sprintf("Warning - LoadMeta skipping table info for %v error: %v\n", tableSchemaAndName, err)
 			if au != nil {
 				fmt.Print(au.Yellow(msg))
 			} else {
@@ -703,7 +727,7 @@ func LoadTableInfo(db *sql.DB, dbTables []string, excludeDbTables []string, conf
 			continue
 		}
 
-		modelInfo, err := GenerateModelInfo(tableInfos, dbMeta, tableName, conf)
+		modelInfo, err := GenerateModelInfo(tableInfos, dbMeta, conf)
 		if err != nil {
 			msg := fmt.Sprintf("Error - %v\n", err)
 			if au != nil {
@@ -734,11 +758,14 @@ func LoadTableInfo(db *sql.DB, dbTables []string, excludeDbTables []string, conf
 
 // GenerateModelInfo generates a struct for the given table.
 func GenerateModelInfo(tables map[string]*ModelInfo, dbMeta DbTableMeta,
-	tableName string,
 	conf *Config) (*ModelInfo, error) {
+	tableSchemaAndName := TableSchemaAndName{
+		TableSchema: dbMeta.TableSchema(),
+		TableName:   dbMeta.TableName(),
+	}
 
-	structName := Replace(conf.ModelNamingTemplate, tableName)
-	structName = CheckForDupeTable(tables, structName)
+	structName := Replace(conf.ModelNamingTemplate, tableSchemaAndName.TableName)
+	structName = CheckForDupeTable(tables, tableSchemaAndName.TableName)
 
 	fields, err := conf.GenerateFieldsTypes(dbMeta)
 	if err != nil {
@@ -746,7 +773,7 @@ func GenerateModelInfo(tables map[string]*ModelInfo, dbMeta DbTableMeta,
 	}
 
 	if conf.Verbose {
-		fmt.Printf("\ntableName: %s\n", tableName)
+		fmt.Printf("\ntableName: %v\n", tableSchemaAndName)
 		for _, c := range dbMeta.Columns() {
 			fmt.Printf("    %s\n", c.String())
 		}
@@ -788,14 +815,14 @@ func GenerateModelInfo(tables map[string]*ModelInfo, dbMeta DbTableMeta,
 	}
 
 	var modelInfo = &ModelInfo{
-		PackageName:     conf.ModelPackageName,
-		StructName:      structName,
-		TableName:       tableName,
-		ShortStructName: strings.ToLower(string(structName[0])),
-		Fields:          code,
-		CodeFields:      fields,
-		DBMeta:          dbMeta,
-		Instance:        instance,
+		PackageName:        conf.ModelPackageName,
+		StructName:         structName,
+		TableSchemaAndName: tableSchemaAndName,
+		ShortStructName:    strings.ToLower(string(structName[0])),
+		Fields:             code,
+		CodeFields:         fields,
+		DBMeta:             dbMeta,
+		Instance:           instance,
 	}
 
 	return modelInfo, nil

@@ -10,11 +10,12 @@ import (
 )
 
 // LoadMysqlMeta fetch db meta data for MySQL database
-func LoadMysqlMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error) {
+func LoadMysqlMeta(db *sql.DB, sqlType, sqlDatabase string, tableSchemaAndName TableSchemaAndName) (DbTableMeta, error) {
+	tableName := tableSchemaAndName.TableName
 	m := &dbTableMeta{
-		sqlType:     sqlType,
-		sqlDatabase: sqlDatabase,
-		tableName:   tableName,
+		sqlType:            sqlType,
+		sqlDatabase:        sqlDatabase,
+		tableSchemaAndName: tableSchemaAndName,
 	}
 
 	cols, err := schema.ColumnTypes(db, sqlDatabase, tableName)

@@ -9,27 +9,36 @@ import (
 )
 
 // LoadPostgresMeta fetch db meta data for Postgres database
-func LoadPostgresMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error) {
-	m := &dbTableMeta{
-		sqlType:     sqlType,
-		sqlDatabase: sqlDatabase,
-		tableName:   tableName,
+func LoadPostgresMeta(db *sql.DB, sqlType, sqlDatabase string, tableSchemaAndName TableSchemaAndName) (DbTableMeta, error) {
+	if len(tableSchemaAndName.TableSchema) == 0 {
+		if len(sqlDatabase) > 0 {
+			// Postgres db name is in the connstring. sqlDatabase is repurposed for schema name.
+			tableSchemaAndName.TableSchema = sqlDatabase
+		} else {
+			// default schema is "public"
+			tableSchemaAndName.TableSchema = "public"
+		}
 	}
-	cols, err := schema.ColumnTypes(db, sqlDatabase, tableName)
+	m := &dbTableMeta{
+		sqlType:            sqlType,
+		sqlDatabase:        sqlDatabase,
+		tableSchemaAndName: tableSchemaAndName,
+	}
+	cols, err := schema.ColumnTypes(db, tableSchemaAndName.TableSchema, tableSchemaAndName.TableName)
 	if err != nil {
-		cols, err = schema.ColumnTypes(db, "", tableName)
+		cols, err = schema.ColumnTypes(db, "", tableSchemaAndName.TableName)
 		if err != nil {
 			return nil, err
 		}
 	}
 	m.columns = make([]*columnMeta, len(cols))
 
-	colInfo, err := LoadTableInfoFromPostgresInformationSchema(db, tableName)
+	colInfo, err := LoadTableInfoFromPostgresInformationSchema(db, tableSchemaAndName)
 	if err != nil {
-		return nil, fmt.Errorf("unable to load identity info schema from postgres table: %s error: %v", tableName, err)
+		return nil, fmt.Errorf("unable to load identity info schema from postgres table: %s error: %v", tableSchemaAndName, err)
 	}
 
-	err = postgresLoadPrimaryKey(db, tableName, colInfo)
+	err = postgresLoadPrimaryKey(db, tableSchemaAndName, colInfo)
 	if err != nil {
 		return nil, fmt.Errorf("unable to load primary key from postgres: %v", err)
 	}
@@ -84,7 +93,7 @@ func LoadPostgresMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTab
 		m.columns[i] = colMeta
 	}
 
-	m.ddl = BuildDefaultTableDDL(tableName, m.columns)
+	m.ddl = BuildDefaultTableDDL(tableSchemaAndName, m.columns)
 	m = updateDefaultPrimaryKey(m)
 
 	for _, v := range m.columns {
@@ -103,17 +112,17 @@ func LoadPostgresMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTab
 	return m, nil
 }
 
-func postgresLoadPrimaryKey(db *sql.DB, tableName string, colInfo map[string]*PostgresInformationSchema) error {
+func postgresLoadPrimaryKey(db *sql.DB, tableSchemaAndName TableSchemaAndName, colInfo map[string]*PostgresInformationSchema) error {
 	primaryKeySQL := fmt.Sprintf(`
 	SELECT c.column_name
 	FROM information_schema.key_column_usage AS c
 	LEFT JOIN information_schema.table_constraints AS t
 	ON t.constraint_name = c.constraint_name
-	WHERE t.table_name = '%s' AND t.constraint_type = 'PRIMARY KEY';
-`, tableName)
+	WHERE t.table_name = '%s' AND t.table_schema = '%s' AND t.constraint_type = 'PRIMARY KEY';
+`, tableSchemaAndName.TableName, tableSchemaAndName.TableSchema)
 	res, err := db.Query(primaryKeySQL)
 	if err != nil {
-		return fmt.Errorf("unable to load ddl from ms sql: %v", err)
+		return fmt.Errorf("unable to load ddl from PostgreSQL: %v", err)
 	}
 
 	defer res.Close()

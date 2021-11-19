@@ -499,10 +499,11 @@ func (c *Config) GenerateTableFile(tableName, templateFilename, outputDirectory,
 // CreateContextForTableFile create map context for a db table
 func (c *Config) CreateContextForTableFile(tableInfo *ModelInfo) map[string]interface{} {
 	var modelInfo = map[string]interface{}{
-		"StructName":      tableInfo.StructName,
-		"TableName":       tableInfo.DBMeta.TableName(),
-		"ShortStructName": strings.ToLower(string(tableInfo.StructName[0])),
-		"TableInfo":       tableInfo,
+		"StructName":         tableInfo.StructName,
+		"TableName":          tableInfo.TableSchemaAndName.TableName,
+		"TableSchemaAndName": tableInfo.TableSchemaAndName,
+		"ShortStructName":    strings.ToLower(string(tableInfo.StructName[0])),
+		"TableInfo":          tableInfo,
 	}
 
 	nonPrimaryKeys := NonPrimaryKeyNames(tableInfo.DBMeta)

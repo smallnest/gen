@@ -29,7 +29,7 @@ import (
 var (
 	sqlType          = goopt.String([]string{"--sqltype"}, "mysql", "sql database type such as [ mysql, mssql, postgres, sqlite, etc. ]")
 	sqlConnStr       = goopt.String([]string{"-c", "--connstr"}, "nil", "database connection string")
-	sqlDatabase      = goopt.String([]string{"-d", "--database"}, "nil", "Database to for connection")
+	sqlDatabase      = goopt.String([]string{"-d", "--database"}, "nil", "Database to for connection. For Postgres, it's the table's schema name.")
 	sqlTable         = goopt.String([]string{"-t", "--table"}, "", "Table to build struct from")
 	excludeSQLTables = goopt.String([]string{"-x", "--exclude"}, "", "Table(s) to exclude")
 	templateDir      = goopt.String([]string{"--templateDir"}, "", "Template Dir")
@@ -214,10 +214,16 @@ func main() {
 
 	defer db.Close()
 
-	var dbTables []string
+	var dbTables []dbmeta.TableSchemaAndName
 	// parse or read tables
 	if *sqlTable != "" {
-		dbTables = strings.Split(*sqlTable, ",")
+		tableNames := strings.Split(*sqlTable, ",")
+		dbTables = make([]dbmeta.TableSchemaAndName, len(tableNames))
+		for i, tableName := range tableNames {
+			dbTables[i] = dbmeta.TableSchemaAndName{
+				TableName: tableName,
+			}
+		}
 	} else {
 		schemaTables, err := schema.TableNames(db)
 		if err != nil {
@@ -226,7 +232,10 @@ func main() {
 			return
 		}
 		for _, st := range schemaTables {
-			dbTables = append(dbTables, st[1]) // s[0] == sqlDatabase
+			dbTables = append(dbTables, dbmeta.TableSchemaAndName{
+				TableSchema: st[0],
+				TableName:   st[1],
+			})
 		}
 	}
 
@@ -278,8 +287,8 @@ func main() {
 
 	fmt.Printf("Generating code for the following tables (%d)\n", len(tableInfos))
 	i := 0
-	for tableName := range tableInfos {
-		fmt.Printf("[%d] %s\n", i, tableName)
+	for _, tableInfo := range tableInfos {
+		fmt.Printf("[%d] %v\n", i, tableInfo.TableSchemaAndName)
 		i++
 	}
 
@@ -580,7 +589,7 @@ func generate(conf *dbmeta.Config) error {
 
 		if len(tableInfo.Fields) == 0 {
 			if *verbose {
-				fmt.Printf("[%d] Table: %s - No Fields Available\n", tableInfo.Index, tableName)
+				fmt.Printf("[%d] Table: %v - No Fields Available\n", tableInfo.Index, tableInfo.TableSchemaAndName)
 			}
 
 			continue

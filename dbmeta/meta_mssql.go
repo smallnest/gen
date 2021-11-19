@@ -9,11 +9,12 @@ import (
 )
 
 // LoadMsSQLMeta fetch db meta data for MS SQL database
-func LoadMsSQLMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableMeta, error) {
+func LoadMsSQLMeta(db *sql.DB, sqlType, sqlDatabase string, tableSchemaAndName TableSchemaAndName) (DbTableMeta, error) {
+	tableName := tableSchemaAndName.TableName
 	m := &dbTableMeta{
-		sqlType:     sqlType,
-		sqlDatabase: sqlDatabase,
-		tableName:   tableName,
+		sqlType:            sqlType,
+		sqlDatabase:        sqlDatabase,
+		tableSchemaAndName: tableSchemaAndName,
 	}
 
 	cols, err := schema.ColumnTypes(db, sqlDatabase, tableName)
@@ -91,7 +92,7 @@ func LoadMsSQLMeta(db *sql.DB, sqlType, sqlDatabase, tableName string) (DbTableM
 		m.columns[i] = colMeta
 	}
 
-	m.ddl = BuildDefaultTableDDL(tableName, m.columns)
+	m.ddl = BuildDefaultTableDDL(tableSchemaAndName, m.columns)
 	m = updateDefaultPrimaryKey(m)
 	return m, nil
 }
