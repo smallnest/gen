@@ -14,7 +14,7 @@ import (
 	_ "github.com/lib/pq"
 	_ "github.com/mattn/go-sqlite3"
 
-	"github.com/smallnest/gen/dbmeta"
+	"github.com/cresta/smallnest-gen/dbmeta"
 )
 
 var (

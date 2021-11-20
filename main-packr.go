@@ -5,4 +5,4 @@
 // and any other packr generated files.
 package main
 
-import _ "github.com/smallnest/gen/packrd"
+import _ "github.com/cresta/smallnest-gen/packrd"
