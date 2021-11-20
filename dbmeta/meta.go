@@ -765,7 +765,7 @@ func GenerateModelInfo(tables map[string]*ModelInfo, dbMeta DbTableMeta,
 	}
 
 	structName := Replace(conf.ModelNamingTemplate, tableSchemaAndName.TableName)
-	structName = CheckForDupeTable(tables, tableSchemaAndName.TableName)
+	structName = CheckForDupeTable(tables, structName)
 
 	fields, err := conf.GenerateFieldsTypes(dbMeta)
 	if err != nil {
