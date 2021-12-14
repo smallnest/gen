@@ -531,7 +531,7 @@ func createGormAnnotation(c ColumnMeta) string {
 				value = ""
 			}
 
-			if value != "" && !strings.Contains(value, "()") {
+			if value != "" {
 				buf.WriteString(fmt.Sprintf("default:%s;", value))
 			}
 		}
