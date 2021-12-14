@@ -223,7 +223,7 @@
       "json_type": "Text",
       "protobuf_type": "google.protobuf.Timestamp",
       "guregu_type": "null.Time",
-      "go_nullable_type": "time.Time",
+      "go_nullable_type": "sql.NullTime",
       "swagger_type": "time.Time"
     },
     {
@@ -232,7 +232,7 @@
       "json_type": "Text",
       "protobuf_type": "google.protobuf.Timestamp",
       "guregu_type": "null.Time",
-      "go_nullable_type": "time.Time",
+      "go_nullable_type": "sql.NullTime",
       "swagger_type": "time.Time"
     },
     {
@@ -241,7 +241,7 @@
       "json_type": "Text",
       "protobuf_type": "google.protobuf.Timestamp",
       "guregu_type": "null.Time",
-      "go_nullable_type": "time.Time",
+      "go_nullable_type": "sql.NullTime",
       "swagger_type": "time.Time"
     },
     {
@@ -250,7 +250,7 @@
       "json_type": "Text",
       "protobuf_type": "google.protobuf.Timestamp",
       "guregu_type": "null.Time",
-      "go_nullable_type": "time.Time",
+      "go_nullable_type": "sql.NullTime",
       "swagger_type": "time.Time"
     },
     {
@@ -259,7 +259,7 @@
       "json_type": "Text",
       "protobuf_type": "uint64",
       "guregu_type": "null.Time",
-      "go_nullable_type": "time.Time",
+      "go_nullable_type": "sql.NullTime",
       "swagger_type": "time.Time"
     },
     {
@@ -268,7 +268,7 @@
       "json_type": "Text",
       "protobuf_type": "uint64",
       "guregu_type": "null.Time",
-      "go_nullable_type": "time.Time",
+      "go_nullable_type": "sql.NullTime",
       "swagger_type": "time.Time"
     },
     {
@@ -277,7 +277,7 @@
       "json_type": "Text",
       "protobuf_type": "google.protobuf.Timestamp",
       "guregu_type": "null.Time",
-      "go_nullable_type": "time.Time",
+      "go_nullable_type": "sql.NullTime",
       "swagger_type": "time.Time"
     },
     {
