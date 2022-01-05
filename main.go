@@ -225,8 +225,27 @@ func main() {
 			os.Exit(1)
 			return
 		}
+		schemaViews, err := schema.ViewNames(db)
+		if err != nil {
+			fmt.Print(au.Red(fmt.Sprintf("Error in fetching view information from %s information schema from %s\n", *sqlType, *sqlConnStr)))
+			os.Exit(1)
+			return
+		}
+		schemaMaterializedViews, err := schema.MaterializedViewNames(db)
+		if err != nil {
+			fmt.Print(au.Red(fmt.Sprintf("Error in fetching materialized view information from %s information schema from %s\n", *sqlType, *sqlConnStr)))
+			os.Exit(1)
+			return
+		}
 		for _, st := range schemaTables {
 			dbTables = append(dbTables, st[1]) // s[0] == sqlDatabase
+		}
+
+		for _, st := range schemaViews {
+			dbTables = append(dbTables, st[1]) // st[0] == sqlDatabase
+		}
+		for _, st := range schemaMaterializedViews {
+			dbTables = append(dbTables, st[1]) // st[0] == sqlDatabase
 		}
 	}
 

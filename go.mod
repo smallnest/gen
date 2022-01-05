@@ -2,6 +2,8 @@ module github.com/smallnest/gen
 
 go 1.16
 
+replace github.com/jimsmart/schema v0.2.0 => github.com/cresta/jimsmart-schema v0.2.1-cresta
+
 require (
 	github.com/bxcodec/faker/v3 v3.5.0
 	github.com/davecgh/go-spew v1.1.1
