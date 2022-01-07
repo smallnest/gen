@@ -13,11 +13,11 @@ import (
 	"path/filepath"
 	"strings"
 
+	"github.com/cresta/jimsmart-schema"
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/droundy/goopt"
 	"github.com/gobuffalo/packd"
 	"github.com/gobuffalo/packr/v2"
-	"github.com/cresta/jimsmart-schema"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/lib/pq"
 	"github.com/logrusorgru/aurora"
@@ -251,10 +251,16 @@ func main() {
 		}
 
 		for _, st := range schemaViews {
-			dbTables = append(dbTables, st[1]) // st[0] == sqlDatabase
+			dbTables = append(dbTables, dbmeta.TableSchemaAndName{
+				TableSchema: st[0],
+				TableName:   st[1],
+			})
 		}
 		for _, st := range schemaMaterializedViews {
-			dbTables = append(dbTables, st[1]) // st[0] == sqlDatabase
+			dbTables = append(dbTables, dbmeta.TableSchemaAndName{
+				TableSchema: st[0],
+				TableName:   st[1],
+			})
 		}
 	}
 
