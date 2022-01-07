@@ -6,7 +6,7 @@ import (
 	"regexp"
 	"strings"
 
-	"github.com/jimsmart/schema"
+	"github.com/cresta/jimsmart-schema"
 )
 
 // LoadMysqlMeta fetch db meta data for MySQL database

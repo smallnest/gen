@@ -17,7 +17,7 @@ import (
 	"github.com/droundy/goopt"
 	"github.com/gobuffalo/packd"
 	"github.com/gobuffalo/packr/v2"
-	"github.com/jimsmart/schema"
+	"github.com/cresta/jimsmart-schema"
 	_ "github.com/jinzhu/gorm/dialects/mysql"
 	_ "github.com/lib/pq"
 	"github.com/logrusorgru/aurora"

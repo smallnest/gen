@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jimsmart/schema"
+	"github.com/cresta/jimsmart-schema"
 )
 
 // LoadMsSQLMeta fetch db meta data for MS SQL database

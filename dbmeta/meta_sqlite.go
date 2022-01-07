@@ -5,7 +5,7 @@ import (
 	"fmt"
 	"strings"
 
-	"github.com/jimsmart/schema"
+	"github.com/cresta/jimsmart-schema"
 )
 
 // LoadSqliteMeta fetch db meta data for Sqlite3 database

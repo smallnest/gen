@@ -7,7 +7,7 @@ import (
 
 	"github.com/droundy/goopt"
 	"github.com/gobuffalo/packr/v2"
-	"github.com/jimsmart/schema"
+	"github.com/cresta/jimsmart-schema"
 
 	_ "github.com/denisenkom/go-mssqldb"
 	_ "github.com/jinzhu/gorm/dialects/mysql"

@@ -7,7 +7,7 @@ import (
 	"strconv"
 	"strings"
 
-	"github.com/jimsmart/schema"
+	"github.com/cresta/jimsmart-schema"
 )
 
 // LoadUnknownMeta fetch db meta data for unknown database type
