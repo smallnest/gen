@@ -692,7 +692,7 @@ func FindInSlice(slice []string, val string) (int, bool) {
 }
 
 // LoadTableInfo load table info from db connection, and list of tables
-func LoadTableInfo(db *sql.DB, dbTables []TableSchemaAndName, excludeDbTables []string, conf *Config) map[string]*ModelInfo {
+func LoadTableInfo(db *sql.DB, schema *string, dbTables []TableSchemaAndName, excludeDbTables []string, conf *Config) map[string]*ModelInfo {
 
 	tableInfos := make(map[string]*ModelInfo)
 
@@ -703,6 +703,11 @@ func LoadTableInfo(db *sql.DB, dbTables []TableSchemaAndName, excludeDbTables []
 		_, ok := FindInSlice(excludeDbTables, tableSchemaAndName.TableName)
 		if ok {
 			fmt.Printf("Skipping excluded table %v\n", tableSchemaAndName)
+			continue
+		}
+
+		if *schema != "" && tableSchemaAndName.TableSchema != *schema {
+			fmt.Printf("Skipping unmatched schema %v: %v\n", *schema, tableSchemaAndName)
 			continue
 		}
 
