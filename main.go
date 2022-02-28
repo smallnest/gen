@@ -13,7 +13,7 @@ import (
 	"path/filepath"
 	"strings"
 
-	"github.com/cresta/jimsmart-schema"
+	schema "github.com/cresta/jimsmart-schema"
 	_ "github.com/denisenkom/go-mssqldb"
 	"github.com/droundy/goopt"
 	"github.com/gobuffalo/packd"
@@ -303,7 +303,7 @@ func main() {
 		}
 	}
 
-	tableInfos = dbmeta.LoadTableInfo(db, dbTables, excludeDbTables, conf)
+	tableInfos = dbmeta.LoadTableInfo(db, sqlDatabase, dbTables, excludeDbTables, conf)
 
 	if len(tableInfos) == 0 {
 		fmt.Print(au.Red(fmt.Sprintf("No tables loaded\n")))
