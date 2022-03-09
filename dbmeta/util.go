@@ -230,7 +230,7 @@ func Copy(dst interface{}, src interface{}) error {
 	}
 
 	if srcV.Type() != dstV.Type() {
-		return errors.New("different types can be copied")
+		return errors.New("different types can not be copied")
 	}
 
 	for i := 0; i < dstV.NumField(); i++ {
