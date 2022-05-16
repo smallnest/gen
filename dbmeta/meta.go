@@ -624,6 +624,9 @@ func LoadMappings(mappingFileName string, verbose bool) error {
 
 // SQLTypeToGoType map a sql type to a go type
 func SQLTypeToGoType(sqlType string, comment string, nullable bool, gureguTypes bool) (string, error) {
+	if comment != "" {
+		fmt.Printf("comment: %s\n", comment)
+	}
 	if strings.Index(comment, `go_type:"`) >= 0 {
 		tags := reflect.StructTag(comment)
 		val, ok := tags.Lookup("go_type")
