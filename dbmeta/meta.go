@@ -9,7 +9,9 @@ import (
 	"os"
 	"path/filepath"
 	"reflect"
+	"regexp"
 	"runtime"
+	"strconv"
 	"strings"
 	"time"
 
@@ -22,6 +24,7 @@ type metaDataLoader func(db *sql.DB, sqlType, sqlDatabase string, tableSchemaAnd
 
 var metaDataFuncs = make(map[string]metaDataLoader)
 var sqlMappings = make(map[string]*SQLMapping)
+var regexNotAlphanum = regexp.MustCompile("[^a-zA-Z0-9]")
 
 func init() {
 	metaDataFuncs["sqlite3"] = LoadSqliteMeta
@@ -58,6 +61,14 @@ type SQLMapping struct {
 
 	// SwaggerType mapped type
 	SwaggerType string `json:"swagger_type"`
+}
+
+type ImportPackageName string
+
+// ImportItem stores Go import package and its short name
+type ImportItem struct {
+	Package   ImportPackageName
+	ShortName string
 }
 
 func (m *SQLMapping) String() interface{} {
@@ -273,6 +284,7 @@ type ModelInfo struct {
 	DBMeta             DbTableMeta
 	Instance           interface{}
 	CodeFields         []*FieldInfo
+	Imports            []*ImportItem
 }
 
 // Notes notes on table generation
@@ -339,10 +351,12 @@ func LoadMeta(sqlType string, db *sql.DB, sqlDatabase string, tableSchemaAndName
 }
 
 // GenerateFieldsTypes FieldInfo slice from DbTableMeta
-func (c *Config) GenerateFieldsTypes(dbMeta DbTableMeta) ([]*FieldInfo, error) {
+func (c *Config) GenerateFieldsTypes(dbMeta DbTableMeta) ([]*FieldInfo, []*ImportItem, error) {
 
 	var fields []*FieldInfo
 	field := ""
+	importByPackageName := map[ImportPackageName]*ImportItem{}
+	importByShortName := map[string]*ImportItem{}
 	for i, col := range dbMeta.Columns() {
 		fieldName := col.Name()
 
@@ -350,7 +364,8 @@ func (c *Config) GenerateFieldsTypes(dbMeta DbTableMeta) ([]*FieldInfo, error) {
 			Index: i,
 		}
 
-		valueType, err := SQLTypeToGoType(strings.ToLower(col.DatabaseTypeName()), col.Nullable(), c.UseGureguTypes)
+		valueType, err := SQLTypeToGoType(strings.ToLower(col.DatabaseTypeName()), col.Comment(), col.Nullable(), c.UseGureguTypes)
+		valueType = ExtractImport(importByPackageName, importByShortName, valueType)
 		if err != nil { // unknown type
 			fmt.Printf("table: %s unable to generate struct field: %s type: %s error: %v\n", dbMeta.TableName(), fieldName, col.DatabaseTypeName(), err)
 			continue
@@ -406,7 +421,8 @@ func (c *Config) GenerateFieldsTypes(dbMeta DbTableMeta) ([]*FieldInfo, error) {
 		}
 
 		sqlMapping, _ := SQLTypeToMapping(strings.ToLower(col.DatabaseTypeName()))
-		goType, _ := SQLTypeToGoType(strings.ToLower(col.DatabaseTypeName()), false, false)
+		goType, _ := SQLTypeToGoType(strings.ToLower(col.DatabaseTypeName()), col.Comment(), false, false)
+		goType = ExtractImport(importByPackageName, importByShortName, goType)
 		protobufType, _ := SQLTypeToProtobufType(col.DatabaseTypeName())
 
 		// fmt.Printf("protobufType: %v  DatabaseTypeName: %v\n", protobufType, col.DatabaseTypeName())
@@ -448,7 +464,12 @@ func (c *Config) GenerateFieldsTypes(dbMeta DbTableMeta) ([]*FieldInfo, error) {
 
 		fields = append(fields, fi)
 	}
-	return fields, nil
+	imports := make([]*ImportItem, 0, len(importByPackageName))
+	for _, item := range importByPackageName {
+		imports = append(imports, item)
+	}
+
+	return fields, imports, nil
 }
 
 func formatFieldName(nameFormat string, name string) string {
@@ -602,7 +623,18 @@ func LoadMappings(mappingFileName string, verbose bool) error {
 }
 
 // SQLTypeToGoType map a sql type to a go type
-func SQLTypeToGoType(sqlType string, nullable bool, gureguTypes bool) (string, error) {
+func SQLTypeToGoType(sqlType string, comment string, nullable bool, gureguTypes bool) (string, error) {
+	if comment != "" {
+		fmt.Printf("comment: %s\n", comment)
+	}
+	if strings.Index(comment, `go_type:"`) >= 0 {
+		tags := reflect.StructTag(comment)
+		val, ok := tags.Lookup("go_type")
+		if ok {
+			return val, nil
+		}
+		fmt.Printf("Invalid go_type comment: %s\n", comment)
+	}
 	mapping, err := SQLTypeToMapping(sqlType)
 	if err != nil {
 		return "", err
@@ -772,7 +804,7 @@ func GenerateModelInfo(tables map[string]*ModelInfo, dbMeta DbTableMeta,
 	structName := Replace(conf.ModelNamingTemplate, tableSchemaAndName.TableName)
 	structName = CheckForDupeTable(tables, structName)
 
-	fields, err := conf.GenerateFieldsTypes(dbMeta)
+	fields, imports, err := conf.GenerateFieldsTypes(dbMeta)
 	if err != nil {
 		return nil, err
 	}
@@ -828,6 +860,7 @@ func GenerateModelInfo(tables map[string]*ModelInfo, dbMeta DbTableMeta,
 		CodeFields:         fields,
 		DBMeta:             dbMeta,
 		Instance:           instance,
+		Imports:            imports,
 	}
 
 	return modelInfo, nil
@@ -905,4 +938,39 @@ func checkDupeProtoBufFieldName(fields []*FieldInfo, fieldName string) string {
 func generateAlternativeName(name string) string {
 	name = name + "alt1"
 	return name
+}
+
+// ExtractImport finds the import package from goType, add it to import maps, and replace it with valid field type format.
+func ExtractImport(importByPackageName map[ImportPackageName]*ImportItem, importByShortName map[string]*ImportItem, goType string) string {
+	parts := strings.Split(goType, ":")
+	if len(parts) != 2 {
+		return goType
+	}
+	packageName := ImportPackageName(parts[0])
+	typeName := parts[1]
+	var shortName string
+	importPackage, ok := importByPackageName[packageName]
+	if ok {
+		shortName = importPackage.ShortName
+	} else {
+		packageParts := strings.Split(string(packageName), "/")
+		shortName = packageParts[len(packageParts)-1]
+		shortName = string(regexNotAlphanum.ReplaceAll([]byte(shortName), []byte("")))
+		suffix := 0
+		initialShortName := shortName
+		for {
+			if _, ok := importByShortName[shortName]; !ok {
+				break
+			}
+			suffix++
+			shortName = initialShortName + strconv.Itoa(suffix)
+		}
+	}
+	importItem := &ImportItem{
+		Package:   packageName,
+		ShortName: shortName,
+	}
+	importByPackageName[packageName] = importItem
+	importByShortName[shortName] = importItem
+	return shortName + "." + typeName
 }

@@ -52,8 +52,8 @@ func LoadPostgresMeta(db *sql.DB, sqlType, sqlDatabase string, tableSchemaAndNam
 		isAutoIncrement := false
 		isPrimaryKey := i == 0
 		var maxLen int64
-
 		maxLen = -1
+		comment := ""
 		colInfo, ok := colInfo[v.Name()]
 		if ok {
 			nullable = colInfo.IsNullable == "YES"
@@ -68,6 +68,7 @@ func LoadPostgresMeta(db *sql.DB, sqlType, sqlDatabase string, tableSchemaAndNam
 			if ok {
 				maxLen = ml
 			}
+			comment = colInfo.Comment
 		}
 
 		definedType := v.DatabaseTypeName()
@@ -88,6 +89,7 @@ func LoadPostgresMeta(db *sql.DB, sqlType, sqlDatabase string, tableSchemaAndNam
 			columnLen:        maxLen,
 			columnType:       definedType,
 			defaultVal:       defaultVal,
+			comment:          comment,
 		}
 
 		m.columns[i] = colMeta

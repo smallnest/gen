@@ -616,7 +616,7 @@ func (c *Config) format(genTemplate *GenTemplate, content []byte, outputFile str
 	if extension == ".go" {
 		formattedSource, err := format.Source([]byte(content))
 		if err != nil {
-			return nil, fmt.Errorf("error in formatting template: %s outputfile: %s source: %s", genTemplate.Name, outputFile, err.Error())
+			return nil, fmt.Errorf("error in formatting template: %s outputfile: %s source: %s\n%s", genTemplate.Name, outputFile, err.Error(), content)
 		}
 
 		fileContents := NormalizeNewlines(formattedSource)
