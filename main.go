@@ -226,6 +226,10 @@ func main() {
 			return
 		}
 		for _, st := range schemaTables {
+			//We need only one database schema
+			if st[0] != *sqlDatabase {
+				continue
+			}
 			dbTables = append(dbTables, st[1]) // s[0] == sqlDatabase
 		}
 	}
