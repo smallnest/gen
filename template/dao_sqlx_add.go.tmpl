@@ -1,5 +1,5 @@
 {{define "dao_sqlx_add.go.tmpl"}}
-// Add{{.StructName}} is a function to add a single record to {{.TableName}} table in the {{.DatabaseName}} database
+// Add{{.StructName}} is a function to add a single record to {{.TableName}} table in the {{.TableSchema}} schema
 // error - ErrInsertFailed, db save call failed
 func Add{{.StructName}}(ctx context.Context, record *{{.modelPackageName}}.{{.StructName}}) (result *{{.modelPackageName}}.{{.StructName}}, RowsAffected int64, err error) {
 	if DB.DriverName() == "postgres" {
@@ -9,7 +9,7 @@ func Add{{.StructName}}(ctx context.Context, record *{{.modelPackageName}}.{{.St
 	}
 }
 
-// add{{.StructName}}Postgres is a function to add a single record to {{.TableName}} table in the {{.DatabaseName}} database
+// add{{.StructName}}Postgres is a function to add a single record to {{.TableName}} table in the {{.TableSchema}} schema
 // error - ErrInsertFailed, db save call failed
 func add{{.StructName}}Postgres(ctx context.Context, record *{{.modelPackageName}}.{{.StructName}}) (result *{{.modelPackageName}}.{{.StructName}}, RowsAffected int64, err error) {
     sql := "{{.insertSql}}"
@@ -27,7 +27,7 @@ func add{{.StructName}}Postgres(ctx context.Context, record *{{.modelPackageName
     return record, rows, err
 }
 
-// add{{.StructName}}Postgres is a function to add a single record to {{.TableName}} table in the {{.DatabaseName}} database
+// add{{.StructName}}Postgres is a function to add a single record to {{.TableName}} table in the {{.TableSchema}} schema
 // error - ErrInsertFailed, db save call failed
 func add{{.StructName}}(ctx context.Context, record *{{.modelPackageName}}.{{.StructName}}) (result *{{.modelPackageName}}.{{.StructName}}, RowsAffected int64, err error) {
     sql := "{{.insertSql}}"

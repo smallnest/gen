@@ -278,11 +278,11 @@ func parseBytes(ps httprouter.Params, key string) (string, error) {
 
 
 
-// GetDdl is a function to get table info for a table in the {{.DatabaseName}} database
-// @Summary Get table info for a table in the {{.DatabaseName}} database by argID
+// GetDdl is a function to get table info for a table in the {{.TableSchema}} schema
+// @Summary Get table info for a table in the {{.TableSchema}} schema by argID
 // @Tags TableInfo
 // @ID argID
-// @Description GetDdl is a function to get table info for a table in the {{.DatabaseName}} database
+// @Description GetDdl is a function to get table info for a table in the {{.TableSchema}} schema
 // @Accept  json
 // @Produce  json
 // @Param  argID path int true "id"
@@ -312,10 +312,10 @@ func GetDdl(w http.ResponseWriter, r *http.Request, ps httprouter.Params) {
 
 
 
-// GetDdlEndpoints is a function to get a list of ddl endpoints available for tables in the {{.DatabaseName}} database
-// @Summary Gets a list of ddl endpoints available for tables in the {{.DatabaseName}} database
+// GetDdlEndpoints is a function to get a list of ddl endpoints available for tables in the {{.TableSchema}} schema
+// @Summary Gets a list of ddl endpoints available for tables in the {{.TableSchema}} schema
 // @Tags TableInfo
-// @Description GetDdlEndpoints is a function to get a list of ddl endpoints available for tables in the {{.DatabaseName}} database
+// @Description GetDdlEndpoints is a function to get a list of ddl endpoints available for tables in the {{.TableSchema}} schema
 // @Accept  json
 // @Produce  json
 // @Success 200 {object} {{.apiPackageName}}.CrudAPI

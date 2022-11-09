@@ -31,14 +31,14 @@ Comments
 
  {{if not .Config.AddProtobufAnnotation }}
 
-// {{.StructName}} struct is a row record of the {{.TableName}} table in the {{.DatabaseName}} database
+// {{.StructName}} struct is a row record of the {{.TableName}} table in the {{.TableSchema}} schema
 type {{.StructName}} struct {
     {{range .TableInfo.Fields}}{{.}}
     {{end}}
 }
 {{else}}
 
-// {{.StructName}} struct is a row record of the {{.TableName}} table in the {{.DatabaseName}} database
+// {{.StructName}} struct is a row record of the {{.TableName}} table in the {{.TableSchema}} schema
 /*
 type {{.StructName}} struct {
     {{range .TableInfo.Fields}}{{.}}

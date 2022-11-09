@@ -1,5 +1,5 @@
 {{define "dao_gorm_delete.go.tmpl"}}
-// Delete{{.StructName}} is a function to delete a single record from {{.TableName}} table in the {{.DatabaseName}} database
+// Delete{{.StructName}} is a function to delete a single record from {{.TableName}} table in the {{.TableSchema}} schema
 // error - ErrNotFound, db Find error
 // error - ErrDeleteFailed, db Delete failed error
 func Delete{{.StructName}}(ctx context.Context,{{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}} {{$field.GoFieldType}},{{end}}{{end -}}) (rowsAffected int64, err error) {

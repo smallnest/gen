@@ -501,6 +501,7 @@ func (c *Config) CreateContextForTableFile(tableInfo *ModelInfo) map[string]inte
 	var modelInfo = map[string]interface{}{
 		"StructName":         tableInfo.StructName,
 		"TableName":          tableInfo.TableSchemaAndName.TableName,
+		"TableSchema":        tableInfo.TableSchemaAndName.TableSchema,
 		"TableSchemaAndName": tableInfo.TableSchemaAndName,
 		"ShortStructName":    strings.ToLower(string(tableInfo.StructName[0])),
 		"TableInfo":          tableInfo,

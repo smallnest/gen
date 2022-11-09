@@ -1,5 +1,5 @@
 {{define "dao_gorm_update.go.tmpl"}}
-// Update{{.StructName}} is a function to update a single record from {{.TableName}} table in the {{.DatabaseName}} database
+// Update{{.StructName}} is a function to update a single record from {{.TableName}} table in the {{.TableSchema}} schema
 // error - ErrNotFound, db record for id not found
 // error - ErrUpdateFailed, db meta data copy failed or db.Save call failed
 func Update{{.StructName}}(ctx context.Context, {{range $field := .TableInfo.CodeFields}} {{ if $field.PrimaryKeyArgName }} {{$field.PrimaryKeyArgName}} {{$field.GoFieldType}},{{end}}{{end -}}updated *{{.modelPackageName}}.{{.StructName}}) (result *{{.modelPackageName}}.{{.StructName}}, RowsAffected int64, err error) {

@@ -1,8 +1,8 @@
 {{define "api_getall.go.tmpl"}}
-// GetAll{{.StructName}} is a function to get a slice of record(s) from {{.TableName}} table in the {{.DatabaseName}} database
+// GetAll{{.StructName}} is a function to get a slice of record(s) from {{.TableName}} table in the {{.TableSchema}} schema
 // @Summary Get list of {{.StructName}}
 // @Tags {{.StructName}}
-// @Description GetAll{{.StructName}} is a handler to get a slice of record(s) from {{.TableName}} table in the {{.DatabaseName}} database
+// @Description GetAll{{.StructName}} is a handler to get a slice of record(s) from {{.TableName}} table in the {{.TableSchema}} schema
 // @Accept  json
 // @Produce  json
 // @Param   page     query    int     false        "page requested (defaults to 0)"

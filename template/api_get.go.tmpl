@@ -1,8 +1,8 @@
 {{define "api_get.go.tmpl"}}
-// Get{{.StructName}} is a function to get a single record from the {{.TableName}} table in the {{.DatabaseName}} database
+// Get{{.StructName}} is a function to get a single record from the {{.TableName}} table in the {{.TableSchema}} schema
 // @Summary Get record from table {{.StructName}} by {{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}} {{ $field.PrimaryKeyArgName }} {{end}}{{end}}
 // @Tags {{.StructName}}
-{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}// @ID {{ $field.PrimaryKeyArgName }}{{print "\n"}}{{end}}{{end}} // @Description Get{{.StructName}} is a function to get a single record from the {{.TableName}} table in the {{.DatabaseName}} database
+{{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}// @ID {{ $field.PrimaryKeyArgName }}{{print "\n"}}{{end}}{{end}} // @Description Get{{.StructName}} is a function to get a single record from the {{.TableName}} table in the {{.TableSchema}} schema
 // @Accept  json
 // @Produce  json
 {{range $field := .TableInfo.CodeFields}}{{ if $field.PrimaryKeyArgName}}// @Param  {{ $field.PrimaryKeyArgName }} path {{ $field.SQLMapping.SwaggerType }} true "{{ $field.ColumnMeta.Name }}"{{print "\n"}}{{end}}{{end}} // @Success 200 {object} {{.modelPackageName}}.{{.StructName}}
