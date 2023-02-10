@@ -207,6 +207,10 @@ where table_schema = '%s' AND
 }
 
 func cleanupDefault(val string) string {
+	if len(val) < 2 {
+		return val
+	}
+
 	if strings.HasPrefix(val, "(") && strings.HasSuffix(val, ")") {
 		return cleanupDefault(val[1 : len(val)-1])
 	}
