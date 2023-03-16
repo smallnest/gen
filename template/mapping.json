@@ -195,7 +195,7 @@
       "go_type": "string",
       "json_type": "Text",
       "protobuf_type": "string",
-      "guregu_type": "null.String",
+      "guregu_type": "datatypes.JSON",
       "go_nullable_type": "sql.NullString",
       "swagger_type": "string"
     },
@@ -204,7 +204,7 @@
       "go_type": "string",
       "json_type": "Text",
       "protobuf_type": "string",
-      "guregu_type": "null.String",
+      "guregu_type": "datatypes.JSON",
       "go_nullable_type": "sql.NullString",
       "swagger_type": "string"
     },

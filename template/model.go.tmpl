@@ -6,7 +6,12 @@ import (
 
     "github.com/satori/go.uuid"
     {{if .UseGuregu}} "github.com/guregu/null" {{end}}
+	"gorm.io/datatypes"
 	"gorm.io/gorm"
+)
+
+var (
+	_ = datatypes.JSON{}
 )
 
 /*
