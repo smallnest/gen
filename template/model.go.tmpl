@@ -52,7 +52,7 @@ var {{.TableName}}TableInfo = &TableInfo {
 	Name: "{{.TableName}}",
 	Columns: []*ColumnInfo{
         {{range .TableInfo.CodeFields}}
-        &ColumnInfo{
+        {
         	Index: {{.ColumnMeta.Index}},
         	Name: "{{.ColumnMeta.Name}}",
         	Comment: `{{.ColumnMeta.Comment}}`,
