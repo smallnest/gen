@@ -21,6 +21,6 @@ require (
 	github.com/rogpeppe/go-internal v1.6.2 // indirect
 	github.com/serenize/snaker v0.0.0-20171204205717-a683aaf2d516
 	github.com/sirupsen/logrus v1.7.0 // indirect
-	golang.org/x/crypto v0.0.0-20201012173705-84dcc777aaee // indirect
-	golang.org/x/tools v0.0.0-20201224043029-2b0845dc783e
+	golang.org/x/crypto v0.1.0 // indirect
+	golang.org/x/tools v0.1.12
 )
